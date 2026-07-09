@@ -124,7 +124,32 @@ cat << 'EOF' > MainWindow.xaml
                 </Setter.Value>
             </Setter>
         </Style>
-    </Window.Resources>
+    <Style TargetType="Button" x:Key="DropdownItem">
+<Setter Property="Background" Value="Transparent"/>
+<Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+<Setter Property="Cursor" Value="Hand"/>
+<Setter Property="Padding" Value="12,8"/>
+<Setter Property="Margin" Value="0,1"/>
+<Setter Property="HorizontalContentAlignment" Value="Left"/>
+<Setter Property="FontSize" Value="12"/>
+<Setter Property="FontWeight" Value="Medium"/>
+<Setter Property="Template">
+<Setter.Value>
+<ControlTemplate TargetType="Button">
+<Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+<ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+</Border>
+<ControlTemplate.Triggers>
+<Trigger Property="IsMouseOver" Value="True">
+<Setter TargetName="b" Property="Background" Value="{DynamicResource ButtonHoverBg}"/>
+<Setter Property="Foreground" Value="{DynamicResource Sky400}"/>
+</Trigger>
+</ControlTemplate.Triggers>
+</ControlTemplate>
+</Setter.Value>
+</Setter>
+</Style>
+</Window.Resources>
 
     <Grid Background="{DynamicResource BgPrimary}">
         <Grid.RowDefinitions>
@@ -156,7 +181,7 @@ cat << 'EOF' > MainWindow.xaml
         </Border>
 
         <ScrollViewer Grid.Row="1" x:Name="MainScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PanningMode="Both" 
-                      PreviewMouseWheel="MainScroll_PreviewMouseWheel" ScrollChanged="MainScroll_ScrollChanged" 
+                      PreviewMouseWheel="MainScroll_PreviewMouseWheel" ScrollChanged="MainScroll_ScrollChanged" SizeChanged="MainScroll_SizeChanged" 
                       PreviewMouseDown="MainScroll_PreviewMouseDown" PreviewMouseMove="MainScroll_PreviewMouseMove" PreviewMouseUp="MainScroll_PreviewMouseUp"
                       Background="Transparent" Panel.ZIndex="10">
             
@@ -300,7 +325,7 @@ cat << 'EOF' > MainWindow.xaml
                     </StackPanel>
                 </Button>
 
-                <Popup x:Name="ColorPopup" StaysOpen="False" PlacementTarget="{Binding ElementName=ColorBtn}" Placement="Top" VerticalOffset="-10">
+                <Popup x:Name="ColorPopup" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=ColorBtn}" Placement="Top" VerticalOffset="-10">
                     <Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="6" Padding="10">
                         <Border.Effect><DropShadowEffect BlurRadius="10" Opacity="0.3" ShadowDepth="4"/></Border.Effect>
                         <StackPanel>
@@ -331,16 +356,16 @@ cat << 'EOF' > MainWindow.xaml
                         <TextBlock x:Name="PageSizeIndicator" Text="INF" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" Margin="4,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
-                <Popup x:Name="PageSizePopup" StaysOpen="False" PlacementTarget="{Binding ElementName=PageSizeBtn}" Placement="Top" VerticalOffset="-10">
+                <Popup x:Name="PageSizePopup" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=PageSizeBtn}" Placement="Top" VerticalOffset="-10">
                     <Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="6" Padding="10">
                         <Border.Effect><DropShadowEffect BlurRadius="10" Opacity="0.3" ShadowDepth="4"/></Border.Effect>
                         <StackPanel x:Name="PageSizeList">
                             <TextBlock Text="Set Whiteboard Size:" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,6"/>
-                            <Button Content="Infinite (10000x10000)" Tag="0" Click="SelectPageSize_Click" Background="Transparent" Foreground="{DynamicResource TextPrimary}" Margin="2" Cursor="Hand" BorderThickness="0" HorizontalContentAlignment="Left"/>
-                            <Button Content="A4 Landscape (1123x794)" Tag="1" Click="SelectPageSize_Click" Background="Transparent" Foreground="{DynamicResource TextPrimary}" Margin="2" Cursor="Hand" BorderThickness="0" HorizontalContentAlignment="Left"/>
-                            <Button Content="A3 Landscape (1587x1123)" Tag="2" Click="SelectPageSize_Click" Background="Transparent" Foreground="{DynamicResource TextPrimary}" Margin="2" Cursor="Hand" BorderThickness="0" HorizontalContentAlignment="Left"/>
-                            <Button Content="Letter Landscape (1056x816)" Tag="3" Click="SelectPageSize_Click" Background="Transparent" Foreground="{DynamicResource TextPrimary}" Margin="2" Cursor="Hand" BorderThickness="0" HorizontalContentAlignment="Left"/>
-                            <Button Content="1080p FHD (1920x1080)" Tag="4" Click="SelectPageSize_Click" Background="Transparent" Foreground="{DynamicResource TextPrimary}" Margin="2" Cursor="Hand" BorderThickness="0" HorizontalContentAlignment="Left"/>
+                            <Button Content="Infinite (10000x10000)" Tag="0" Click="SelectPageSize_Click" Style="{StaticResource DropdownItem}" MinWidth="190"/>
+                            <Button Content="A4 Landscape (1123x794)" Tag="1" Click="SelectPageSize_Click" Style="{StaticResource DropdownItem}" MinWidth="190"/>
+                            <Button Content="A3 Landscape (1587x1123)" Tag="2" Click="SelectPageSize_Click" Style="{StaticResource DropdownItem}" MinWidth="190"/>
+                            <Button Content="Letter Landscape (1056x816)" Tag="3" Click="SelectPageSize_Click" Style="{StaticResource DropdownItem}" MinWidth="190"/>
+                            <Button Content="1080p FHD (1920x1080)" Tag="4" Click="SelectPageSize_Click" Style="{StaticResource DropdownItem}" MinWidth="190"/>
                         </StackPanel>
                     </Border>
                 </Popup>
@@ -351,7 +376,7 @@ cat << 'EOF' > MainWindow.xaml
                         <TextBlock Text="▼" FontSize="9" Margin="4,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
-                <Popup x:Name="BgColorPopup" StaysOpen="False" PlacementTarget="{Binding ElementName=BgColorBtn}" Placement="Top" VerticalOffset="-10">
+                <Popup x:Name="BgColorPopup" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=BgColorBtn}" Placement="Top" VerticalOffset="-10">
                     <Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="6" Padding="10">
                         <Border.Effect><DropShadowEffect BlurRadius="10" Opacity="0.3" ShadowDepth="4"/></Border.Effect>
                         <StackPanel>
@@ -1144,6 +1169,7 @@ namespace TeachingAnnotator
             MainInkCanvas.Width = Workspace.Width; MainInkCanvas.Height = Workspace.Height;
             LaserInkCanvas.Width = Workspace.Width; LaserInkCanvas.Height = Workspace.Height;
             CursorCanvas.Width = Workspace.Width; CursorCanvas.Height = Workspace.Height;
+            UpdateCanvasCentering();
 
             Workspace.UpdateLayout();
             ApplyTheme(); 
@@ -1499,7 +1525,21 @@ namespace TeachingAnnotator
             MainScroll.ScrollToHorizontalOffset((unscaledX * newZoom) - targetPos.X);
             MainScroll.ScrollToVerticalOffset((unscaledY * newZoom) - targetPos.Y);
 
+            UpdateCanvasCentering();
             Dispatcher.BeginInvoke(new Action(() => { _isZooming = false; }), DispatcherPriority.Render);
+        }
+
+        private void MainScroll_SizeChanged(object sender, SizeChangedEventArgs e) => UpdateCanvasCentering();
+
+        private void UpdateCanvasCentering()
+        {
+            if (Workspace == null || MainScroll == null) return;
+            double cw = Workspace.Width * _zoom;
+            double ch = Workspace.Height * _zoom;
+            double hMargin = (!double.IsNaN(cw) && MainScroll.ViewportWidth > cw) ? (MainScroll.ViewportWidth - cw) / 2.0 : 0;
+            double vMargin = (!double.IsNaN(ch) && MainScroll.ViewportHeight > ch) ? (MainScroll.ViewportHeight - ch) / 2.0 : 0;
+            Thickness target = new Thickness(hMargin, vMargin, 0, 0);
+            if (Workspace.Margin != target) Workspace.Margin = target;
         }
 
         private void ZoomOut_Click(object sender, RoutedEventArgs e) => PerformZoom(-0.25);
