@@ -6,8 +6,6 @@ rm -rf TeachingAnnotator
 dotnet new wpf -n TeachingAnnotator -f net8.0 --force
 cd TeachingAnnotator
 rm -f App.xaml.cs 2>/dev/null || true
-
-# ==================== CSPROJ CONFIGURATION ====================
 cat > TeachingAnnotator.csproj << 'ANYDRAW_EOF'
 <Project Sdk="Microsoft.NET.Sdk">
 
@@ -31,8 +29,6 @@ cat > TeachingAnnotator.csproj << 'ANYDRAW_EOF'
 
 </Project>
 ANYDRAW_EOF
-
-# ==================== UI MARKUP (XAML) ====================
 cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Window x:Class="TeachingAnnotator.MainWindow"
 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -160,10 +156,10 @@ FontFamily="Segoe UI, Helvetica, Arial, sans-serif">
 
 <!-- ============ LIBRARY (HOME) VIEW ============ -->
 <Grid x:Name="LibraryView" Visibility="Visible">
-<Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+<Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height=""/></Grid.RowDefinitions>
 <Border Grid.Row="0" Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="0,0,0,1" Padding="30,20">
 <Grid>
-<Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+<Grid.ColumnDefinitions><ColumnDefinition Width=""/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
 <Path Data="M12 2 L2 22 L6 22 L12 10 L18 22 L22 22 Z" Fill="{DynamicResource Sky400}" Height="22" Stretch="Uniform" Margin="0,0,10,0"/>
 <TextBlock Text="My Library" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
@@ -178,11 +174,11 @@ FontFamily="Segoe UI, Helvetica, Arial, sans-serif">
 
 <!-- ============ NOTEBOOK VIEW ============ -->
 <Grid x:Name="NotebookView" Visibility="Collapsed">
-<Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+<Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height=""/></Grid.RowDefinitions>
 
 <Border Grid.Row="0" Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="0,0,0,1" Padding="10,8" Panel.ZIndex="100">
 <Grid>
-<Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+<Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width=""/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
 <Button Style="{StaticResource TailwindButton}" Click="BackToLibrary_Click" ToolTip="Back to Library">
 <StackPanel Orientation="Horizontal"><TextBlock Text="←" FontSize="16" Margin="0,0,6,0"/><TextBlock Text="Library"/></StackPanel>
@@ -200,7 +196,7 @@ FontFamily="Segoe UI, Helvetica, Arial, sans-serif">
 </Border>
 
 <Grid Grid.Row="1">
-<Grid.ColumnDefinitions><ColumnDefinition Width="186"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+<Grid.ColumnDefinitions><ColumnDefinition Width="186"/><ColumnDefinition Width=""/></Grid.ColumnDefinitions>
 
 <Border Grid.Column="0" Background="{DynamicResource BgPanel}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="0,0,1,0">
 <DockPanel>
@@ -216,7 +212,7 @@ PreviewMouseDown="MainScroll_PreviewMouseDown" PreviewMouseMove="MainScroll_Prev
 Background="Transparent" Panel.ZIndex="10">
 <Grid x:Name="Workspace" HorizontalAlignment="Left" VerticalAlignment="Top" Background="Transparent">
 <Grid.LayoutTransform><ScaleTransform x:Name="ZoomTransform" ScaleX="1" ScaleY="1"/></Grid.LayoutTransform>
-<Border x:Name="PageHost" HorizontalAlignment="Left" VerticalAlignment="Top" Background="White">
+<Border x:Name="PageHost" HorizontalAlignment="Left" VerticalAlignment="Top" Background="White" UseLayoutRounding="True" SnapsToDevicePixels="True">
 <Border.Effect><DropShadowEffect Color="Black" BlurRadius="18" Opacity="0.5" ShadowDepth="4" Direction="270"/></Border.Effect>
 <Image x:Name="PdfImage" Stretch="Fill" RenderOptions.BitmapScalingMode="HighQuality"/>
 </Border>
@@ -322,15 +318,15 @@ MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseE
 <Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="8" Padding="10" MinWidth="200">
 <StackPanel>
 <CheckBox x:Name="LaserPermanentToggle" Content="Permanent (never vanish)" Foreground="{DynamicResource TextPrimary}" Margin="0,3,0,6" Checked="LaserPermanent_Changed" Unchecked="LaserPermanent_Changed"/>
-<Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+<Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width=""/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
 <TextBlock Grid.Column="0" Text="Vanish delay (s)" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
 <TextBox x:Name="LaserHoldInput" Grid.Column="1" Text="1.2" Width="44" TextAlignment="Center" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource Sky400}" BorderBrush="{DynamicResource BorderToolbar}" TextChanged="LaserHold_TextChanged"/>
 </Grid>
-<Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+<Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width=""/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
 <TextBlock Grid.Column="0" Text="Fade-out (s)" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
 <TextBox x:Name="LaserFadeInput" Grid.Column="1" Text="0.6" Width="44" TextAlignment="Center" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource Sky400}" BorderBrush="{DynamicResource BorderToolbar}" TextChanged="LaserFade_TextChanged"/>
 </Grid>
-<Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+<Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width=""/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
 <TextBlock Grid.Column="0" Text="Glow" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
 <Slider x:Name="LaserGlowSlider" Grid.Column="1" Minimum="1" Maximum="50" Value="18" Width="90" ValueChanged="LaserGlow_Changed" IsMoveToPointEnabled="True"/>
 </Grid>
@@ -417,8 +413,6 @@ MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseE
 </Grid>
 </Window>
 ANYDRAW_EOF
-
-# ==================== APPLICATION CORE LAYER (C#) ====================
 cat > MainWindow.xaml.cs << 'ANYDRAW_EOF'
 using System;
 using System.Collections.Generic;
@@ -1024,7 +1018,7 @@ Workspace.UpdateLayout();
 UpdateCanvasCentering();
 }
 
-// ================= THEME / PROFESSIONAL LAYOUT ENGINE =================
+// ================= THEME / GRID =================
 private void ApplyTheme()
 {
 if (_settings.IsDarkTheme)
@@ -1049,96 +1043,56 @@ Resources["TextSecondary"] = new SolidColorBrush(Color.FromRgb(75, 85, 99));
 Resources["ButtonHoverBg"] = new SolidColorBrush(Color.FromRgb(229, 231, 235));
 Resources["ButtonHoverText"] = new SolidColorBrush(Colors.Black);
 }
-RefreshPageBackground();
+UpdateGridBackground();
 }
 
-private void RefreshPageBackground()
+private void UpdateGridBackground()
 {
-if (_activePage == null || PageHost == null) return;
-if (_activePage.Kind == "Pdf")
+if (_activePage != null && _activePage.Kind != "Pdf")
 {
-PageHost.Background = Brushes.White;
-return;
+Color line = _settings.IsDarkTheme ? Color.FromRgb(65, 70, 80) : Color.FromRgb(210, 215, 225);
+PageHost.Background = CreateGridBrush(_customBgColor, line, _zoom);
 }
-
-Color bg = _customBgColor;
-Color line;
-
-// Professional Slate-Grey & Engineering Blue Palette configurations
-if (_settings.IsDarkTheme)
-{
-if (bg == Colors.White || bg == Color.FromRgb(0, 0, 0) || bg.R < 40)
-{
-line = Color.FromRgb(34, 37, 46); // Highly premium deep-slate structural rule lines
-}
-else
-{
-line = Color.FromArgb(40, 255, 255, 255); // Alpha-adaptive rule lines
-}
-}
-else
-{
-if (bg == Colors.White || bg.R > 220)
-{
-line = Color.FromRgb(220, 226, 235); // Clean engineering ivory/soft-blue grid mapping lines
-}
-else
-{
-line = Color.FromArgb(40, 0, 0, 0); // Alpha-adaptive rule lines
-}
-}
-
-PageHost.Background = CreateGridBrush(bg, line, _zoom);
 }
 
 private DrawingBrush CreateGridBrush(Color bg, Color line, double zoom)
 {
-if (zoom <= 0) zoom = 1.0;
+// Core logic to keep physical line thickness consistent on screen
+double t = Math.Max(0.75 / zoom, 0.05);
+
 var group = new DrawingGroup();
-group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(bg), Geometry = new RectangleGeometry(new Rect(0, 0, 100, 100)) });
+group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(bg), Geometry = new RectangleGeometry(new Rect(0, 0, 1000, 1000)) });
 
-if (_gridPattern == 0)
+if (_gridPattern == 1) // Graph (25x25)
 {
-return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 100, 100), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
+var pen = new Pen(new SolidColorBrush(Color.FromArgb(120, line.R, line.G, line.B)), t);
+var g = new GeometryGroup();
+g.Children.Add(new LineGeometry(new Point(0, 25), new Point(25, 25)));
+g.Children.Add(new LineGeometry(new Point(25, 0), new Point(25, 25)));
+group.Children.Add(new GeometryDrawing { Pen = pen, Geometry = g });
+
+var brush = new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 25, 25), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
+RenderOptions.SetEdgeMode(brush, EdgeMode.Aliased);
+return brush;
 }
-
-// CRITICAL ATOMIC VECTOR CORRECTION: Recalibrate thickness inversely with zoom level
-double lineThickness = 0.6 / zoom;
-if (lineThickness < 0.1) lineThickness = 0.1; // Maintain visibility ceiling
-
-var gridPen = new Pen(new SolidColorBrush(line), lineThickness);
-gridPen.StartLineCap = PenLineCap.Round;
-gridPen.EndLineCap = PenLineCap.Round;
-
-if (_gridPattern == 1) // High-Aesthetic Engineering Square Grid
+else if (_gridPattern == 2) // Dot grid (25x25 spacing)
 {
-var g1 = new GeometryGroup();
-for (int i = 20; i < 100; i += 20)
-{
-g1.Children.Add(new LineGeometry(new Point(i, 0), new Point(i, 100)));
-g1.Children.Add(new LineGeometry(new Point(0, i), new Point(100, i)));
+double r = Math.Max(1.25 / zoom, 0.2);
+group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(Color.FromArgb(160, line.R, line.G, line.B)), Geometry = new EllipseGeometry(new Point(12.5, 12.5), r, r) });
+var brush = new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 25, 25), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
+return brush;
 }
-group.Children.Add(new GeometryDrawing { Pen = gridPen, Geometry = g1 });
-return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 100, 100), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
-}
-else if (_gridPattern == 2) // High-Aesthetic Precision Dot Grid
+else if (_gridPattern == 3) // Ruled (35px spacing)
 {
-double dotRadius = 0.8 / zoom;
-if (dotRadius < 0.3) dotRadius = 0.3;
+var pen = new Pen(new SolidColorBrush(Color.FromArgb(140, line.R, line.G, line.B)), t);
+var g = new GeometryGroup();
+g.Children.Add(new LineGeometry(new Point(0, 35), new Point(35, 35)));
+group.Children.Add(new GeometryDrawing { Pen = pen, Geometry = g });
 
-var g2 = new GeometryGroup();
-g2.Children.Add(new EllipseGeometry(new Point(20, 20), dotRadius, dotRadius));
-group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(line), Geometry = g2 });
-return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 40, 40), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
+var brush = new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 35, 35), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
+RenderOptions.SetEdgeMode(brush, EdgeMode.Aliased);
+return brush;
 }
-else if (_gridPattern == 3) // Premium Executive Ruled Sheet Layout
-{
-var g3 = new GeometryGroup();
-g3.Children.Add(new LineGeometry(new Point(0, 40), new Point(40, 40)));
-group.Children.Add(new GeometryDrawing { Pen = gridPen, Geometry = g3 });
-return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 40, 40), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
-}
-
 return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 100, 100), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
 }
 
@@ -1366,15 +1320,12 @@ double uy = (MainScroll.VerticalOffset + target.Y) / oldZoom;
 _zoom = newZoom;
 ZoomTransform.ScaleX = _zoom; ZoomTransform.ScaleY = _zoom;
 UpdateZoomUI();
+UpdateGridBackground();
 Workspace.UpdateLayout();
 MainScroll.ScrollToHorizontalOffset(ux * newZoom - target.X);
 MainScroll.ScrollToVerticalOffset(uy * newZoom - target.Y);
 UpdateCanvasCentering();
 _isZooming = false;
-
-// Trigger atomic layout engine shift to rewrite canvas grid definitions mid-zoom step
-RefreshPageBackground();
-
 if (_activePage != null && _activePage.Kind == "Pdf") { _pdfQualityTimer.Stop(); _pdfQualityTimer.Start(); }
 }
 
@@ -1509,13 +1460,13 @@ ExportOverlay.Visibility = Visibility.Collapsed;
 bool ink = ExportInkCheck.IsChecked == true;
 bool bg = ExportBgCheck.IsChecked == true;
 SaveActivePageStrokes();
-var dlg = new SaveFileDialog { Filter = "PDF (.pdf)|*.pdf", FileName = Sanitize(_activeNotebook.Title) + " - " + Sanitize(_activeSection.Title) + ".pdf" };
+var dlg = new SaveFileDialog { Filter = "PDF (.pdf)|.pdf", FileName = Sanitize(_activeNotebook.Title) + " - " + Sanitize(_activeSection.Title) + ".pdf" };
 if (dlg.ShowDialog() != true) return;
 try { ExportSection(_activeSection, dlg.FileName, ink, bg); MessageBox.Show("Exported successfully!"); }
 catch (Exception ex) { MessageBox.Show("Export failed: " + ex.Message); }
 }
 
-private string Sanitize(string s) { foreach (var c in System.IO.Path.GetInvalidFileNameChars()) s = s.Replace(c, ' '); return s; }
+private string Sanitize(string s) { foreach (var c in System.IO.Path.GetInvalidFileNameChars()) s = s.Replace(c, ''); return s; }
 
 private void ExportSection(Section sec, string path, bool ink, bool bg)
 {
@@ -1558,22 +1509,27 @@ private void DrawBgGrid(XGraphics gfx, NotePage page, double w, double h)
 {
 Color bgc = SafeColor(page.BgColor, Colors.White);
 gfx.DrawRectangle(new XSolidBrush(XColor.FromArgb(255, bgc.R, bgc.G, bgc.B)), 0, 0, w, h);
-XColor line = _settings.IsDarkTheme ? XColor.FromArgb(255, 34, 37, 46) : XColor.FromArgb(255, 220, 226, 235);
-if (page.GridPattern == 1)
+XColor line = _settings.IsDarkTheme ? XColor.FromArgb(255, 65, 70, 80) : XColor.FromArgb(255, 210, 215, 225);
+
+double t = 0.5; // Print thickness
+
+if (page.GridPattern == 1) // Graph
 {
-var pen = new XPen(line, 0.6);
-for (double x = 20; x < w; x += 20) gfx.DrawLine(pen, x, 0, x, h);
-for (double y = 20; y < h; y += 20) gfx.DrawLine(pen, 0, y, w, y);
+var pen = new XPen(XColor.FromArgb(120, line.R, line.G, line.B), t);
+for (double x = 25; x < w; x += 25) gfx.DrawLine(pen, x, 0, x, h);
+for (double y = 25; y < h; y += 25) gfx.DrawLine(pen, 0, y, w, y);
 }
-else if (page.GridPattern == 2)
+else if (page.GridPattern == 2) // Dot
 {
-var b = new XSolidBrush(line);
-for (double x = 20; x < w; x += 40) for (double y = 20; y < h; y += 40) gfx.DrawEllipse(b, x - 0.8, y - 0.8, 1.6, 1.6);
+var b = new XSolidBrush(XColor.FromArgb(160, line.R, line.G, line.B));
+for (double x = 25; x < w; x += 25) 
+for (double y = 25; y < h; y += 25) 
+gfx.DrawEllipse(b, x - 0.75, y - 0.75, 1.5, 1.5);
 }
-else if (page.GridPattern == 3)
+else if (page.GridPattern == 3) // Ruled
 {
-var pen = new XPen(line, 0.6);
-for (double y = 40; y < h; y += 40) gfx.DrawLine(pen, 0, y, w, y);
+var pen = new XPen(XColor.FromArgb(140, line.R, line.G, line.B), t);
+for (double y = 35; y < h; y += 35) gfx.DrawLine(pen, 0, y, w, y);
 }
 }
 
@@ -1673,13 +1629,10 @@ MainInkCanvas.Select(ns);
 }
 }
 ANYDRAW_EOF
-
-# ==================== ENTRY APPLICATION HOOK ====================
 cat > App.xaml.cs << 'ANYDRAW_EOF'
 using System.Windows;
 namespace TeachingAnnotator { public partial class App : Application { } }
 ANYDRAW_EOF
-
 echo "==> Source written. Restoring + building (Release)..."
 dotnet build -c Release
 echo ""
