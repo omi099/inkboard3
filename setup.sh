@@ -1187,7 +1187,7 @@ namespace TeachingAnnotator
                 MainInkCanvas.IsHitTestVisible = true;
                 if (PointerBtn.IsChecked == true) MainInkCanvas.EditingMode = InkCanvasEditingMode.None;
                 else if (PenBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = active, Width = size, Height = size, FitToCurve = true, IgnorePressure = ignore, StylusTip = StylusTip.Ellipse }; }
-                else if (HighlightBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = Color.FromArgb(120, active.R, active.G, active.B), Width = size * 4, Height = size * 4, IsHighlighter = true, IgnorePressure = true, FitToCurve = false, StylusTip = StylusTip.Rectangle }; }
+                else if (HighlightBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = Color.FromArgb(80, active.R, active.G, active.B), Width = size * 4, Height = size * 4, IsHighlighter = true, IgnorePressure = true, FitToCurve = false, StylusTip = StylusTip.Rectangle }; }
                 else if (EraserBtn.IsChecked == true) { if (_settings.StrokeEraserEnabled) MainInkCanvas.EditingMode = InkCanvasEditingMode.EraseByStroke; else { MainInkCanvas.EditingMode = InkCanvasEditingMode.EraseByPoint; MainInkCanvas.EraserShape = new EllipseStylusShape(size * 4, size * 4); } }
                 else if (SelectBtn.IsChecked == true) MainInkCanvas.EditingMode = InkCanvasEditingMode.Select;
             }
@@ -1310,11 +1310,30 @@ namespace TeachingAnnotator
         private void LaserGlow_Changed(object sender, RoutedPropertyChangedEventArgs<double> e) { if (!_appLoaded) return; _settings.LaserGlow = LaserGlowSlider.Value; if (LaserBtn.IsChecked == true) ApplyPenAttributes(); ScheduleSave(); }
 
         // ================= UNDO / STROKES =================
+        private void EnforceStrokeZOrder()
+        {
+            if (MainInkCanvas == null || MainInkCanvas.Strokes.Count == 0) return;
+            var h = new StrokeCollection();
+            var n = new StrokeCollection();
+            foreach (var s in MainInkCanvas.Strokes) { if (s.DrawingAttributes.IsHighlighter) h.Add(s); else n.Add(s); }
+            bool needsFix = false;
+            for (int i = 0; i < h.Count; i++) { if (MainInkCanvas.Strokes[i] != h[i]) { needsFix = true; break; } }
+            if (!needsFix) return;
+            var selected = MainInkCanvas.GetSelectedStrokes();
+            _isUpdatingUI = true;
+            MainInkCanvas.Strokes.Clear();
+            MainInkCanvas.Strokes.Add(h);
+            MainInkCanvas.Strokes.Add(n);
+            _isUpdatingUI = false;
+            if (selected != null && selected.Count > 0) MainInkCanvas.Select(selected);
+        }
+
         private void MainInkCanvas_StrokesChanged(object sender, StrokeCollectionChangedEventArgs e)
         {
             if (_isUndoRedoActive || _isUpdatingUI) return;
             var a = new UndoAction { Added = new StrokeCollection(e.Added), Removed = new StrokeCollection(e.Removed) };
             if (a.Added.Count > 0 || a.Removed.Count > 0) { _undo.Push(a); _redo.Clear(); }
+            EnforceStrokeZOrder();
             ScheduleSave();
         }
 
@@ -1327,6 +1346,7 @@ namespace TeachingAnnotator
             if (a.Removed.Count > 0) MainInkCanvas.Strokes.Add(a.Removed);
             _redo.Push(a);
             _isUndoRedoActive = false;
+            EnforceStrokeZOrder();
             ScheduleSave();
         }
 
@@ -1339,6 +1359,7 @@ namespace TeachingAnnotator
             if (a.Added.Count > 0) MainInkCanvas.Strokes.Add(a.Added);
             _undo.Push(a);
             _isUndoRedoActive = false;
+            EnforceStrokeZOrder();
             ScheduleSave();
         }
 
@@ -1350,7 +1371,7 @@ namespace TeachingAnnotator
             if (CustomDotCursor == null) return;
             if (SelectBtn.IsChecked == true || PointerBtn.IsChecked == true) { CustomDotCursor.Visibility = Visibility.Hidden; return; }
             double size = SizeSlider.Value; Color c = ((SolidColorBrush)ActiveColorIndicator.Fill).Color;
-            if (HighlightBtn.IsChecked == true) { size *= 4; c = Color.FromArgb(120, c.R, c.G, c.B); }
+            if (HighlightBtn.IsChecked == true) { size *= 4; c = Color.FromArgb(80, c.R, c.G, c.B); }
             if (EraserBtn.IsChecked == true) { size = _settings.StrokeEraserEnabled ? 20 : size * 4; CustomDotCursor.StrokeThickness = 1; CustomDotCursor.Stroke = new SolidColorBrush(Colors.Gray); CustomDotCursor.Fill = new SolidColorBrush(Color.FromArgb(90, 255, 255, 255)); CursorGlow.Opacity = 0; }
             else { CustomDotCursor.StrokeThickness = 0; CustomDotCursor.Fill = new SolidColorBrush(Color.FromArgb(160, c.R, c.G, c.B)); CursorGlow.Color = Colors.Black; CursorGlow.Opacity = 0.4; CursorGlow.BlurRadius = 4; CursorGlow.ShadowDepth = 1; }
             CustomDotCursor.Width = size; CustomDotCursor.Height = size;
