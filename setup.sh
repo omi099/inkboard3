@@ -31,7 +31,6 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Window x:Class="TeachingAnnotator.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="clr-namespace:TeachingAnnotator"
     Title="Anydraw - Professional Whiteboard" WindowState="Maximized" WindowStartupLocation="CenterScreen"
     KeyDown="Window_KeyDown" Closing="Window_Closing" StylusInRange="Window_StylusInRange" StylusOutOfRange="Window_StylusOutOfRange"
     FontFamily="Segoe UI, Helvetica, Arial, sans-serif">
@@ -220,8 +219,12 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Rectangle x:Name="A4GuideRect" Stroke="{DynamicResource TextSecondary}" StrokeThickness="2" StrokeDashArray="6 6" Opacity="0.4"/>
 </Grid>
 <AdornerDecorator>
-<local:AnnotatorCanvas x:Name="MainInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" Focusable="True"
+<Grid>
+<InkCanvas x:Name="MainInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" Focusable="True"
   MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter"/>
+<InkCanvas x:Name="LaserInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" Focusable="False" IsHitTestVisible="False"
+  MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter"/>
+</Grid>
 </AdornerDecorator>
 <Canvas x:Name="CursorCanvas" IsHitTestVisible="False" Panel.ZIndex="999">
 <Ellipse x:Name="CustomDotCursor" Visibility="Hidden" IsHitTestVisible="False">
@@ -437,7 +440,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.Windows.Input.StylusPlugIns;
 using System.Windows.Ink;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -509,62 +511,6 @@ namespace TeachingAnnotator
     {
         public StrokeCollection Added { get; set; }
         public StrokeCollection Removed { get; set; }
-    }
-
-    public class LaserDynamicRenderer : DynamicRenderer
-    {
-        public Color CoreColor { get; set; } = Colors.White;
-        public double GlowSize { get; set; } = 18.0;
-
-        protected override void OnDraw(DrawingContext drawingContext, StylusPointCollection stylusPoints, Geometry geometry, Brush fillBrush)
-        {
-            if (this.DrawingAttributes.ContainsPropertyData(MainWindow.LaserProp))
-            {
-                if (fillBrush is SolidColorBrush scb)
-                {
-                    var c = scb.Color;
-                    if (c.A > 0)
-                    {
-                        var glowPen1 = new Pen(new SolidColorBrush(Color.FromArgb((byte)(c.A / 5), c.R, c.G, c.B)), GlowSize) { LineJoin = PenLineJoin.Round, StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
-                        var glowPen2 = new Pen(new SolidColorBrush(Color.FromArgb((byte)(c.A / 2), c.R, c.G, c.B)), GlowSize * 0.4) { LineJoin = PenLineJoin.Round, StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
-                        
-                        drawingContext.DrawGeometry(null, glowPen1, geometry);
-                        drawingContext.DrawGeometry(null, glowPen2, geometry);
-                        drawingContext.DrawGeometry(new SolidColorBrush(Color.FromArgb(c.A, CoreColor.R, CoreColor.G, CoreColor.B)), null, geometry);
-                        return;
-                    }
-                }
-            }
-            base.OnDraw(drawingContext, stylusPoints, geometry, fillBrush);
-        }
-    }
-
-    public class AnnotatorCanvas : InkCanvas
-    {
-        public LaserDynamicRenderer LaserRenderer { get; private set; }
-        private DynamicRenderer _defaultRenderer;
-
-        public AnnotatorCanvas() : base()
-        {
-            LaserRenderer = new LaserDynamicRenderer();
-            _defaultRenderer = this.DynamicRenderer;
-        }
-
-        public void EnableLaserMode(bool enable, Color coreColor, double glowSize)
-        {
-            if (enable)
-            {
-                LaserRenderer.CoreColor = coreColor;
-                LaserRenderer.GlowSize = glowSize;
-                if (this.DynamicRenderer != LaserRenderer)
-                    this.DynamicRenderer = LaserRenderer;
-            }
-            else
-            {
-                if (this.DynamicRenderer != _defaultRenderer)
-                    this.DynamicRenderer = _defaultRenderer;
-            }
-        }
     }
 
     public class LaserStroke : Stroke
@@ -668,6 +614,8 @@ namespace TeachingAnnotator
 
             MainInkCanvas.Strokes.StrokesChanged += MainInkCanvas_StrokesChanged;
             MainInkCanvas.PreviewTouchDown += Canvas_PreviewTouchDown;
+            LaserInkCanvas.Strokes.StrokesChanged += LaserInkCanvas_StrokesChanged;
+            LaserInkCanvas.PreviewTouchDown += Canvas_PreviewTouchDown;
 
             _laserFadeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(40) };
             _laserFadeTimer.Tick += LaserFadeLoop_Tick;
@@ -1052,6 +1000,7 @@ namespace TeachingAnnotator
             _activePage = page;
             _undo.Clear(); _redo.Clear();
             _isUpdatingUI = true;
+            LaserInkCanvas.Strokes.Clear();
             _laserFadeTimer.Stop();
             _isUpdatingUI = false;
             _customBgColor = SafeColor(page.BgColor, Colors.White);
@@ -1174,6 +1123,7 @@ namespace TeachingAnnotator
             }
             PageHost.Width = w; PageHost.Height = h;
             MainInkCanvas.Width = w; MainInkCanvas.Height = h;
+            LaserInkCanvas.Width = w; LaserInkCanvas.Height = h;
             CursorCanvas.Width = w; CursorCanvas.Height = h;
             Workspace.Width = w; Workspace.Height = h;
             Workspace.UpdateLayout();
@@ -1302,6 +1252,9 @@ namespace TeachingAnnotator
             Color active = ((SolidColorBrush)ActiveColorIndicator.Fill).Color;
             double size = SizeSlider.Value;
 
+            LaserInkCanvas.IsHitTestVisible = false;
+            MainInkCanvas.IsHitTestVisible = true;
+
             if (PointerBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.None; }
             else if (PenBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = active, Width = size, Height = size, FitToCurve = true, IgnorePressure = ignore, StylusTip = StylusTip.Ellipse }; }
             else if (HighlightBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = Color.FromArgb(80, active.R, active.G, active.B), Width = size * 4, Height = size * 4, IsHighlighter = true, IgnorePressure = true, FitToCurve = false, StylusTip = StylusTip.Rectangle }; }
@@ -1309,15 +1262,11 @@ namespace TeachingAnnotator
             else if (SelectBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Select; }
             else if (LaserBtn.IsChecked == true) 
             { 
-                MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; 
-                var da = new DrawingAttributes { Color = active, Width = size, Height = size, FitToCurve = true, IgnorePressure = true, StylusTip = StylusTip.Ellipse };
-                da.AddPropertyData(LaserProp, (long)0);
-                MainInkCanvas.DefaultDrawingAttributes = da;
-            }
-
-            if (MainInkCanvas is AnnotatorCanvas ac)
-            {
-                ac.EnableLaserMode(LaserBtn.IsChecked == true, _laserCoreColor, _settings.LaserGlow);
+                MainInkCanvas.IsHitTestVisible = false;
+                LaserInkCanvas.IsHitTestVisible = true;
+                LaserInkCanvas.EditingMode = InkCanvasEditingMode.Ink; 
+                LaserInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = _laserCoreColor, Width = size, Height = size, FitToCurve = true, IgnorePressure = true, StylusTip = StylusTip.Ellipse };
+                LaserInkCanvas.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = active, BlurRadius = _settings.LaserGlow, ShadowDepth = 0, Opacity = 1.0, RenderingBias = System.Windows.Media.Effects.RenderingBias.Performance };
             }
             UpdateCursor();
         }
@@ -1453,59 +1402,38 @@ namespace TeachingAnnotator
             if (selected != null && selected.Count > 0) MainInkCanvas.Select(selected);
         }
 
+        private void LaserInkCanvas_StrokesChanged(object sender, StrokeCollectionChangedEventArgs e)
+        {
+            if (_isUpdatingUI) return;
+            if (e.Added.Count > 0)
+            {
+                var toAdd = new StrokeCollection();
+                foreach (var s in e.Added)
+                {
+                    var ls = new LaserStroke(s.StylusPoints, new DrawingAttributes { Color = _laserColor, Width = s.DrawingAttributes.Width, Height = s.DrawingAttributes.Height, FitToCurve = true, IgnorePressure = true, StylusTip = StylusTip.Ellipse }, _laserCoreColor, _settings.LaserGlow);
+                    ls.AddPropertyData(LaserProp, (long)0);
+                    ls.AddPropertyData(LaserAlphaProp, _laserColor.A);
+                    toAdd.Add(ls);
+                }
+                
+                _isUpdatingUI = true;
+                LaserInkCanvas.Strokes.Clear();
+                _isUpdatingUI = false;
+                
+                MainInkCanvas.Strokes.Add(toAdd);
+                
+                _lastLaserActivityTicks = DateTime.Now.Ticks;
+                if (!_settings.LaserPermanent) _laserFadeTimer.Start();
+            }
+        }
+
         private void MainInkCanvas_StrokesChanged(object sender, StrokeCollectionChangedEventArgs e)
         {
             if (_isUpdatingUI) return;
             
-            bool laserInvolved = false;
-            var toAdd = new StrokeCollection();
-            var toRemove = new StrokeCollection();
-            
-            foreach (var s in e.Added)
-            {
-                if (s.DrawingAttributes.ContainsPropertyData(LaserProp) || s.ContainsPropertyData(LaserProp))
-                {
-                    if (s.GetType() == typeof(Stroke))
-                    {
-                        var ls = new LaserStroke(s.StylusPoints, s.DrawingAttributes, _laserCoreColor, _settings.LaserGlow);
-                        if (s.ContainsPropertyData(LaserProp)) ls.AddPropertyData(LaserProp, (long)0);
-                        else ls.AddPropertyData(LaserProp, (long)0);
-                        
-                        if (s.ContainsPropertyData(LaserAlphaProp)) ls.AddPropertyData(LaserAlphaProp, s.GetPropertyData(LaserAlphaProp));
-                        else ls.AddPropertyData(LaserAlphaProp, s.DrawingAttributes.Color.A);
-                        
-                        toRemove.Add(s);
-                        toAdd.Add(ls);
-                    }
-                    else
-                    {
-                        if (!s.ContainsPropertyData(LaserProp)) s.AddPropertyData(LaserProp, (long)0);
-                        if (!s.ContainsPropertyData(LaserAlphaProp)) s.AddPropertyData(LaserAlphaProp, s.DrawingAttributes.Color.A);
-                    }
-                    laserInvolved = true;
-                }
-            }
-
-            if (laserInvolved) _lastLaserActivityTicks = DateTime.Now.Ticks;
-
-            if (toRemove.Count > 0)
-            {
-                _isUpdatingUI = true;
-                MainInkCanvas.Strokes.Remove(toRemove);
-                MainInkCanvas.Strokes.Add(toAdd);
-                _isUpdatingUI = false;
-            }
-
-            if (laserInvolved && !_settings.LaserPermanent) _laserFadeTimer.Start();
-
             if (_isUndoRedoActive) return;
-            
-            var finalAdded = new StrokeCollection(e.Added);
-            foreach(var r in toRemove) finalAdded.Remove(r);
-            foreach(var a in toAdd) finalAdded.Add(a);
-            
-            var action = new UndoAction { Added = finalAdded, Removed = new StrokeCollection(e.Removed) };
-            if (action.Added.Count > 0 || action.Removed.Count > 0) { _undo.Push(action); _redo.Clear(); }
+            var a = new UndoAction { Added = new StrokeCollection(e.Added), Removed = new StrokeCollection(e.Removed) };
+            if (a.Added.Count > 0 || a.Removed.Count > 0) { _undo.Push(a); _redo.Clear(); }
             EnforceStrokeZOrder();
             ScheduleSave();
         }
@@ -1536,7 +1464,7 @@ namespace TeachingAnnotator
             ScheduleSave();
         }
 
-        private void ClearInk_Click(object sender, RoutedEventArgs e) { MainInkCanvas.Strokes.Clear(); }
+        private void ClearInk_Click(object sender, RoutedEventArgs e) { MainInkCanvas.Strokes.Clear(); LaserInkCanvas.Strokes.Clear(); }
 
         // ================= CURSOR =================
         private void UpdateCursor()
