@@ -12,6 +12,7 @@ cat > TeachingAnnotator.csproj << 'ANYDRAW_EOF'
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
@@ -180,6 +181,9 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Button Style="{StaticResource TailwindButton}" Click="BackToLibrary_Click" ToolTip="Back to Library">
 <StackPanel Orientation="Horizontal"><TextBlock Text="&#8592;" FontSize="16" Margin="0,0,6,0"/><TextBlock Text="Library"/></StackPanel>
 </Button>
+<Button Style="{StaticResource TailwindButton}" Click="ToggleSidebar_Click" ToolTip="Toggle Sidebar" Margin="6,0,0,0">
+<TextBlock Text="&#9776;" FontSize="16" FontWeight="Bold"/>
+</Button>
 <TextBlock x:Name="NotebookTitleText" Text="Notebook" Foreground="{DynamicResource TextPrimary}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center" Margin="12,0" Cursor="Hand" MouseLeftButtonUp="NotebookTitle_Click" ToolTip="Click to rename notebook"/>
 </StackPanel>
 <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
@@ -193,7 +197,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 </Border>
 
 <Grid Grid.Row="1">
-<Grid.ColumnDefinitions><ColumnDefinition Width="186"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+<Grid.ColumnDefinitions><ColumnDefinition x:Name="SidebarColumn" Width="186"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
 
 <Border Grid.Column="0" Background="{DynamicResource BgPanel}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="0,0,1,0">
 <DockPanel>
@@ -228,7 +232,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 </Grid>
 </ScrollViewer>
 
-<InkCanvas x:Name="LaserInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Cross" IsHitTestVisible="False" Panel.ZIndex="500"/>
+<InkCanvas x:Name="LaserInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="None" IsHitTestVisible="False" Panel.ZIndex="500" MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter"/>
 
 <Border x:Name="MainToolbar" Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="16" Padding="5,8" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,24" Panel.ZIndex="600">
 <Border.RenderTransform><TranslateTransform x:Name="ToolbarTransform" X="0" Y="0"/></Border.RenderTransform>
@@ -349,25 +353,12 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 </Border>
 </Popup>
 <Popup x:Name="BgColorPopup" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=ViewMenuToggle}" Placement="Top" VerticalOffset="-10">
-<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="8" Padding="12" MinWidth="220">
+<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="6" Padding="10">
 <StackPanel>
-<TextBlock Text="Custom Background" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" Margin="0,0,0,8"/>
-<Grid Margin="0,0,0,8">
-<Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-<StackPanel Grid.Column="0" Margin="0,0,12,0">
-<TextBlock Text="R" Foreground="{DynamicResource TextSecondary}" FontSize="10"/><Slider x:Name="BgSliderR" Maximum="255" ValueChanged="BgSlider_ValueChanged" IsMoveToPointEnabled="True" Margin="0,2,0,4"/>
-<TextBlock Text="G" Foreground="{DynamicResource TextSecondary}" FontSize="10"/><Slider x:Name="BgSliderG" Maximum="255" ValueChanged="BgSlider_ValueChanged" IsMoveToPointEnabled="True" Margin="0,2,0,4"/>
-<TextBlock Text="B" Foreground="{DynamicResource TextSecondary}" FontSize="10"/><Slider x:Name="BgSliderB" Maximum="255" ValueChanged="BgSlider_ValueChanged" IsMoveToPointEnabled="True" Margin="0,2,0,4"/>
-</StackPanel>
-<Border Grid.Column="1" x:Name="BgColorPreview" Width="40" Height="40" CornerRadius="4" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" Background="White" VerticalAlignment="Center"/>
-</Grid>
-<Grid Margin="0,0,0,8">
-<Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-<TextBlock Text="Hex:" Foreground="{DynamicResource TextSecondary}" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
-<TextBox Grid.Column="1" x:Name="BgHexInput" Text="#FFFFFF" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="4" TextChanged="BgHexInput_TextChanged"/>
-</Grid>
-<TextBlock Text="Presets" Foreground="{DynamicResource TextSecondary}" FontSize="10" Margin="0,4,0,4"/>
-<WrapPanel Width="200" x:Name="BgPaletteGrid"/>
+<TextBlock Text="Page Hex:" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,4"/>
+<TextBox x:Name="BgHexInput" Text="#FFFFFF" Width="100" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="4" Margin="0,0,0,8" TextChanged="BgHexInput_TextChanged"/>
+<WrapPanel Width="120" x:Name="BgPaletteGrid"/>
+<Button Style="{StaticResource DropdownItem}" Click="BgCustomColor_Click" Content="Custom Wheel..." Margin="0,6,0,0"/>
 </StackPanel>
 </Border>
 </Popup>
@@ -845,6 +836,7 @@ namespace TeachingAnnotator
         {
             PageThumbPanel.Children.Clear();
             if (_activeSection == null) return;
+            int activeIdx = _activeSection.Pages.IndexOf(_activePage);
             for (int i = 0; i < _activeSection.Pages.Count; i++)
             {
                 var page = _activeSection.Pages[i];
@@ -855,7 +847,7 @@ namespace TeachingAnnotator
                 {
                     var img = new Image { Stretch = Stretch.Uniform, VerticalAlignment = VerticalAlignment.Top };
                     preview.Child = img;
-                    EnsureThumb(page, img);
+                    if (Math.Abs(i - activeIdx) <= 5) EnsureThumb(page, img);
                 }
                 g.Children.Add(preview);
                 g.Children.Add(new TextBlock { Text = (i + 1).ToString(), Foreground = (Brush)FindResource("TextSecondary"), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 6) });
@@ -1031,7 +1023,7 @@ namespace TeachingAnnotator
             else
             {
                 GetBlankSize(_activePage.CanvasSizeIndex, out w, out h);
-                A4GuideContainer.Visibility = _activePage.CanvasSizeIndex == 0 ? Visibility.Visible : Visibility.Collapsed;
+                A4GuideContainer.Visibility = Visibility.Collapsed;
                 A4GuideContainer.Width = 794; A4GuideContainer.Height = 1123;
             }
             PageHost.Width = w; PageHost.Height = h;
@@ -1082,42 +1074,33 @@ namespace TeachingAnnotator
         private DrawingBrush CreateGridBrush(Color bg, Color line, double zoom)
         {
             var group = new DrawingGroup();
-            double size = (_gridPattern == 1) ? 100 : 40;
-            group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(bg), Geometry = new RectangleGeometry(new Rect(0, 0, size, size)) });
-            
+            int ts = _gridPattern == 1 ? 100 : 40;
+            group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(bg), Geometry = new RectangleGeometry(new Rect(0, 0, ts, ts)) });
             double t = 0.6 / zoom; 
-            
-            if (_gridPattern == 1) // Professional Grid Inside Grid
+            if (_gridPattern == 1)
             {
-                var minorPen = new Pen(new SolidColorBrush(Color.FromArgb((byte)(line.A * 0.4), line.R, line.G, line.B)), t);
-                var minorGroup = new GeometryGroup();
-                for (int i = 20; i < 100; i += 20) {
-                    if (i == 0 || i == 100) continue;
-                    minorGroup.Children.Add(new LineGeometry(new Point(i, 0), new Point(i, 100)));
-                    minorGroup.Children.Add(new LineGeometry(new Point(0, i), new Point(100, i)));
-                }
-                group.Children.Add(new GeometryDrawing { Pen = minorPen, Geometry = minorGroup });
-
-                var majorPen = new Pen(new SolidColorBrush(line), t * 1.5);
-                var majorGroup = new GeometryGroup();
-                majorGroup.Children.Add(new LineGeometry(new Point(100, 0), new Point(100, 100)));
-                majorGroup.Children.Add(new LineGeometry(new Point(0, 100), new Point(100, 100)));
-                group.Children.Add(new GeometryDrawing { Pen = majorPen, Geometry = majorGroup });
+                var minP = new Pen(new SolidColorBrush(Color.FromArgb((byte)(line.A/2), line.R, line.G, line.B)), t*0.5);
+                var majP = new Pen(new SolidColorBrush(line), t);
+                var minG = new GeometryGroup();
+                for (int i=20; i<100; i+=20) { minG.Children.Add(new LineGeometry(new Point(i,0), new Point(i,100))); minG.Children.Add(new LineGeometry(new Point(0,i), new Point(100,i))); }
+                group.Children.Add(new GeometryDrawing { Pen = minP, Geometry = minG });
+                var majG = new GeometryGroup();
+                majG.Children.Add(new LineGeometry(new Point(100,0), new Point(100,100))); majG.Children.Add(new LineGeometry(new Point(0,100), new Point(100,100)));
+                group.Children.Add(new GeometryDrawing { Pen = majP, Geometry = majG });
             }
-            else if (_gridPattern == 2) // Dot Grid
+            else if (_gridPattern == 2)
             {
                 double r = 1.35 / zoom;
                 group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(line), Geometry = new EllipseGeometry(new Point(20, 20), r, r) });
             }
-            else if (_gridPattern == 3) // Lined Rule
+            else if (_gridPattern == 3)
             {
                 var pen = new Pen(new SolidColorBrush(line), t);
                 var gg = new GeometryGroup();
                 gg.Children.Add(new LineGeometry(new Point(0, 40), new Point(40, 40)));
                 group.Children.Add(new GeometryDrawing { Pen = pen, Geometry = gg });
             }
-            
-            return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, size, size), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
+            return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, ts, ts), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
         }
 
         // ================= TOOLS =================
@@ -1193,36 +1176,15 @@ namespace TeachingAnnotator
 
         private void BgColorBtn_Click(object sender, RoutedEventArgs e) { if (_activePage != null) BgHexInput.Text = _activePage.BgColor; BgColorPopup.IsOpen = true; }
 
-        private bool _isUpdatingBgColor = false;
-        private void BgSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (!_appLoaded || _isUpdatingBgColor || _activePage == null) return;
-            _isUpdatingBgColor = true;
-            byte r = (byte)(BgSliderR?.Value ?? 255); byte g = (byte)(BgSliderG?.Value ?? 255); byte b = (byte)(BgSliderB?.Value ?? 255);
-            Color c = Color.FromRgb(r, g, b);
-            if (BgHexInput != null) BgHexInput.Text = c.ToString();
-            _customBgColor = c;
-            _activePage.BgColor = c.ToString();
-            if (BgColorPreview != null) BgColorPreview.Background = new SolidColorBrush(c);
-            ApplyTheme(); ScheduleSave();
-            _isUpdatingBgColor = false;
-        }
-
         private void BgHexInput_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (!_appLoaded || _activePage == null || _isUpdatingBgColor) return;
-            try { 
-                _isUpdatingBgColor = true;
-                _customBgColor = (Color)ColorConverter.ConvertFromString(BgHexInput.Text); 
-                _activePage.BgColor = BgHexInput.Text;
-                if (BgSliderR != null) { BgSliderR.Value = _customBgColor.R; BgSliderG.Value = _customBgColor.G; BgSliderB.Value = _customBgColor.B; }
-                if (BgColorPreview != null) BgColorPreview.Background = new SolidColorBrush(_customBgColor);
-                ApplyTheme(); ScheduleSave(); 
-                _isUpdatingBgColor = false;
-            } catch { _isUpdatingBgColor = false; }
+            if (!_appLoaded || _activePage == null) return;
+            try { _customBgColor = (Color)ColorConverter.ConvertFromString(BgHexInput.Text); _activePage.BgColor = BgHexInput.Text; ApplyTheme(); ScheduleSave(); } catch { }
         }
 
         private void GridToggle_Click(object sender, RoutedEventArgs e) { if (_activePage == null) return; _gridPattern = (_gridPattern + 1) % 4; _activePage.GridPattern = _gridPattern; UpdateGridBackground(); ScheduleSave(); }
+        private void BgCustomColor_Click(object sender, RoutedEventArgs e) { var dlg = new System.Windows.Forms.ColorDialog { FullOpen = true, Color = System.Drawing.Color.FromArgb(_customBgColor.A, _customBgColor.R, _customBgColor.G, _customBgColor.B) }; if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK) { BgHexInput.Text = $"#{dlg.Color.A:X2}{dlg.Color.R:X2}{dlg.Color.G:X2}{dlg.Color.B:X2}"; } }
+        private void ToggleSidebar_Click(object sender, RoutedEventArgs e) { SidebarColumn.Width = SidebarColumn.Width.Value > 0 ? new GridLength(0) : new GridLength(186); }
 
         private void PageSizeCycle_Click(object sender, RoutedEventArgs e)
         {
@@ -1333,7 +1295,7 @@ namespace TeachingAnnotator
         private void UpdateCursor()
         {
             if (CustomDotCursor == null) return;
-            if (SelectBtn.IsChecked == true || PointerBtn.IsChecked == true || LaserBtn.IsChecked == true) { CustomDotCursor.Visibility = Visibility.Hidden; return; }
+            if (SelectBtn.IsChecked == true || PointerBtn.IsChecked == true) { CustomDotCursor.Visibility = Visibility.Hidden; return; }
             double size = SizeSlider.Value; Color c = ((SolidColorBrush)ActiveColorIndicator.Fill).Color;
             if (HighlightBtn.IsChecked == true) { size *= 4; c = Color.FromArgb(120, c.R, c.G, c.B); }
             if (EraserBtn.IsChecked == true) { size = _settings.StrokeEraserEnabled ? 20 : size * 4; CustomDotCursor.StrokeThickness = 1; CustomDotCursor.Stroke = new SolidColorBrush(Colors.Gray); CustomDotCursor.Fill = new SolidColorBrush(Color.FromArgb(90, 255, 255, 255)); CursorGlow.Opacity = 0; }
@@ -1566,17 +1528,10 @@ namespace TeachingAnnotator
             
             if (page.GridPattern == 1)
             {
-                var minorPen = new XPen(XColor.FromArgb((int)(line.A * 0.4), line.R, line.G, line.B), 0.3);
-                var majorPen = new XPen(line, 0.6);
-                
-                for (double x = 20; x < w; x += 20) {
-                    var p = (Math.Abs(x % 100) < 0.1) ? majorPen : minorPen;
-                    gfx.DrawLine(p, x, 0, x, h);
-                }
-                for (double y = 20; y < h; y += 20) {
-                    var p = (Math.Abs(y % 100) < 0.1) ? majorPen : minorPen;
-                    gfx.DrawLine(p, 0, y, w, y);
-                }
+                var majP = new XPen(line, 0.5);
+                var minP = new XPen(XColor.FromArgb(line.A/2, line.R, line.G, line.B), 0.25);
+                for (double x = 20; x < w; x += 20) gfx.DrawLine(x % 100 == 0 ? majP : minP, x, 0, x, h);
+                for (double y = 20; y < h; y += 20) gfx.DrawLine(y % 100 == 0 ? majP : minP, 0, y, w, y);
             }
             else if (page.GridPattern == 2)
             {
