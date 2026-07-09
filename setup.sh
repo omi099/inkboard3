@@ -149,6 +149,32 @@ cat << 'EOF' > MainWindow.xaml
 </Setter.Value>
 </Setter>
 </Style>
+<Style TargetType="ToggleButton" x:Key="MenuToggle">
+<Setter Property="Background" Value="Transparent"/>
+<Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+<Setter Property="Cursor" Value="Hand"/>
+<Setter Property="Padding" Value="10,6"/>
+<Setter Property="Margin" Value="2,0"/>
+<Setter Property="Template">
+<Setter.Value>
+<ControlTemplate TargetType="ToggleButton">
+<Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+<ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+</Border>
+<ControlTemplate.Triggers>
+<Trigger Property="IsMouseOver" Value="True">
+<Setter TargetName="border" Property="Background" Value="{DynamicResource ButtonHoverBg}"/>
+<Setter Property="Foreground" Value="{DynamicResource ButtonHoverText}"/>
+</Trigger>
+<Trigger Property="IsChecked" Value="True">
+<Setter TargetName="border" Property="Background" Value="#1E3A8A"/>
+<Setter Property="Foreground" Value="{DynamicResource Sky400}"/>
+</Trigger>
+</ControlTemplate.Triggers>
+</ControlTemplate>
+</Setter.Value>
+</Setter>
+</Style>
 </Window.Resources>
 
     <Grid Background="{DynamicResource BgPrimary}">
@@ -246,174 +272,213 @@ cat << 'EOF' > MainWindow.xaml
             </Border.Effect>
             
             <WrapPanel x:Name="ToolbarWrapPanel" Orientation="Horizontal" VerticalAlignment="Center">
-                
-                <Border Background="Transparent" Cursor="SizeAll" MouseLeftButtonDown="ToolbarDrag_MouseDown" MouseMove="ToolbarDrag_MouseMove" MouseLeftButtonUp="ToolbarDrag_MouseUp" Padding="8,10" Margin="4,0,8,0" ToolTip="Drag Toolbar">
-                    <Path Data="M 2 4 A 1.5 1.5 0 1 1 2 7 A 1.5 1.5 0 1 1 2 4 Z M 2 10 A 1.5 1.5 0 1 1 2 13 A 1.5 1.5 0 1 1 2 10 Z M 2 16 A 1.5 1.5 0 1 1 2 19 A 1.5 1.5 0 1 1 2 16 Z M 8 4 A 1.5 1.5 0 1 1 8 7 A 1.5 1.5 0 1 1 8 4 Z M 8 10 A 1.5 1.5 0 1 1 8 13 A 1.5 1.5 0 1 1 8 10 Z M 8 16 A 1.5 1.5 0 1 1 8 19 A 1.5 1.5 0 1 1 8 16 Z" Fill="{DynamicResource TextSecondary}" Stretch="Uniform" Width="8"/>
-                </Border>
 
-                <StackPanel x:Name="PaginationPanel" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Style="{StaticResource TailwindButton}" Click="PrevPage_Click" ToolTip="Previous Page" Padding="6,6">
-                        <Path Data="M 15 4 L 7 12 L 15 20" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="14" Stretch="Uniform"/>
-                    </Button>
-                    
-                    <StackPanel Orientation="Vertical" VerticalAlignment="Center" Margin="4,0" MinWidth="32">
-                        <TextBlock x:Name="CurrentPageText" Text="1" Foreground="{DynamicResource Sky400}" VerticalAlignment="Center" FontWeight="Bold" TextAlignment="Center" FontSize="13"/>
-                        <Rectangle Height="2" Fill="{DynamicResource BorderToolbar}" Margin="2,2"/>
-                        <TextBlock x:Name="TotalPageText" Text="1" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontWeight="SemiBold" TextAlignment="Center" FontSize="11"/>
-                    </StackPanel>
+<Border Background="Transparent" Cursor="SizeAll" MouseLeftButtonDown="ToolbarDrag_MouseDown" MouseMove="ToolbarDrag_MouseMove" MouseLeftButtonUp="ToolbarDrag_MouseUp" Padding="8,10" Margin="4,0,8,0" ToolTip="Drag Toolbar">
+<Path Data="M 2 4 A 1.5 1.5 0 1 1 2 7 A 1.5 1.5 0 1 1 2 4 Z M 2 10 A 1.5 1.5 0 1 1 2 13 A 1.5 1.5 0 1 1 2 10 Z M 2 16 A 1.5 1.5 0 1 1 2 19 A 1.5 1.5 0 1 1 2 16 Z M 8 4 A 1.5 1.5 0 1 1 8 7 A 1.5 1.5 0 1 1 8 4 Z M 8 10 A 1.5 1.5 0 1 1 8 13 A 1.5 1.5 0 1 1 8 10 Z M 8 16 A 1.5 1.5 0 1 1 8 19 A 1.5 1.5 0 1 1 8 16 Z" Fill="{DynamicResource TextSecondary}" Stretch="Uniform" Width="8"/>
+</Border>
 
-                    <Button Style="{StaticResource TailwindButton}" Click="NextPage_Click" ToolTip="Next Page" Padding="6,6">
-                        <Path Data="M 9 4 L 17 12 L 9 20" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="14" Stretch="Uniform"/>
-                    </Button>
-                    <Button x:Name="AddPageBtn" Style="{StaticResource TailwindButton}" Click="AddPage_Click" ToolTip="Add Page to Current Document" Margin="0,0,8,0">
-                        <Path Data="M 14 2 L 6 2 C 4.9 2 4 2.9 4 4 L 4 20 C 4 21.1 4.9 22 6 22 L 18 22 C 19.1 22 20 21.1 20 20 L 20 8 L 14 2 Z M 12 18 L 12 14 L 8 14 L 8 12 L 12 12 L 12 8 L 14 8 L 14 12 L 18 12 L 18 14 L 14 14 L 14 18 Z" Fill="{DynamicResource Sky400}" Height="18" Stretch="Uniform"/>
-                    </Button>
-                    <Button x:Name="DeletePageBtn" Style="{StaticResource TailwindButton}" Click="DeletePage_Click" ToolTip="Delete Page" Margin="0,0,8,0">
-                        <Path Data="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" Fill="{DynamicResource Rose500}" Height="16" Stretch="Uniform"/>
-                    </Button>
-                </StackPanel>
+<Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="8,4"/>
 
-                <Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="4,4"/>
-                <Button x:Name="ManualSaveBtn" Style="{StaticResource TailwindButton}" Click="ManualSave_Click" ToolTip="Manual Save (Ctrl+S)">
-                    <Path Data="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z" Fill="{DynamicResource Sky400}" Height="16" Stretch="Uniform"/>
-                </Button>
-                <TextBlock x:Name="SaveStatusText" Text="" Foreground="{DynamicResource Sky400}" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="11" FontWeight="SemiBold"/>
+<ToggleButton x:Name="FileMenuToggle" Style="{StaticResource MenuToggle}" ToolTip="File: open, export, save">
+<StackPanel Orientation="Horizontal">
+<Path Data="M 14 2 L 6 2 C 4.9 2 4 2.9 4 4 L 4 20 C 4 21.1 4.9 22 6 22 L 18 22 C 19.1 22 20 21.1 20 20 L 20 8 L 14 2 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" StrokeThickness="2" Fill="Transparent" Height="16" Stretch="Uniform"/>
+<TextBlock Text="File" Margin="6,0,3,0" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="12"/>
+<TextBlock Text="▾" FontSize="9" VerticalAlignment="Center"/>
+</StackPanel>
+</ToggleButton>
+<Popup PlacementTarget="{Binding ElementName=FileMenuToggle}" IsOpen="{Binding IsChecked, ElementName=FileMenuToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" Placement="Top" VerticalOffset="-10">
+<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="8" Padding="6" MinWidth="200">
+<Border.Effect><DropShadowEffect BlurRadius="12" Opacity="0.35" ShadowDepth="4"/></Border.Effect>
+<StackPanel>
+<TextBlock Text="FILE" Foreground="{DynamicResource TextSecondary}" FontSize="10" FontWeight="Bold" Margin="8,4,0,4"/>
+<Button Style="{StaticResource DropdownItem}" Click="OpenPdf_Click" Content="Open PDF in Current Tab"/>
+<Button Style="{StaticResource DropdownItem}" Click="ExportAnnotated_Click" Content="Export Document"/>
+<Button x:Name="ManualSaveBtn" Style="{StaticResource DropdownItem}" Click="ManualSave_Click" Content="Save Now (Ctrl+S)"/>
+<TextBlock x:Name="SaveStatusText" Text="" Foreground="{DynamicResource Sky400}" Margin="12,2,0,2" FontSize="11" FontWeight="SemiBold"/>
+</StackPanel>
+</Border>
+</Popup>
 
-                <Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="4,4"/>
+<Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="8,4"/>
 
-                <Button Style="{StaticResource TailwindButton}" Click="OpenPdf_Click" ToolTip="Upload PDF to Current Tab">
-                    <Path Data="M 14 2 L 6 2 C 4.9 2 4 2.9 4 4 L 4 20 C 4 21.1 4.9 22 6 22 L 18 22 C 19.1 22 20 21.1 20 20 L 20 8 L 14 2 Z M 13 9 L 13 3.5 L 18.5 9 L 13 9 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="18" Stretch="Uniform"/>
-                </Button>
-                <Button Style="{StaticResource TailwindButton}" Click="ExportAnnotated_Click" ToolTip="Export Document">
-                    <Path Data="M 12 16 L 12 3 M 8 7 L 12 3 L 16 7 M 4 16 L 4 20 C 4 21.1 4.9 22 6 22 L 18 22 C 19.1 22 20 21.1 20 20 L 20 16" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="18" Stretch="Uniform"/>
-                </Button>
+<StackPanel x:Name="PaginationPanel" Orientation="Horizontal" VerticalAlignment="Center">
+<Button Style="{StaticResource TailwindButton}" Click="PrevPage_Click" ToolTip="Previous Page" Padding="6,6">
+<Path Data="M 15 4 L 7 12 L 15 20" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="14" Stretch="Uniform"/>
+</Button>
+<StackPanel Orientation="Vertical" VerticalAlignment="Center" Margin="4,0" MinWidth="32">
+<TextBlock x:Name="CurrentPageText" Text="1" Foreground="{DynamicResource Sky400}" VerticalAlignment="Center" FontWeight="Bold" TextAlignment="Center" FontSize="13"/>
+<Rectangle Height="2" Fill="{DynamicResource BorderToolbar}" Margin="2,2"/>
+<TextBlock x:Name="TotalPageText" Text="1" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontWeight="SemiBold" TextAlignment="Center" FontSize="11"/>
+</StackPanel>
+<Button Style="{StaticResource TailwindButton}" Click="NextPage_Click" ToolTip="Next Page" Padding="6,6">
+<Path Data="M 9 4 L 17 12 L 9 20" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="14" Stretch="Uniform"/>
+</Button>
+<Button x:Name="AddPageBtn" Style="{StaticResource TailwindButton}" Click="AddPage_Click" ToolTip="Add Page to Current Document" Margin="0,0,8,0">
+<Path Data="M 14 2 L 6 2 C 4.9 2 4 2.9 4 4 L 4 20 C 4 21.1 4.9 22 6 22 L 18 22 C 19.1 22 20 21.1 20 20 L 20 8 L 14 2 Z M 12 18 L 12 14 L 8 14 L 8 12 L 12 12 L 12 8 L 14 8 L 14 12 L 18 12 L 18 14 L 14 14 L 14 18 Z" Fill="{DynamicResource Sky400}" Height="18" Stretch="Uniform"/>
+</Button>
+<Button x:Name="DeletePageBtn" Style="{StaticResource TailwindButton}" Click="DeletePage_Click" ToolTip="Delete Page" Margin="0,0,8,0">
+<Path Data="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" Fill="{DynamicResource Rose500}" Height="16" Stretch="Uniform"/>
+</Button>
+</StackPanel>
 
-                <Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="8,4"/>
+<Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="8,4"/>
 
-                <RadioButton Style="{StaticResource TailwindTool}" x:Name="PointerBtn" Checked="Tool_Checked" ToolTip="Mouse Pointer (Esc)">
-                    <Path Data="M 6 4 L 14 24 L 17 17 L 24 14 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
-                </RadioButton>
-                <RadioButton Style="{StaticResource TailwindTool}" x:Name="SelectBtn" Checked="Tool_Checked" ToolTip="Lasso Select (S) | Tip: Ctrl+C / Ctrl+V to copy/paste strokes">
-                    <Path Data="M 4 10 C 6 4, 12 6, 18 8 C 22 10, 16 20, 10 18 C 4 16, 2 16, 4 10 Z M 13 13 L 20 20 M 13 13 L 13 20 M 13 13 L 20 13" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeDashArray="2,2" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
-                </RadioButton>
-                <RadioButton Style="{StaticResource TailwindTool}" x:Name="PenBtn" IsChecked="True" Checked="Tool_Checked" ToolTip="Pen (P)">
-                    <Path Data="M 18 4 L 20 6 L 9 17 L 4 18 L 5 13 Z M 16 6 L 18 8 M 4 18 C 6 24, 12 24, 16 20" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
-                </RadioButton>
-                <RadioButton Style="{StaticResource TailwindTool}" x:Name="HighlightBtn" Checked="Tool_Checked" ToolTip="Highlighter (M)">
-                    <Path Data="M 16 4 L 20 8 L 8 20 L 2 20 L 2 14 Z M 14 6 L 18 10 M 2 14 L 8 20 M 10 20 L 22 20" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
-                </RadioButton>
-                <RadioButton Style="{StaticResource TailwindTool}" x:Name="LaserBtn" Checked="Tool_Checked" ToolTip="Neon Laser (L)">
-                    <Path Data="M 7 17 L 15 9 A 2 2 0 0 1 18 12 L 10 20 A 2 2 0 0 1 7 17 Z M 13 11 A 1 1 0 1 0 14 12 A 1 1 0 0 0 13 11 M 19 3 L 20 1 M 23 7 L 25 8 M 21 5 L 23 3" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
-                </RadioButton>
-                <RadioButton Style="{StaticResource TailwindTool}" x:Name="EraserBtn" Checked="Tool_Checked" ToolTip="Eraser (E)">
-                    <Path Data="M 18 4 L 22 8 L 12 18 L 6 12 Z M 12 18 L 2 18 M 6 12 L 10 16" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
-                </RadioButton>
+<RadioButton Style="{StaticResource TailwindTool}" x:Name="PointerBtn" Checked="Tool_Checked" ToolTip="Mouse Pointer (Esc)">
+<Path Data="M 6 4 L 14 24 L 17 17 L 24 14 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
+</RadioButton>
+<RadioButton Style="{StaticResource TailwindTool}" x:Name="SelectBtn" Checked="Tool_Checked" ToolTip="Lasso Select (S)">
+<Path Data="M 4 10 C 6 4, 12 6, 18 8 C 22 10, 16 20, 10 18 C 4 16, 2 16, 4 10 Z M 13 13 L 20 20 M 13 13 L 13 20 M 13 13 L 20 13" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeDashArray="2,2" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
+</RadioButton>
+<RadioButton Style="{StaticResource TailwindTool}" x:Name="PenBtn" IsChecked="True" Checked="Tool_Checked" ToolTip="Pen (P)">
+<Path Data="M 18 4 L 20 6 L 9 17 L 4 18 L 5 13 Z M 16 6 L 18 8 M 4 18 C 6 24, 12 24, 16 20" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
+</RadioButton>
+<RadioButton Style="{StaticResource TailwindTool}" x:Name="HighlightBtn" Checked="Tool_Checked" ToolTip="Highlighter (M)">
+<Path Data="M 16 4 L 20 8 L 8 20 L 2 20 L 2 14 Z M 14 6 L 18 10 M 2 14 L 8 20 M 10 20 L 22 20" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
+</RadioButton>
+<RadioButton Style="{StaticResource TailwindTool}" x:Name="LaserBtn" Checked="Tool_Checked" ToolTip="Neon Laser (L)">
+<Path Data="M 7 17 L 15 9 A 2 2 0 0 1 18 12 L 10 20 A 2 2 0 0 1 7 17 Z M 13 11 A 1 1 0 1 0 14 12 A 1 1 0 0 0 13 11 M 19 3 L 20 1 M 23 7 L 25 8 M 21 5 L 23 3" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
+</RadioButton>
+<RadioButton Style="{StaticResource TailwindTool}" x:Name="EraserBtn" Checked="Tool_Checked" ToolTip="Eraser (E)">
+<Path Data="M 18 4 L 22 8 L 12 18 L 6 12 Z M 12 18 L 2 18 M 6 12 L 10 16" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
+</RadioButton>
 
-                <Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="12,4"/>
+<Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="12,4"/>
 
-                <Button x:Name="ColorBtn" Style="{StaticResource TailwindButton}" Click="ColorBtn_Click" ToolTip="Main Color">
-                    <StackPanel Orientation="Horizontal">
-                        <Ellipse x:Name="ActiveColorIndicator" Width="16" Height="16" Fill="#EF4444" Stroke="{DynamicResource BorderToolbar}" StrokeThickness="1"/>
-                        <TextBlock Text="▼" FontSize="9" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
-                
-                <Button x:Name="CoreColorBtn" Style="{StaticResource TailwindButton}" Click="CoreColorBtn_Click" ToolTip="Laser Core Color">
-                    <StackPanel Orientation="Horizontal">
-                        <Ellipse x:Name="ActiveCoreColorIndicator" Width="16" Height="16" Fill="#FFFFFF" Stroke="{DynamicResource BorderToolbar}" StrokeThickness="1"/>
-                        <TextBlock Text="▼" FontSize="9" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
+<Button x:Name="ColorBtn" Style="{StaticResource TailwindButton}" Click="ColorBtn_Click" ToolTip="Main Color">
+<StackPanel Orientation="Horizontal">
+<Ellipse x:Name="ActiveColorIndicator" Width="16" Height="16" Fill="#EF4444" Stroke="{DynamicResource BorderToolbar}" StrokeThickness="1"/>
+<TextBlock Text="▼" FontSize="9" Margin="4,0,0,0" VerticalAlignment="Center"/>
+</StackPanel>
+</Button>
+<Button x:Name="CoreColorBtn" Style="{StaticResource TailwindButton}" Click="CoreColorBtn_Click" ToolTip="Laser Core Color">
+<StackPanel Orientation="Horizontal">
+<Ellipse x:Name="ActiveCoreColorIndicator" Width="16" Height="16" Fill="#FFFFFF" Stroke="{DynamicResource BorderToolbar}" StrokeThickness="1"/>
+<TextBlock Text="▼" FontSize="9" Margin="4,0,0,0" VerticalAlignment="Center"/>
+</StackPanel>
+</Button>
+<Popup x:Name="ColorPopup" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=ColorBtn}" Placement="Top" VerticalOffset="-10">
+<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="6" Padding="10">
+<Border.Effect><DropShadowEffect BlurRadius="10" Opacity="0.3" ShadowDepth="4"/></Border.Effect>
+<StackPanel>
+<TextBlock x:Name="PopupColorLabel" Text="Color Hex:" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,4"/>
+<TextBox x:Name="HexInput" Text="#EF4444" Width="100" Background="{DynamicResource BgPrimary}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="4" Margin="0,0,0,8" TextChanged="HexInput_TextChanged"/>
+<WrapPanel Width="120" x:Name="PaletteGrid"/>
+</StackPanel>
+</Border>
+</Popup>
+<Slider x:Name="SizeSlider" Minimum="0.5" Maximum="50" Value="4" Width="60" VerticalAlignment="Center" Margin="5,0" ValueChanged="Size_Changed" IsMoveToPointEnabled="True"/>
+<TextBox x:Name="SizeInput" Text="{Binding Value, ElementName=SizeSlider, UpdateSourceTrigger=PropertyChanged, StringFormat=F1}" Width="28" TextAlignment="Center" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="Bold" Background="Transparent" Foreground="{DynamicResource TextPrimary}" BorderThickness="0"/>
 
-                <Popup x:Name="ColorPopup" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=ColorBtn}" Placement="Top" VerticalOffset="-10">
-                    <Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="6" Padding="10">
-                        <Border.Effect><DropShadowEffect BlurRadius="10" Opacity="0.3" ShadowDepth="4"/></Border.Effect>
-                        <StackPanel>
-                            <TextBlock x:Name="PopupColorLabel" Text="Color Hex:" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,4"/>
-                            <TextBox x:Name="HexInput" Text="#EF4444" Width="100" Background="{DynamicResource BgPrimary}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="4" Margin="0,0,0,8" TextChanged="HexInput_TextChanged"/>
-                            <WrapPanel Width="120" x:Name="PaletteGrid"/>
-                        </StackPanel>
-                    </Border>
-                </Popup>
+<ToggleButton x:Name="StrokeMenuToggle" Style="{StaticResource MenuToggle}" ToolTip="Stroke options">
+<StackPanel Orientation="Horizontal">
+<TextBlock Text="Stroke" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="12"/>
+<TextBlock Text="▾" FontSize="9" Margin="4,0,0,0" VerticalAlignment="Center"/>
+</StackPanel>
+</ToggleButton>
+<Popup PlacementTarget="{Binding ElementName=StrokeMenuToggle}" IsOpen="{Binding IsChecked, ElementName=StrokeMenuToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" Placement="Top" VerticalOffset="-10">
+<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="8" Padding="10" MinWidth="180">
+<Border.Effect><DropShadowEffect BlurRadius="12" Opacity="0.35" ShadowDepth="4"/></Border.Effect>
+<StackPanel>
+<TextBlock Text="STROKE" Foreground="{DynamicResource TextSecondary}" FontSize="10" FontWeight="Bold" Margin="0,0,0,6"/>
+<CheckBox x:Name="PressureToggle" Content="Pen Pressure" IsChecked="True" Foreground="{DynamicResource TextPrimary}" Margin="0,4" Checked="Pressure_Changed" Unchecked="Pressure_Changed" FontWeight="SemiBold" ToolTip="Enable Pen Pressure Sensitivity"/>
+<CheckBox x:Name="StrokeEraserToggle" Content="Stroke Eraser" IsChecked="True" Foreground="{DynamicResource TextPrimary}" Margin="0,4" Checked="EraserMode_Changed" Unchecked="EraserMode_Changed" FontWeight="SemiBold" ToolTip="Uncheck to erase exact pixels instead of whole strokes."/>
+<CheckBox x:Name="PdfCanvasToggle" Content="Unlock PDF Canvas" Foreground="{DynamicResource TextPrimary}" Margin="0,4" Checked="PdfCanvas_Changed" Unchecked="PdfCanvas_Changed" FontWeight="SemiBold" ToolTip="Expand canvas for margin notes"/>
+</StackPanel>
+</Border>
+</Popup>
 
-                <Slider x:Name="SizeSlider" Minimum="0.5" Maximum="50" Value="4" Width="60" VerticalAlignment="Center" Margin="5,0" ValueChanged="Size_Changed" IsMoveToPointEnabled="True"/>
-                <TextBox x:Name="SizeInput" Text="{Binding Value, ElementName=SizeSlider, UpdateSourceTrigger=PropertyChanged, StringFormat=F1}" Width="28" TextAlignment="Center" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="Bold" Background="Transparent" Foreground="{DynamicResource TextPrimary}" BorderThickness="0"/>
+<Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="8,4"/>
 
-                <CheckBox x:Name="PressureToggle" Content="Pressure" IsChecked="True" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,10,0" Checked="Pressure_Changed" Unchecked="Pressure_Changed" FontWeight="SemiBold" ToolTip="Enable Pen Pressure Sensitivity"/>
-                <CheckBox x:Name="StrokeEraserToggle" Content="Stroke Erase" IsChecked="True" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,10,0" Checked="EraserMode_Changed" Unchecked="EraserMode_Changed" FontWeight="SemiBold" ToolTip="Uncheck to erase exact pixels instead of whole strokes."/>
+<Button x:Name="PageSizeBtn" Style="{StaticResource TailwindButton}" Click="PageSizeBtn_Click" ToolTip="Canvas Size (Whiteboard Only)">
+<StackPanel Orientation="Horizontal">
+<Path Data="M 14 2 L 6 2 C 4.9 2 4 2.9 4 4 L 4 20 C 4 21.1 4.9 22 6 22 L 18 22 C 19.1 22 20 21.1 20 20 L 20 8 L 14 2 Z" Stroke="{DynamicResource TextSecondary}" StrokeThickness="2" Fill="Transparent" Height="16" Stretch="Uniform"/>
+<TextBlock x:Name="PageSizeIndicator" Text="INF" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+</StackPanel>
+</Button>
+<Popup x:Name="PageSizePopup" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=PageSizeBtn}" Placement="Top" VerticalOffset="-10">
+<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="6" Padding="10">
+<Border.Effect><DropShadowEffect BlurRadius="10" Opacity="0.3" ShadowDepth="4"/></Border.Effect>
+<StackPanel x:Name="PageSizeList">
+<TextBlock Text="Set Whiteboard Size:" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,6"/>
+<Button Content="Infinite (10000x10000)" Tag="0" Click="SelectPageSize_Click" Style="{StaticResource DropdownItem}" MinWidth="190"/>
+<Button Content="A4 Landscape (1123x794)" Tag="1" Click="SelectPageSize_Click" Style="{StaticResource DropdownItem}" MinWidth="190"/>
+<Button Content="A3 Landscape (1587x1123)" Tag="2" Click="SelectPageSize_Click" Style="{StaticResource DropdownItem}" MinWidth="190"/>
+<Button Content="Letter Landscape (1056x816)" Tag="3" Click="SelectPageSize_Click" Style="{StaticResource DropdownItem}" MinWidth="190"/>
+<Button Content="1080p FHD (1920x1080)" Tag="4" Click="SelectPageSize_Click" Style="{StaticResource DropdownItem}" MinWidth="190"/>
+</StackPanel>
+</Border>
+</Popup>
+<Button x:Name="BgColorBtn" Style="{StaticResource TailwindButton}" Click="BgColorBtn_Click" ToolTip="Background Color">
+<StackPanel Orientation="Horizontal">
+<Rectangle x:Name="ActiveBgIndicator" Width="16" Height="16" Fill="#151515" Stroke="{DynamicResource BorderToolbar}" StrokeThickness="1" RadiusX="2" RadiusY="2"/>
+<TextBlock Text="▼" FontSize="9" Margin="4,0,0,0" VerticalAlignment="Center"/>
+</StackPanel>
+</Button>
+<Popup x:Name="BgColorPopup" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=BgColorBtn}" Placement="Top" VerticalOffset="-10">
+<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="6" Padding="10">
+<Border.Effect><DropShadowEffect BlurRadius="10" Opacity="0.3" ShadowDepth="4"/></Border.Effect>
+<StackPanel>
+<TextBlock Text="Canvas Hex:" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,4"/>
+<TextBox x:Name="BgHexInput" Text="#151515" Width="100" Background="{DynamicResource BgPrimary}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="4" Margin="0,0,0,8" TextChanged="BgHexInput_TextChanged"/>
+<WrapPanel Width="120" x:Name="BgPaletteGrid"/>
+</StackPanel>
+</Border>
+</Popup>
+<Button Style="{StaticResource TailwindButton}" Click="GridToggle_Click" ToolTip="Cycle Grid Patterns (G)">
+<Path Data="M 3 3 L 21 3 L 21 21 L 3 21 Z M 9 3 L 9 21 M 15 3 L 15 21 M 3 9 L 21 9 M 3 15 L 21 15" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="16" Stretch="Uniform"/>
+</Button>
 
-                <Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="5,4"/>
+<ToggleButton x:Name="LaserMenuToggle" Style="{StaticResource MenuToggle}" ToolTip="Laser options">
+<StackPanel Orientation="Horizontal">
+<TextBlock Text="Laser" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="12"/>
+<TextBlock Text="▾" FontSize="9" Margin="4,0,0,0" VerticalAlignment="Center"/>
+</StackPanel>
+</ToggleButton>
+<Popup PlacementTarget="{Binding ElementName=LaserMenuToggle}" IsOpen="{Binding IsChecked, ElementName=LaserMenuToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" Placement="Top" VerticalOffset="-10">
+<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="8" Padding="10" MinWidth="210">
+<Border.Effect><DropShadowEffect BlurRadius="12" Opacity="0.35" ShadowDepth="4"/></Border.Effect>
+<StackPanel>
+<TextBlock Text="LASER" Foreground="{DynamicResource TextSecondary}" FontSize="10" FontWeight="Bold" Margin="0,0,0,6"/>
+<CheckBox x:Name="LaserPermanentToggle" Content="Permanent Laser (never vanish)" Foreground="{DynamicResource TextPrimary}" Margin="0,4" Checked="LaserPermanent_Changed" Unchecked="LaserPermanent_Changed" FontWeight="SemiBold" ToolTip="When on, the laser stays until cleared. When off, it vanishes when the pen leaves the tablet range."/>
+<StackPanel Orientation="Horizontal" Margin="0,6,0,2">
+<TextBlock Text="Fade delay (s)" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" FontSize="12" Width="120"/>
+<TextBox x:Name="LaserDelayInput" Text="1.7" Width="44" TextAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" Background="{DynamicResource BgPrimary}" Foreground="{DynamicResource Sky400}" BorderBrush="{DynamicResource BorderToolbar}" Padding="3" TextChanged="LaserDelayInput_TextChanged" ToolTip="Laser Fade Delay (seconds)"/>
+</StackPanel>
+<StackPanel Orientation="Horizontal" Margin="0,6,0,2">
+<TextBlock Text="Glow" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" FontSize="12" Width="70"/>
+<Slider x:Name="LaserGlowSlider" Minimum="1" Maximum="50" Value="15" Width="90" VerticalAlignment="Center" Margin="0,0,6,0" ValueChanged="Size_Changed" IsMoveToPointEnabled="True"/>
+<TextBox x:Name="LaserGlowInput" Text="{Binding Value, ElementName=LaserGlowSlider, UpdateSourceTrigger=PropertyChanged, StringFormat=F1}" Width="40" TextAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" Background="Transparent" Foreground="{DynamicResource Sky400}" BorderThickness="0"/>
+</StackPanel>
+</StackPanel>
+</Border>
+</Popup>
 
-                <Button Style="{StaticResource TailwindButton}" Click="ToggleInk_Click" ToolTip="Hide/Show Ink Layers (V)">
-                    <Path Data="M 12 4.5 C 7 4.5 2.73 7.61 1 12 C 2.73 16.39 7 19.5 12 19.5 C 17 19.5 21.27 16.39 23 12 C 21.27 7.61 17 4.5 12 4.5 Z M 12 17 C 9.24 17 7 14.76 7 12 C 7 9.24 9.24 7 12 7 C 14.76 7 17 9.24 17 12 C 17 14.76 14.76 17 12 17 Z M 12 9 C 10.34 9 9 10.34 9 12 C 9 13.66 10.34 15 12 15 C 13.66 15 15 13.66 15 12 C 15 10.34 13.66 9 12 9 Z" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Height="16" Stretch="Uniform"/>
-                </Button>
+<ToggleButton x:Name="ViewMenuToggle" Style="{StaticResource MenuToggle}" ToolTip="View options">
+<StackPanel Orientation="Horizontal">
+<TextBlock Text="View" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="12"/>
+<TextBlock Text="▾" FontSize="9" Margin="4,0,0,0" VerticalAlignment="Center"/>
+</StackPanel>
+</ToggleButton>
+<Popup PlacementTarget="{Binding ElementName=ViewMenuToggle}" IsOpen="{Binding IsChecked, ElementName=ViewMenuToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" Placement="Top" VerticalOffset="-10">
+<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="8" Padding="6" MinWidth="200">
+<Border.Effect><DropShadowEffect BlurRadius="12" Opacity="0.35" ShadowDepth="4"/></Border.Effect>
+<StackPanel>
+<TextBlock Text="VIEW" Foreground="{DynamicResource TextSecondary}" FontSize="10" FontWeight="Bold" Margin="8,4,0,4"/>
+<Button Style="{StaticResource DropdownItem}" Click="ToggleInk_Click" Content="Hide / Show Ink (V)"/>
+<Button Style="{StaticResource DropdownItem}" Click="ToggleToolbar_Click" Content="Dock Toolbar Bottom/Left (D)"/>
+<Button Style="{StaticResource DropdownItem}" Click="FullScreen_Click" Content="Cycle Full Screen (F)"/>
+<Button Style="{StaticResource DropdownItem}" Click="Theme_Click" Content="Toggle Dark/Light (T)"/>
+</StackPanel>
+</Border>
+</Popup>
 
-                <CheckBox x:Name="PdfCanvasToggle" Content="Unlock PDF" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,10,0" Checked="PdfCanvas_Changed" Unchecked="PdfCanvas_Changed" FontWeight="SemiBold" ToolTip="Expand canvas for margin notes"/>
+<Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="12,4"/>
 
-                <Button x:Name="PageSizeBtn" Style="{StaticResource TailwindButton}" Click="PageSizeBtn_Click" ToolTip="Canvas Size (Whiteboard Only)">
-                    <StackPanel Orientation="Horizontal">
-                        <Path Data="M 14 2 L 6 2 C 4.9 2 4 2.9 4 4 L 4 20 C 4 21.1 4.9 22 6 22 L 18 22 C 19.1 22 20 21.1 20 20 L 20 8 L 14 2 Z" Stroke="{DynamicResource TextSecondary}" StrokeThickness="2" Fill="Transparent" Height="16" Stretch="Uniform"/>
-                        <TextBlock x:Name="PageSizeIndicator" Text="INF" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
-                <Popup x:Name="PageSizePopup" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=PageSizeBtn}" Placement="Top" VerticalOffset="-10">
-                    <Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="6" Padding="10">
-                        <Border.Effect><DropShadowEffect BlurRadius="10" Opacity="0.3" ShadowDepth="4"/></Border.Effect>
-                        <StackPanel x:Name="PageSizeList">
-                            <TextBlock Text="Set Whiteboard Size:" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,6"/>
-                            <Button Content="Infinite (10000x10000)" Tag="0" Click="SelectPageSize_Click" Style="{StaticResource DropdownItem}" MinWidth="190"/>
-                            <Button Content="A4 Landscape (1123x794)" Tag="1" Click="SelectPageSize_Click" Style="{StaticResource DropdownItem}" MinWidth="190"/>
-                            <Button Content="A3 Landscape (1587x1123)" Tag="2" Click="SelectPageSize_Click" Style="{StaticResource DropdownItem}" MinWidth="190"/>
-                            <Button Content="Letter Landscape (1056x816)" Tag="3" Click="SelectPageSize_Click" Style="{StaticResource DropdownItem}" MinWidth="190"/>
-                            <Button Content="1080p FHD (1920x1080)" Tag="4" Click="SelectPageSize_Click" Style="{StaticResource DropdownItem}" MinWidth="190"/>
-                        </StackPanel>
-                    </Border>
-                </Popup>
+<Button Style="{StaticResource TailwindButton}" Click="ClearInk_Click" ToolTip="Clear Board">
+<TextBlock Text="Clear" Foreground="{DynamicResource Rose500}" FontWeight="SemiBold"/>
+</Button>
 
-                <Button x:Name="BgColorBtn" Style="{StaticResource TailwindButton}" Click="BgColorBtn_Click" ToolTip="Background Color">
-                    <StackPanel Orientation="Horizontal">
-                        <Rectangle x:Name="ActiveBgIndicator" Width="16" Height="16" Fill="#151515" Stroke="{DynamicResource BorderToolbar}" StrokeThickness="1" RadiusX="2" RadiusY="2"/>
-                        <TextBlock Text="▼" FontSize="9" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
-                <Popup x:Name="BgColorPopup" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=BgColorBtn}" Placement="Top" VerticalOffset="-10">
-                    <Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="6" Padding="10">
-                        <Border.Effect><DropShadowEffect BlurRadius="10" Opacity="0.3" ShadowDepth="4"/></Border.Effect>
-                        <StackPanel>
-                            <TextBlock Text="Canvas Hex:" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,4"/>
-                            <TextBox x:Name="BgHexInput" Text="#151515" Width="100" Background="{DynamicResource BgPrimary}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="4" Margin="0,0,0,8" TextChanged="BgHexInput_TextChanged"/>
-                            <WrapPanel Width="120" x:Name="BgPaletteGrid"/>
-                        </StackPanel>
-                    </Border>
-                </Popup>
-
-                <Button Style="{StaticResource TailwindButton}" Click="GridToggle_Click" ToolTip="Cycle Grid Patterns (G)">
-                    <Path Data="M 3 3 L 21 3 L 21 21 L 3 21 Z M 9 3 L 9 21 M 15 3 L 15 21 M 3 9 L 21 9 M 3 15 L 21 15" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="16" Stretch="Uniform"/>
-                </Button>
-
-                <TextBlock Text="⏱️" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" Margin="5,0"/>
-                <TextBox x:Name="LaserDelayInput" Text="1.7" Width="28" TextAlignment="Center" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold" Background="Transparent" Foreground="{DynamicResource Sky400}" BorderThickness="0" TextChanged="LaserDelayInput_TextChanged" ToolTip="Laser Fade Delay (seconds)"/>
-                
-                <TextBlock Text="🌟" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" Margin="5,0" ToolTip="Laser Glow Intensity"/>
-                <Slider x:Name="LaserGlowSlider" Minimum="1" Maximum="50" Value="15" Width="40" VerticalAlignment="Center" Margin="0,0,5,0" ValueChanged="Size_Changed" IsMoveToPointEnabled="True"/>
-                <TextBox x:Name="LaserGlowInput" Text="{Binding Value, ElementName=LaserGlowSlider, UpdateSourceTrigger=PropertyChanged, StringFormat=F1}" Width="28" TextAlignment="Center" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold" Background="Transparent" Foreground="{DynamicResource Sky400}" BorderThickness="0"/>
-
-                <Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="0,4,12,4"/>
-                
-                <Button Style="{StaticResource TailwindButton}" Click="ToggleToolbar_Click" ToolTip="Dock Toolbar Bottom/Left (D)">
-                    <Path Data="M 3 3 L 9 3 L 9 21 L 3 21 Z M 11 3 L 21 3 L 21 9 L 11 9 Z M 11 11 L 21 11 L 21 21 L 11 21 Z" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Height="16" Stretch="Uniform"/>
-                </Button>
-                
-                <Button Style="{StaticResource TailwindButton}" Click="FullScreen_Click" ToolTip="Cycle Full Screen Modes (F)">
-                    <Path Data="M 3 3 L 9 3 L 9 5 L 5 5 L 5 9 L 3 9 Z M 21 3 L 15 3 L 15 5 L 19 5 L 19 9 L 21 9 Z M 3 21 L 9 21 L 9 19 L 5 19 L 5 15 L 3 15 Z M 21 21 L 15 21 L 15 19 L 19 19 L 19 15 L 21 15 Z" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Height="16" Stretch="Uniform"/>
-                </Button>
-                <Button Style="{StaticResource TailwindButton}" Click="Theme_Click" ToolTip="Toggle Dark/Light Mode">
-                    <Path Data="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Height="16" Stretch="Uniform"/>
-                </Button>
-                <Button Style="{StaticResource TailwindButton}" Click="ClearInk_Click" ToolTip="Clear Board">
-                    <TextBlock Text="Clear" Foreground="{DynamicResource Rose500}" FontWeight="SemiBold"/>
-                </Button>
-            </WrapPanel>
+</WrapPanel>
         </Border>
 
         <Border Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,30,30" Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="8" Padding="4" Panel.ZIndex="100">
