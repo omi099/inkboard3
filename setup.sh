@@ -38,7 +38,7 @@ cat << 'EOF' > MainWindow.xaml
         Title="Anydraw - Professional Whiteboard" 
         WindowState="Maximized" 
         WindowStartupLocation="CenterScreen"
-        KeyDown="Window_KeyDown" Closing="Window_Closing" FontFamily="Segoe UI, Helvetica, Arial, sans-serif">
+        KeyDown="Window_KeyDown" Closing="Window_Closing" StylusOutOfRange="Window_StylusOutOfRange" FontFamily="Segoe UI, Helvetica, Arial, sans-serif">
 
     <Window.Resources>
         <SolidColorBrush x:Key="BgPrimary" Color="#000000"/>
@@ -649,6 +649,16 @@ namespace TeachingAnnotator
             if (action.AddedStrokes.Count > 0) MainInkCanvas.Strokes.Add(action.AddedStrokes);
             _undoStack.Push(action);
             _isUndoRedoActive = false;
+        }
+
+        private void Window_StylusOutOfRange(object sender, StylusEventArgs e)
+        {
+            // Pen left the Wacom tablet's proximity/hover range -> force the laser trail to fade out immediately.
+            if (_laserStrokes.Count > 0)
+            {
+                _lastLaserActivityTime = DateTime.MinValue;
+                if (!_laserTimer.IsEnabled) _laserTimer.Start();
+            }
         }
 
         private void LaserActivity_MouseDown(object sender, MouseButtonEventArgs e) { if (LaserBtn.IsChecked == true) _lastLaserActivityTime = DateTime.Now; }
