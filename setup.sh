@@ -509,6 +509,36 @@ namespace TeachingAnnotator
         public StrokeCollection Removed { get; set; }
     }
 
+    public class LaserDynamicRenderer : DynamicRenderer
+    {
+        public Color CoreColor { get; set; } = Colors.White;
+        public double GlowSize { get; set; } = 18.0;
+
+        protected override void OnDraw(DrawingContext drawingContext, StylusPointCollection stylusPoints, Geometry geometry, Brush fillBrush)
+        {
+            if (this.DrawingAttributes.ContainsPropertyData(MainWindow.LaserProp))
+            {
+                if (fillBrush is SolidColorBrush scb)
+                {
+                    var c = scb.Color;
+                    if (c.A > 0)
+                    {
+                        var glowPen1 = new Pen(new SolidColorBrush(Color.FromArgb((byte)(c.A / 5), c.R, c.G, c.B)), GlowSize) { LineJoin = PenLineJoin.Round, StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+                        var glowPen2 = new Pen(new SolidColorBrush(Color.FromArgb((byte)(c.A / 2), c.R, c.G, c.B)), GlowSize * 0.4) { LineJoin = PenLineJoin.Round, StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+                        
+                        drawingContext.DrawGeometry(null, glowPen1, geometry);
+                        drawingContext.DrawGeometry(null, glowPen2, geometry);
+                        drawingContext.DrawGeometry(new SolidColorBrush(Color.FromArgb(c.A, CoreColor.R, CoreColor.G, CoreColor.B)), null, geometry);
+                    }
+                }
+            }
+            else
+            {
+                base.OnDraw(drawingContext, stylusPoints, geometry, fillBrush);
+            }
+        }
+    }
+
     public class LaserStroke : Stroke
     {
         public Color CoreColor { get; set; }
@@ -564,12 +594,12 @@ namespace TeachingAnnotator
 
         private double _pdfDisplayW = 1123, _pdfDisplayH = 794;
 
-        private bool _penInRange = false;
         public static readonly Guid LaserProp = new Guid("11111111-2222-3333-4444-555555555555");
         public static readonly Guid LaserAlphaProp = new Guid("22222222-3333-4444-5555-666666666666");
         private DispatcherTimer _laserFadeTimer;
         private DispatcherTimer _saveDebounce;
         private long _lastLaserActivityTicks = 0;
+        private LaserDynamicRenderer _laserRenderer;
         private DispatcherTimer _pdfQualityTimer;
 
         private Stack<UndoAction> _undo = new Stack<UndoAction>();
@@ -610,6 +640,9 @@ namespace TeachingAnnotator
 
             MainInkCanvas.Strokes.StrokesChanged += MainInkCanvas_StrokesChanged;
             MainInkCanvas.PreviewTouchDown += Canvas_PreviewTouchDown;
+
+            _laserRenderer = new LaserDynamicRenderer();
+            MainInkCanvas.DynamicRenderer = _laserRenderer;
 
             _laserFadeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(40) };
             _laserFadeTimer.Tick += LaserFadeLoop_Tick;
@@ -1256,6 +1289,11 @@ namespace TeachingAnnotator
                 da.AddPropertyData(LaserProp, (long)0);
                 MainInkCanvas.DefaultDrawingAttributes = da;
             }
+            if (_laserRenderer != null)
+            {
+                _laserRenderer.CoreColor = _laserCoreColor;
+                _laserRenderer.GlowSize = _settings.LaserGlow;
+            }
             UpdateCursor();
         }
 
@@ -1357,8 +1395,8 @@ namespace TeachingAnnotator
             if (!hasLaser) _laserFadeTimer.Stop();
         }
 
-        private void Window_StylusInRange(object sender, StylusEventArgs e) { _penInRange = true; _lastLaserActivityTicks = DateTime.Now.Ticks; }
-        private void Window_StylusOutOfRange(object sender, StylusEventArgs e) { _penInRange = false; _lastLaserActivityTicks = DateTime.Now.Ticks; }
+        private void Window_StylusInRange(object sender, StylusEventArgs e) { _lastLaserActivityTicks = DateTime.Now.Ticks; }
+        private void Window_StylusOutOfRange(object sender, StylusEventArgs e) { _lastLaserActivityTicks = DateTime.Now.Ticks; }
 
         private void LaserPermanent_Changed(object sender, RoutedEventArgs e)
         {
