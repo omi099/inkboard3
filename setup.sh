@@ -181,13 +181,15 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Button Style="{StaticResource TailwindButton}" Click="BackToLibrary_Click" ToolTip="Back to Library">
 <StackPanel Orientation="Horizontal"><TextBlock Text="&#8592;" FontSize="16" Margin="0,0,6,0"/><TextBlock Text="Library"/></StackPanel>
 </Button>
+<Button Style="{StaticResource TailwindButton}" Click="ToggleSidebar_Click" ToolTip="Toggle Sidebar" Margin="6,0,0,0">
+<TextBlock Text="&#9776;" FontSize="16" FontWeight="Bold"/>
+</Button>
 <TextBlock x:Name="NotebookTitleText" Text="Notebook" Foreground="{DynamicResource TextPrimary}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center" Margin="12,0" Cursor="Hand" MouseLeftButtonUp="NotebookTitle_Click" ToolTip="Click to rename notebook"/>
 </StackPanel>
 <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
 <StackPanel x:Name="SectionTabsPanel" Orientation="Horizontal" VerticalAlignment="Center"/>
 </ScrollViewer>
 <StackPanel Grid.Column="2" Orientation="Horizontal">
-<Button Style="{StaticResource TailwindButton}" Click="ToggleSidebar_Click" ToolTip="Toggle Sidebar" Content="☰ Sidebar"/>
 <Button Style="{StaticResource TailwindButton}" Click="AddSection_Click" ToolTip="Add Section" Content="+ Section"/>
 <Button Style="{StaticResource TailwindButton}" Click="RenameSection_Click" ToolTip="Rename Section" Content="Rename"/>
 </StackPanel>
@@ -230,7 +232,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 </Grid>
 </ScrollViewer>
 
-<InkCanvas x:Name="LaserInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" IsHitTestVisible="False" Panel.ZIndex="500" MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter"/>
+<InkCanvas x:Name="LaserInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="None" IsHitTestVisible="False" Panel.ZIndex="500" MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter"/>
 
 <Border x:Name="MainToolbar" Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="16" Padding="5,8" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,24" Panel.ZIndex="600">
 <Border.RenderTransform><TranslateTransform x:Name="ToolbarTransform" X="0" Y="0"/></Border.RenderTransform>
@@ -356,6 +358,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <TextBlock Text="Page Hex:" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,4"/>
 <TextBox x:Name="BgHexInput" Text="#FFFFFF" Width="100" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="4" Margin="0,0,0,8" TextChanged="BgHexInput_TextChanged"/>
 <WrapPanel Width="120" x:Name="BgPaletteGrid"/>
+<Button Style="{StaticResource DropdownItem}" Click="BgCustomColor_Click" Content="Custom Wheel..." Margin="0,6,0,0"/>
 </StackPanel>
 </Border>
 </Popup>
@@ -796,8 +799,6 @@ namespace TeachingAnnotator
             return p;
         }
 
-        private void ToggleSidebar_Click(object sender, RoutedEventArgs e) { SidebarColumn.Width = SidebarColumn.Width.Value > 0 ? new GridLength(0) : new GridLength(186); }
-
         private void AddSection_Click(object sender, RoutedEventArgs e)
         {
             var s = AddSectionTo(_activeNotebook); TouchModified(); RenderSections(); SwitchSection(s); PersistAll();
@@ -835,6 +836,7 @@ namespace TeachingAnnotator
         {
             PageThumbPanel.Children.Clear();
             if (_activeSection == null) return;
+            int activeIdx = _activeSection.Pages.IndexOf(_activePage);
             for (int i = 0; i < _activeSection.Pages.Count; i++)
             {
                 var page = _activeSection.Pages[i];
@@ -845,9 +847,7 @@ namespace TeachingAnnotator
                 {
                     var img = new Image { Stretch = Stretch.Uniform, VerticalAlignment = VerticalAlignment.Top };
                     preview.Child = img;
-                    int activeIdx = _activeSection.Pages.IndexOf(_activePage);
                     if (Math.Abs(i - activeIdx) <= 5) EnsureThumb(page, img);
-                    else preview.Child = new TextBlock { Text = "PDF", Foreground = Brushes.Gray, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
                 }
                 g.Children.Add(preview);
                 g.Children.Add(new TextBlock { Text = (i + 1).ToString(), Foreground = (Brush)FindResource("TextSecondary"), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 6) });
@@ -1074,37 +1074,33 @@ namespace TeachingAnnotator
         private DrawingBrush CreateGridBrush(Color bg, Color line, double zoom)
         {
             var group = new DrawingGroup();
-            group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(bg), Geometry = new RectangleGeometry(new Rect(0, 0, 40, 40)) });
-            
-            // Professional highly aesthetic visual fix for grids: lock exact screen stroke width inverse to zoom.
+            int ts = _gridPattern == 1 ? 100 : 40;
+            group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(bg), Geometry = new RectangleGeometry(new Rect(0, 0, ts, ts)) });
             double t = 0.6 / zoom; 
-            
             if (_gridPattern == 1)
             {
-                var minorPen = new Pen(new SolidColorBrush(Color.FromArgb((byte)(line.A / 2), line.R, line.G, line.B)), t * 0.5);
-                var majorPen = new Pen(new SolidColorBrush(line), t * 1.2);
-                var minorGrp = new GeometryGroup();
-                for (int i = 10; i < 40; i += 10) { minorGrp.Children.Add(new LineGeometry(new Point(i, 0), new Point(i, 40))); minorGrp.Children.Add(new LineGeometry(new Point(0, i), new Point(40, i))); }
-                group.Children.Add(new GeometryDrawing { Pen = minorPen, Geometry = minorGrp });
-                var majorGrp = new GeometryGroup();
-                majorGrp.Children.Add(new LineGeometry(new Point(40, 0), new Point(40, 40)));
-                majorGrp.Children.Add(new LineGeometry(new Point(0, 40), new Point(40, 40)));
-                group.Children.Add(new GeometryDrawing { Pen = majorPen, Geometry = majorGrp });
+                var minP = new Pen(new SolidColorBrush(Color.FromArgb((byte)(line.A/2), line.R, line.G, line.B)), t*0.5);
+                var majP = new Pen(new SolidColorBrush(line), t);
+                var minG = new GeometryGroup();
+                for (int i=20; i<100; i+=20) { minG.Children.Add(new LineGeometry(new Point(i,0), new Point(i,100))); minG.Children.Add(new LineGeometry(new Point(0,i), new Point(100,i))); }
+                group.Children.Add(new GeometryDrawing { Pen = minP, Geometry = minG });
+                var majG = new GeometryGroup();
+                majG.Children.Add(new LineGeometry(new Point(100,0), new Point(100,100))); majG.Children.Add(new LineGeometry(new Point(0,100), new Point(100,100)));
+                group.Children.Add(new GeometryDrawing { Pen = majP, Geometry = majG });
             }
-            else if (_gridPattern == 2) // Dot Grid (Notebook aesthetic)
+            else if (_gridPattern == 2)
             {
                 double r = 1.35 / zoom;
                 group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(line), Geometry = new EllipseGeometry(new Point(20, 20), r, r) });
             }
-            else if (_gridPattern == 3) // Lined Rule (Legal / Writing)
+            else if (_gridPattern == 3)
             {
                 var pen = new Pen(new SolidColorBrush(line), t);
                 var gg = new GeometryGroup();
                 gg.Children.Add(new LineGeometry(new Point(0, 40), new Point(40, 40)));
                 group.Children.Add(new GeometryDrawing { Pen = pen, Geometry = gg });
             }
-            
-            return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 40, 40), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
+            return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, ts, ts), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
         }
 
         // ================= TOOLS =================
@@ -1178,7 +1174,7 @@ namespace TeachingAnnotator
             catch { }
         }
 
-        private void BgColorBtn_Click(object sender, RoutedEventArgs e) { if (_activePage == null) return; using (var cd = new System.Windows.Forms.ColorDialog { FullOpen = true }) { if (cd.ShowDialog() == System.Windows.Forms.DialogResult.OK) { string hex = $"#{cd.Color.R:X2}{cd.Color.G:X2}{cd.Color.B:X2}"; _customBgColor = Color.FromRgb(cd.Color.R, cd.Color.G, cd.Color.B); _activePage.BgColor = hex; BgHexInput.Text = hex; ApplyTheme(); ScheduleSave(); } } BgColorPopup.IsOpen = false; }
+        private void BgColorBtn_Click(object sender, RoutedEventArgs e) { if (_activePage != null) BgHexInput.Text = _activePage.BgColor; BgColorPopup.IsOpen = true; }
 
         private void BgHexInput_TextChanged(object sender, TextChangedEventArgs e)
         {
@@ -1187,6 +1183,8 @@ namespace TeachingAnnotator
         }
 
         private void GridToggle_Click(object sender, RoutedEventArgs e) { if (_activePage == null) return; _gridPattern = (_gridPattern + 1) % 4; _activePage.GridPattern = _gridPattern; UpdateGridBackground(); ScheduleSave(); }
+        private void BgCustomColor_Click(object sender, RoutedEventArgs e) { var dlg = new System.Windows.Forms.ColorDialog { FullOpen = true, Color = System.Drawing.Color.FromArgb(_customBgColor.A, _customBgColor.R, _customBgColor.G, _customBgColor.B) }; if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK) { BgHexInput.Text = $"#{dlg.Color.A:X2}{dlg.Color.R:X2}{dlg.Color.G:X2}{dlg.Color.B:X2}"; } }
+        private void ToggleSidebar_Click(object sender, RoutedEventArgs e) { SidebarColumn.Width = SidebarColumn.Width.Value > 0 ? new GridLength(0) : new GridLength(186); }
 
         private void PageSizeCycle_Click(object sender, RoutedEventArgs e)
         {
@@ -1307,14 +1305,14 @@ namespace TeachingAnnotator
 
         private void MainInkCanvas_MouseMove(object sender, MouseEventArgs e)
         {
-            if (SelectBtn.IsChecked == true || PointerBtn.IsChecked == true) return;
+            if (SelectBtn.IsChecked == true || PointerBtn.IsChecked == true || LaserBtn.IsChecked == true) return;
             CustomDotCursor.Visibility = Visibility.Visible;
             Point p = e.GetPosition(CursorCanvas);
             Canvas.SetLeft(CustomDotCursor, p.X - CustomDotCursor.Width / 2);
             Canvas.SetTop(CustomDotCursor, p.Y - CustomDotCursor.Height / 2);
         }
         private void MainInkCanvas_MouseLeave(object sender, MouseEventArgs e) { CustomDotCursor.Visibility = Visibility.Hidden; }
-        private void MainInkCanvas_MouseEnter(object sender, MouseEventArgs e) { if (SelectBtn.IsChecked != true && PointerBtn.IsChecked != true) CustomDotCursor.Visibility = Visibility.Visible; }
+        private void MainInkCanvas_MouseEnter(object sender, MouseEventArgs e) { if (SelectBtn.IsChecked != true && PointerBtn.IsChecked != true && LaserBtn.IsChecked != true) CustomDotCursor.Visibility = Visibility.Visible; }
 
         // ================= ZOOM / PAN =================
         private void UpdateZoomUI() { if (ZoomPercentText != null) ZoomPercentText.Text = Math.Round(_zoom * 100) + "%"; }
@@ -1530,11 +1528,10 @@ namespace TeachingAnnotator
             
             if (page.GridPattern == 1)
             {
-                var minorLine = XColor.FromArgb(line.A / 2, line.R, line.G, line.B);
-                var minorPen = new XPen(minorLine, 0.25);
-                var majorPen = new XPen(line, 0.6);
-                for (double x = 10; x < w; x += 10) gfx.DrawLine((x % 40 == 0) ? majorPen : minorPen, x, 0, x, h);
-                for (double y = 10; y < h; y += 10) gfx.DrawLine((y % 40 == 0) ? majorPen : minorPen, 0, y, w, y);
+                var majP = new XPen(line, 0.5);
+                var minP = new XPen(XColor.FromArgb(line.A/2, line.R, line.G, line.B), 0.25);
+                for (double x = 20; x < w; x += 20) gfx.DrawLine(x % 100 == 0 ? majP : minP, x, 0, x, h);
+                for (double y = 20; y < h; y += 20) gfx.DrawLine(y % 100 == 0 ? majP : minP, 0, y, w, y);
             }
             else if (page.GridPattern == 2)
             {
