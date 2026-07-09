@@ -1018,7 +1018,7 @@ namespace TeachingAnnotator
             UpdateCanvasCentering();
         }
 
-        // ================= THEME / GRID =================
+        // ================= THEME =================
         private void ApplyTheme()
         {
             if (_settings.IsDarkTheme)
@@ -1043,37 +1043,82 @@ namespace TeachingAnnotator
                 Resources["ButtonHoverBg"] = new SolidColorBrush(Color.FromRgb(229, 231, 235));
                 Resources["ButtonHoverText"] = new SolidColorBrush(Colors.Black);
             }
-            if (_activePage != null && _activePage.Kind != "Pdf")
-            {
-                Color line = _settings.IsDarkTheme ? Color.FromRgb(200, 205, 215) : Color.FromRgb(209, 213, 219);
-                PageHost.Background = CreateGridBrush(_customBgColor, line);
-            }
+            RefreshGrid();
+        }
+
+        // ================= PROFESSIONAL GRID (zoom-independent line weight) =================
+        // The page lives inside Workspace, which is scaled by ZoomTransform. A pen whose
+        // thickness is authored in page units would therefore grow/shrink on screen with zoom.
+        // To keep a constant, crisp on-screen weight at ANY zoom we divide the pen thickness
+        // by the current zoom: thickness(page) = targetDeviceP x / zoom  =>  thickness * zoom = target.
+        private void RefreshGrid()
+        {
+            if (_activePage == null || _activePage.Kind == "Pdf") return;
+            PageHost.Background = CreateGridBrush(_customBgColor, GridLineColor(_customBgColor));
+            if (A4GuideRect != null) A4GuideRect.StrokeThickness = 1.5 / (_zoom <= 0 ? 1.0 : _zoom);
+        }
+
+        private Color GridLineColor(Color paper)
+        {
+            double lum = (0.299 * paper.R + 0.587 * paper.G + 0.114 * paper.B) / 255.0;
+            // dark paper -> soft light lines; light paper -> soft cool slate lines (GoodNotes-like)
+            return lum < 0.5 ? Color.FromArgb(46, 255, 255, 255) : Color.FromArgb(150, 148, 163, 184);
+        }
+
+        private Color Accent(Color c, int addAlpha)
+        {
+            int a = Math.Min(255, c.A + addAlpha);
+            return Color.FromArgb((byte)a, c.R, c.G, c.B);
         }
 
         private DrawingBrush CreateGridBrush(Color bg, Color line)
         {
+            double z = _zoom <= 0 ? 1.0 : _zoom;
+            double minorPx = 0.8 / z;   // ~0.8 device-px hairlines at every zoom
+            double majorPx = 1.3 / z;   // ~1.3 device-px accent lines
+            double dotR = 1.15 / z;     // dot radius in device px
+
             var group = new DrawingGroup();
             group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(bg), Geometry = new RectangleGeometry(new Rect(0, 0, 100, 100)) });
+
             if (_gridPattern == 1)
             {
-                var minor = new Pen(new SolidColorBrush(Color.FromArgb(90, line.R, line.G, line.B)), 0.5);
-                var g1 = new GeometryGroup();
-                for (int i = 20; i < 100; i += 20) { g1.Children.Add(new LineGeometry(new Point(i, 0), new Point(i, 100))); g1.Children.Add(new LineGeometry(new Point(0, i), new Point(100, i))); }
-                group.Children.Add(new GeometryDrawing { Pen = minor, Geometry = g1 });
+                // fine 20px square grid with a subtle major line at each 100px cell edge
+                var minorPen = new Pen(new SolidColorBrush(line), minorPx);
+                var minorGeo = new GeometryGroup();
+                for (int i = 20; i < 100; i += 20)
+                {
+                    minorGeo.Children.Add(new LineGeometry(new Point(i, 0), new Point(i, 100)));
+                    minorGeo.Children.Add(new LineGeometry(new Point(0, i), new Point(100, i)));
+                }
+                group.Children.Add(new GeometryDrawing { Pen = minorPen, Geometry = minorGeo });
+
+                var majorPen = new Pen(new SolidColorBrush(Accent(line, 45)), majorPx);
+                var majorGeo = new GeometryGroup();
+                majorGeo.Children.Add(new LineGeometry(new Point(0, 0), new Point(0, 100)));
+                majorGeo.Children.Add(new LineGeometry(new Point(0, 0), new Point(100, 0)));
+                group.Children.Add(new GeometryDrawing { Pen = majorPen, Geometry = majorGeo });
+
                 return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 100, 100), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
             }
             else if (_gridPattern == 2)
             {
-                group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(line), Geometry = new EllipseGeometry(new Point(20, 20), 1.5, 1.5) });
-                return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 40, 40), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
+                // 25px dot grid, dot centered in tile
+                var dotGeo = new EllipseGeometry(new Point(12.5, 12.5), dotR, dotR);
+                group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(Accent(line, 40)), Geometry = dotGeo });
+                return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 25, 25), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
             }
             else if (_gridPattern == 3)
             {
-                var gg = new GeometryGroup();
-                gg.Children.Add(new LineGeometry(new Point(0, 40), new Point(40, 40)));
-                group.Children.Add(new GeometryDrawing { Pen = new Pen(new SolidColorBrush(line), 1.0), Geometry = gg });
-                return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 40, 40), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
+                // 30px ruled lines (line centered in the writing row)
+                var rulePen = new Pen(new SolidColorBrush(line), minorPx);
+                var ruleGeo = new GeometryGroup();
+                ruleGeo.Children.Add(new LineGeometry(new Point(0, 15), new Point(100, 15)));
+                group.Children.Add(new GeometryDrawing { Pen = rulePen, Geometry = ruleGeo });
+                return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 100, 30), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
             }
+
+            // pattern 0 = plain paper (no ruling)
             return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 100, 100), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
         }
 
@@ -1156,13 +1201,13 @@ namespace TeachingAnnotator
             try { _customBgColor = (Color)ColorConverter.ConvertFromString(BgHexInput.Text); _activePage.BgColor = BgHexInput.Text; ApplyTheme(); ScheduleSave(); } catch { }
         }
 
-        private void GridToggle_Click(object sender, RoutedEventArgs e) { if (_activePage == null) return; _gridPattern = (_gridPattern + 1) % 4; _activePage.GridPattern = _gridPattern; ApplyTheme(); ScheduleSave(); }
+        private void GridToggle_Click(object sender, RoutedEventArgs e) { if (_activePage == null) return; _gridPattern = (_gridPattern + 1) % 4; _activePage.GridPattern = _gridPattern; RefreshGrid(); ScheduleSave(); }
 
         private void PageSizeCycle_Click(object sender, RoutedEventArgs e)
         {
             if (_activePage == null || _activePage.Kind == "Pdf") { MessageBox.Show("Page size applies to blank pages only."); return; }
             _activePage.CanvasSizeIndex = (_activePage.CanvasSizeIndex + 1) % 5;
-            RefreshBounds(); ApplyTheme(); ScheduleSave();
+            RefreshBounds(); RefreshGrid(); ScheduleSave();
         }
 
         // ================= LASER FADE (performant, opacity-animated) =================
@@ -1305,6 +1350,8 @@ namespace TeachingAnnotator
             MainScroll.ScrollToHorizontalOffset(ux * newZoom - target.X);
             MainScroll.ScrollToVerticalOffset(uy * newZoom - target.Y);
             UpdateCanvasCentering();
+            // Re-author the grid so hairlines keep a constant on-screen weight at the new zoom.
+            if (_activePage != null && _activePage.Kind != "Pdf") RefreshGrid();
             _isZooming = false;
             if (_activePage != null && _activePage.Kind == "Pdf") { _pdfQualityTimer.Stop(); _pdfQualityTimer.Start(); }
         }
@@ -1489,22 +1536,23 @@ namespace TeachingAnnotator
         {
             Color bgc = SafeColor(page.BgColor, Colors.White);
             gfx.DrawRectangle(new XSolidBrush(XColor.FromArgb(255, bgc.R, bgc.G, bgc.B)), 0, 0, w, h);
-            XColor line = _settings.IsDarkTheme ? XColor.FromArgb(255, 200, 205, 215) : XColor.FromArgb(255, 209, 213, 219);
+            Color lc = GridLineColor(bgc);
+            XColor line = XColor.FromArgb(lc.A, lc.R, lc.G, lc.B);
             if (page.GridPattern == 1)
             {
-                var pen = new XPen(line, 0.5);
+                var pen = new XPen(line, 0.6);
                 for (double x = 20; x < w; x += 20) gfx.DrawLine(pen, x, 0, x, h);
                 for (double y = 20; y < h; y += 20) gfx.DrawLine(pen, 0, y, w, y);
             }
             else if (page.GridPattern == 2)
             {
                 var b = new XSolidBrush(line);
-                for (double x = 20; x < w; x += 40) for (double y = 20; y < h; y += 40) gfx.DrawEllipse(b, x - 1.5, y - 1.5, 3, 3);
+                for (double x = 12.5; x < w; x += 25) for (double y = 12.5; y < h; y += 25) gfx.DrawEllipse(b, x - 1.15, y - 1.15, 2.3, 2.3);
             }
             else if (page.GridPattern == 3)
             {
-                var pen = new XPen(line, 1.0);
-                for (double y = 40; y < h; y += 40) gfx.DrawLine(pen, 0, y, w, y);
+                var pen = new XPen(line, 0.6);
+                for (double y = 30; y < h; y += 30) gfx.DrawLine(pen, 0, y, w, y);
             }
         }
 
