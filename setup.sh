@@ -529,7 +529,9 @@ namespace TeachingAnnotator
         private double _pdfDisplayW = 1123, _pdfDisplayH = 794;
 
         private bool _penInRange = false;
-        private DispatcherTimer _laserHoldTimer;
+        public static readonly Guid LaserProp = new Guid("11111111-2222-3333-4444-555555555555");
+        public static readonly Guid LaserAlphaProp = new Guid("22222222-3333-4444-5555-666666666666");
+        private DispatcherTimer _laserFadeTimer;
         private DispatcherTimer _saveDebounce;
         private DispatcherTimer _pdfQualityTimer;
 
@@ -570,11 +572,10 @@ namespace TeachingAnnotator
             _customBgColor = Colors.White;
 
             MainInkCanvas.Strokes.StrokesChanged += MainInkCanvas_StrokesChanged;
-            MainInkCanvas.StrokeCollected += MainInkCanvas_StrokeCollected;
             MainInkCanvas.PreviewTouchDown += Canvas_PreviewTouchDown;
 
-            _laserHoldTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(30) };
-            _laserHoldTimer.Tick += LaserFadeTimer_Tick;
+            _laserFadeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(40) };
+            _laserFadeTimer.Tick += LaserFadeLoop_Tick;
             _saveDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1200) };
             _saveDebounce.Tick += (s, e) => { _saveDebounce.Stop(); PersistAll(); };
             
@@ -798,8 +799,8 @@ namespace TeachingAnnotator
         private Section AddSectionTo(Notebook nb)
         {
             var s = new Section { Title = "Section " + (nb.Sections.Count + 1), Color = _covers[_rng.Next(_covers.Length)] };
-            s.Pages.Add(new NotePage());
             nb.Sections.Add(s);
+            AddPageTo(s);
             return s;
         }
 
@@ -919,7 +920,9 @@ namespace TeachingAnnotator
             SaveActivePageStrokes();
             _activePage = page;
             _undo.Clear(); _redo.Clear();
-            ClearLaserStrokes();
+            _isUpdatingUI = true;
+            _laserFadeTimer.Stop();
+            _isUpdatingUI = false;
             _customBgColor = SafeColor(page.BgColor, Colors.White);
             _gridPattern = page.GridPattern;
             _zoom = 1.0; ZoomTransform.ScaleX = 1; ZoomTransform.ScaleY = 1; UpdateZoomUI();
@@ -1163,25 +1166,22 @@ namespace TeachingAnnotator
 
         private void ApplyPenAttributes()
         {
-            if (MainInkCanvas == null || LaserInkCanvas == null || ActiveColorIndicator == null || SizeSlider == null) return;
+            if (MainInkCanvas == null || ActiveColorIndicator == null || SizeSlider == null) return;
             bool ignore = _settings.PressureEnabled == false;
             Color active = ((SolidColorBrush)ActiveColorIndicator.Fill).Color;
             double size = SizeSlider.Value;
 
-            if (LaserBtn.IsChecked == true)
-            {
-                MainInkCanvas.IsHitTestVisible = true;
-                MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink;
-                MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = active, Width = size, Height = size, FitToCurve = true, IgnorePressure = true, StylusTip = StylusTip.Ellipse, IsHighlighter = false };
-            }
-            else
-            {
-                MainInkCanvas.IsHitTestVisible = true;
-                if (PointerBtn.IsChecked == true) MainInkCanvas.EditingMode = InkCanvasEditingMode.None;
-                else if (PenBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = active, Width = size, Height = size, FitToCurve = true, IgnorePressure = ignore, StylusTip = StylusTip.Ellipse }; }
-                else if (HighlightBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = Color.FromArgb(80, active.R, active.G, active.B), Width = size * 4, Height = size * 4, IsHighlighter = true, IgnorePressure = true, FitToCurve = false, StylusTip = StylusTip.Rectangle }; }
-                else if (EraserBtn.IsChecked == true) { if (_settings.StrokeEraserEnabled) MainInkCanvas.EditingMode = InkCanvasEditingMode.EraseByStroke; else { MainInkCanvas.EditingMode = InkCanvasEditingMode.EraseByPoint; MainInkCanvas.EraserShape = new EllipseStylusShape(size * 4, size * 4); } }
-                else if (SelectBtn.IsChecked == true) MainInkCanvas.EditingMode = InkCanvasEditingMode.Select;
+            if (PointerBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.None; }
+            else if (PenBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = active, Width = size, Height = size, FitToCurve = true, IgnorePressure = ignore, StylusTip = StylusTip.Ellipse }; }
+            else if (HighlightBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = Color.FromArgb(80, active.R, active.G, active.B), Width = size * 4, Height = size * 4, IsHighlighter = true, IgnorePressure = true, FitToCurve = false, StylusTip = StylusTip.Rectangle }; }
+            else if (EraserBtn.IsChecked == true) { if (_settings.StrokeEraserEnabled) MainInkCanvas.EditingMode = InkCanvasEditingMode.EraseByStroke; else { MainInkCanvas.EditingMode = InkCanvasEditingMode.EraseByPoint; MainInkCanvas.EraserShape = new EllipseStylusShape(size * 4, size * 4); } }
+            else if (SelectBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Select; }
+            else if (LaserBtn.IsChecked == true) 
+            { 
+                MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; 
+                var da = new DrawingAttributes { Color = active, Width = size, Height = size, FitToCurve = true, IgnorePressure = true, StylusTip = StylusTip.Ellipse };
+                da.AddPropertyData(LaserProp, (long)0);
+                MainInkCanvas.DefaultDrawingAttributes = da;
             }
             UpdateCursor();
         }
@@ -1239,96 +1239,53 @@ namespace TeachingAnnotator
         }
 
         // ================= LASER FADE =================
-        public static readonly Guid LaserPropertyId = new Guid("A1B2C3D4-E5F6-4A5B-8C9D-E0F1A2B3C4D5");
-        private class LaserTrack { public Stroke Stroke; public DateTime StartTime; public double InitialAlpha; }
-        private List<LaserTrack> _laserTracks = new List<LaserTrack>();
-
-        private void MainInkCanvas_StrokeCollected(object sender, InkCanvasStrokeCollectedEventArgs e)
+        private void LaserFadeLoop_Tick(object sender, EventArgs e)
         {
-            if (LaserBtn.IsChecked == true)
-            {
-                e.Stroke.AddPropertyData(LaserPropertyId, true);
-                if (!_settings.LaserPermanent)
-                {
-                    _laserTracks.Add(new LaserTrack { Stroke = e.Stroke, StartTime = DateTime.Now, InitialAlpha = e.Stroke.DrawingAttributes.Color.A });
-                    if (!_laserHoldTimer.IsEnabled) _laserHoldTimer.Start();
-                }
-            }
-        }
-
-        private void ClearLaserStrokes() { 
-            _laserTracks.Clear(); 
-            _laserHoldTimer.Stop(); 
-            if (MainInkCanvas != null) {
-                _isUpdatingUI = true;
-                var toRemove = new StrokeCollection();
-                foreach (var s in MainInkCanvas.Strokes) { if (s.ContainsPropertyData(LaserPropertyId)) toRemove.Add(s); }
-                if (toRemove.Count > 0) MainInkCanvas.Strokes.Remove(toRemove);
-                _isUpdatingUI = false;
-            }
-        }
-        
-        private void RestoreLaserAlphas() {
-            foreach (var t in _laserTracks) {
-                var c = t.Stroke.DrawingAttributes.Color;
-                t.Stroke.DrawingAttributes.Color = Color.FromArgb((byte)t.InitialAlpha, c.R, c.G, c.B);
-            }
-        }
-
-        private void LaserFadeTimer_Tick(object sender, EventArgs e)
-        {
-            if (_settings.LaserPermanent || _laserTracks.Count == 0) return;
-            var now = DateTime.Now;
+            if (_isUpdatingUI || _penInRange) return;
+            bool hasLaser = false;
             var toRemove = new StrokeCollection();
-            for (int i = _laserTracks.Count - 1; i >= 0; i--)
+            long now = DateTime.Now.Ticks;
+            long holdTicks = (long)(_settings.LaserHoldDelay * 10000000);
+            long fadeTicks = (long)(_settings.LaserFadeDuration * 10000000);
+            
+            foreach (var s in MainInkCanvas.Strokes)
             {
-                var t = _laserTracks[i];
-                double elapsed = (now - t.StartTime).TotalSeconds;
-                if (elapsed > _settings.LaserHoldDelay)
+                if (s.ContainsPropertyData(LaserProp))
                 {
-                    double fadePhase = elapsed - _settings.LaserHoldDelay;
-                    if (fadePhase >= _settings.LaserFadeDuration)
+                    hasLaser = true;
+                    if (_settings.LaserPermanent) continue;
+                    
+                    long created = (long)s.GetPropertyData(LaserProp);
+                    long elapsed = now - created;
+                    
+                    if (elapsed > holdTicks)
                     {
-                        toRemove.Add(t.Stroke);
-                        _laserTracks.RemoveAt(i);
-                    }
-                    else
-                    {
-                        double ratio = 1.0 - (fadePhase / Math.Max(0.1, _settings.LaserFadeDuration));
-                        byte newAlpha = (byte)(t.InitialAlpha * ratio);
-                        if (t.Stroke.DrawingAttributes.Color.A != newAlpha)
+                        double fadeProgress = (double)(elapsed - holdTicks) / fadeTicks;
+                        if (fadeProgress >= 1.0) { toRemove.Add(s); }
+                        else
                         {
-                            var c = t.Stroke.DrawingAttributes.Color;
-                            t.Stroke.DrawingAttributes.Color = Color.FromArgb(newAlpha, c.R, c.G, c.B);
+                            byte initialAlpha = 255;
+                            if (s.ContainsPropertyData(LaserAlphaProp)) initialAlpha = (byte)s.GetPropertyData(LaserAlphaProp);
+                            else s.AddPropertyData(LaserAlphaProp, s.DrawingAttributes.Color.A);
+
+                            byte newA = (byte)Math.Max(0, initialAlpha * (1.0 - fadeProgress));
+                            var c = s.DrawingAttributes.Color;
+                            if (c.A != newA) s.DrawingAttributes.Color = Color.FromArgb(newA, c.R, c.G, c.B);
                         }
                     }
                 }
             }
-            if (toRemove.Count > 0)
-            {
-                _isUpdatingUI = true;
-                MainInkCanvas.Strokes.Remove(toRemove);
-                _isUpdatingUI = false;
-            }
-            if (_laserTracks.Count == 0) _laserHoldTimer.Stop();
+            if (toRemove.Count > 0) { _isUpdatingUI = true; MainInkCanvas.Strokes.Remove(toRemove); _isUpdatingUI = false; ScheduleSave(); }
+            if (!hasLaser) _laserFadeTimer.Stop();
         }
 
-        private void Window_StylusInRange(object sender, StylusEventArgs e)
-        {
-            _penInRange = true;
-        }
-
-        private void Window_StylusOutOfRange(object sender, StylusEventArgs e)
-        {
-            _penInRange = false;
-        }
+        private void Window_StylusInRange(object sender, StylusEventArgs e) { _penInRange = true; }
+        private void Window_StylusOutOfRange(object sender, StylusEventArgs e) { _penInRange = false; }
 
         private void LaserPermanent_Changed(object sender, RoutedEventArgs e)
         {
             if (!_appLoaded) return;
             _settings.LaserPermanent = LaserPermanentToggle.IsChecked == true;
-            if (_settings.LaserPermanent) { _laserHoldTimer.Stop(); RestoreLaserAlphas(); }
-            else { foreach (var t in _laserTracks) t.StartTime = DateTime.Now; if (!_laserHoldTimer.IsEnabled) _laserHoldTimer.Start(); }
             ScheduleSave();
         }
 
@@ -1357,10 +1314,23 @@ namespace TeachingAnnotator
 
         private void MainInkCanvas_StrokesChanged(object sender, StrokeCollectionChangedEventArgs e)
         {
-            if (_isUndoRedoActive || _isUpdatingUI) return;
+            if (_isUpdatingUI) return;
+            
+            bool laserInvolved = false;
+            foreach (var s in e.Added)
+            {
+                if (s.DrawingAttributes.ContainsPropertyData(LaserProp) || s.ContainsPropertyData(LaserProp))
+                {
+                    s.AddPropertyData(LaserProp, DateTime.Now.Ticks);
+                    s.AddPropertyData(LaserAlphaProp, s.DrawingAttributes.Color.A);
+                    laserInvolved = true;
+                }
+            }
+            if (laserInvolved && !_settings.LaserPermanent) _laserFadeTimer.Start();
+
+            if (_isUndoRedoActive) return;
             var a = new UndoAction { Added = new StrokeCollection(e.Added), Removed = new StrokeCollection(e.Removed) };
             if (a.Added.Count > 0 || a.Removed.Count > 0) { _undo.Push(a); _redo.Clear(); }
-            foreach (var s in e.Removed) { _laserTracks.RemoveAll(x => x.Stroke == s); }
             EnforceStrokeZOrder();
             ScheduleSave();
         }
