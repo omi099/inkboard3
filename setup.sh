@@ -590,7 +590,7 @@ namespace TeachingAnnotator
                 r.MouseLeftButtonDown += (s, e) => { HexInput.Text = h; ColorPopup.IsOpen = false; };
                 PaletteGrid.Children.Add(r);
             }
-            string[] bgHex = { "#FFFFFF", "#F8FAFC", "#FEF3C7", "#F0FDF4", "#EFF6FF", "#FDF2F8", "#111827", "#0F172A", "#1E1E1E", "#000000" };
+            string[] bgHex = { "#FFFFFF", "#FDF6E3", "#FFF2CC", "#E8F4F8", "#E6E6FA", "#D9EAD3", "#1E1E1E", "#2D2D30", "#0F172A", "#000000" };
             foreach (string hex in bgHex)
             {
                 var r = new Rectangle { Width = 20, Height = 20, Margin = new Thickness(2), RadiusX = 4, RadiusY = 4, Fill = new SolidColorBrush(SafeColor(hex, Colors.White)), Stroke = new SolidColorBrush(Color.FromRgb(80, 80, 80)), StrokeThickness = 0.5, Cursor = Cursors.Hand };
@@ -1066,12 +1066,14 @@ namespace TeachingAnnotator
         {
             if (_activePage != null && _activePage.Kind != "Pdf")
             {
-                Color line = _settings.IsDarkTheme ? Color.FromArgb(28, 255, 255, 255) : Color.FromArgb(24, 0, 0, 0);
-                PageHost.Background = CreateGridBrush(_customBgColor, line, _zoom);
+                double lum = (_customBgColor.R * 0.299 + _customBgColor.G * 0.587 + _customBgColor.B * 0.114);
+                Color major = lum > 130 ? Color.FromArgb(32, 0, 0, 0) : Color.FromArgb(35, 255, 255, 255);
+                Color minor = lum > 130 ? Color.FromArgb(14, 0, 0, 0) : Color.FromArgb(15, 255, 255, 255);
+                PageHost.Background = CreateGridBrush(_customBgColor, major, minor, _zoom);
             }
         }
 
-        private DrawingBrush CreateGridBrush(Color bg, Color line, double zoom)
+        private DrawingBrush CreateGridBrush(Color bg, Color majorLine, Color minorLine, double zoom)
         {
             var group = new DrawingGroup();
             group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(bg), Geometry = new RectangleGeometry(new Rect(0, 0, 40, 40)) });
@@ -1081,8 +1083,8 @@ namespace TeachingAnnotator
             
             if (_gridPattern == 1)
             {
-                var minorPen = new Pen(new SolidColorBrush(Color.FromArgb((byte)(line.A / 2), line.R, line.G, line.B)), t * 0.5);
-                var majorPen = new Pen(new SolidColorBrush(line), t * 1.2);
+                var minorPen = new Pen(new SolidColorBrush(minorLine), t * 0.5);
+                var majorPen = new Pen(new SolidColorBrush(majorLine), t * 1.2);
                 var minorGrp = new GeometryGroup();
                 for (int i = 10; i < 40; i += 10) { minorGrp.Children.Add(new LineGeometry(new Point(i, 0), new Point(i, 40))); minorGrp.Children.Add(new LineGeometry(new Point(0, i), new Point(40, i))); }
                 group.Children.Add(new GeometryDrawing { Pen = minorPen, Geometry = minorGrp });
@@ -1094,11 +1096,11 @@ namespace TeachingAnnotator
             else if (_gridPattern == 2) // Dot Grid (Notebook aesthetic)
             {
                 double r = 1.35 / zoom;
-                group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(line), Geometry = new EllipseGeometry(new Point(20, 20), r, r) });
+                group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(majorLine), Geometry = new EllipseGeometry(new Point(20, 20), r, r) });
             }
             else if (_gridPattern == 3) // Lined Rule (Legal / Writing)
             {
-                var pen = new Pen(new SolidColorBrush(line), t);
+                var pen = new Pen(new SolidColorBrush(majorLine), t);
                 var gg = new GeometryGroup();
                 gg.Children.Add(new LineGeometry(new Point(0, 40), new Point(40, 40)));
                 group.Children.Add(new GeometryDrawing { Pen = pen, Geometry = gg });
@@ -1526,26 +1528,25 @@ namespace TeachingAnnotator
             Color bgc = SafeColor(page.BgColor, Colors.White);
             gfx.DrawRectangle(new XSolidBrush(XColor.FromArgb(255, bgc.R, bgc.G, bgc.B)), 0, 0, w, h);
             
-            XColor line = _settings.IsDarkTheme ? XColor.FromArgb(28, 255, 255, 255) : XColor.FromArgb(24, 0, 0, 0);
+            double lum = (bgc.R * 0.299 + bgc.G * 0.587 + bgc.B * 0.114);
+            XColor majorLine = lum > 130 ? XColor.FromArgb(32, 0, 0, 0) : XColor.FromArgb(35, 255, 255, 255);
+            XColor minorLine = lum > 130 ? XColor.FromArgb(14, 0, 0, 0) : XColor.FromArgb(15, 255, 255, 255);
             
             if (page.GridPattern == 1)
             {
-                int minorAlpha = _settings.IsDarkTheme ? 14 : 12;
-                int minorC = _settings.IsDarkTheme ? 255 : 0;
-                var minorLine = XColor.FromArgb(minorAlpha, minorC, minorC, minorC);
                 var minorPen = new XPen(minorLine, 0.25);
-                var majorPen = new XPen(line, 0.6);
+                var majorPen = new XPen(majorLine, 0.6);
                 for (double x = 10; x < w; x += 10) gfx.DrawLine((x % 40 == 0) ? majorPen : minorPen, x, 0, x, h);
                 for (double y = 10; y < h; y += 10) gfx.DrawLine((y % 40 == 0) ? majorPen : minorPen, 0, y, w, y);
             }
             else if (page.GridPattern == 2)
             {
-                var b = new XSolidBrush(line);
+                var b = new XSolidBrush(majorLine);
                 for (double x = 20; x < w; x += 40) for (double y = 20; y < h; y += 40) gfx.DrawEllipse(b, x - 1.35, y - 1.35, 2.7, 2.7);
             }
             else if (page.GridPattern == 3)
             {
-                var pen = new XPen(line, 0.5);
+                var pen = new XPen(majorLine, 0.5);
                 for (double y = 40; y < h; y += 40) gfx.DrawLine(pen, 0, y, w, y);
             }
         }
