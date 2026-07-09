@@ -564,7 +564,6 @@ namespace TeachingAnnotator
 
         private double _pdfDisplayW = 1123, _pdfDisplayH = 794;
 
-        private bool _penInRange = false;
         public static readonly Guid LaserProp = new Guid("11111111-2222-3333-4444-555555555555");
         public static readonly Guid LaserAlphaProp = new Guid("22222222-3333-4444-5555-666666666666");
         private DispatcherTimer _laserFadeTimer;
@@ -1363,8 +1362,8 @@ namespace TeachingAnnotator
             if (!hasLaser) _laserFadeTimer.Stop();
         }
 
-        private void Window_StylusInRange(object sender, StylusEventArgs e) { _penInRange = true; _lastLaserActivityTicks = DateTime.Now.Ticks; }
-        private void Window_StylusOutOfRange(object sender, StylusEventArgs e) { _penInRange = false; _lastLaserActivityTicks = DateTime.Now.Ticks; }
+        private void Window_StylusInRange(object sender, StylusEventArgs e) { _lastLaserActivityTicks = DateTime.Now.Ticks; }
+        private void Window_StylusOutOfRange(object sender, StylusEventArgs e) { _lastLaserActivityTicks = DateTime.Now.Ticks; }
 
         private void LaserPermanent_Changed(object sender, RoutedEventArgs e)
         {
