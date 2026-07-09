@@ -31,6 +31,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Window x:Class="TeachingAnnotator.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:TeachingAnnotator"
     Title="Anydraw - Professional Whiteboard" WindowState="Maximized" WindowStartupLocation="CenterScreen"
     KeyDown="Window_KeyDown" Closing="Window_Closing" StylusInRange="Window_StylusInRange" StylusOutOfRange="Window_StylusOutOfRange"
     FontFamily="Segoe UI, Helvetica, Arial, sans-serif">
@@ -219,7 +220,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Rectangle x:Name="A4GuideRect" Stroke="{DynamicResource TextSecondary}" StrokeThickness="2" StrokeDashArray="6 6" Opacity="0.4"/>
 </Grid>
 <AdornerDecorator>
-<InkCanvas x:Name="MainInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" Focusable="True"
+<local:AnnotatorCanvas x:Name="MainInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" Focusable="True"
   MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter"/>
 </AdornerDecorator>
 <Canvas x:Name="CursorCanvas" IsHitTestVisible="False" Panel.ZIndex="999">
@@ -436,8 +437,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.Windows.Ink;
 using System.Windows.Input.StylusPlugIns;
+using System.Windows.Ink;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
@@ -515,7 +516,7 @@ namespace TeachingAnnotator
         public Color CoreColor { get; set; } = Colors.White;
         public double GlowSize { get; set; } = 18.0;
 
-        protected override void OnDraw(DrawingContext dc, StylusPointCollection stylusPoints, Geometry geometry, Brush fillBrush)
+        protected override void OnDraw(DrawingContext drawingContext, StylusPointCollection stylusPoints, Geometry geometry, Brush fillBrush)
         {
             if (this.DrawingAttributes.ContainsPropertyData(MainWindow.LaserProp))
             {
@@ -524,20 +525,45 @@ namespace TeachingAnnotator
                     var c = scb.Color;
                     if (c.A > 0)
                     {
-                        var scb1 = new SolidColorBrush(Color.FromArgb((byte)(c.A / 5), c.R, c.G, c.B)); scb1.Freeze();
-                        var glowPen1 = new Pen(scb1, GlowSize) { LineJoin = PenLineJoin.Round, StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }; glowPen1.Freeze();
-                        var scb2 = new SolidColorBrush(Color.FromArgb((byte)(c.A / 2), c.R, c.G, c.B)); scb2.Freeze();
-                        var glowPen2 = new Pen(scb2, GlowSize * 0.4) { LineJoin = PenLineJoin.Round, StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }; glowPen2.Freeze();
-                        var coreScb = new SolidColorBrush(Color.FromArgb(c.A, CoreColor.R, CoreColor.G, CoreColor.B)); coreScb.Freeze();
+                        var glowPen1 = new Pen(new SolidColorBrush(Color.FromArgb((byte)(c.A / 5), c.R, c.G, c.B)), GlowSize) { LineJoin = PenLineJoin.Round, StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+                        var glowPen2 = new Pen(new SolidColorBrush(Color.FromArgb((byte)(c.A / 2), c.R, c.G, c.B)), GlowSize * 0.4) { LineJoin = PenLineJoin.Round, StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
                         
-                        dc.DrawGeometry(null, glowPen1, geometry);
-                        dc.DrawGeometry(null, glowPen2, geometry);
-                        dc.DrawGeometry(coreScb, null, geometry);
+                        drawingContext.DrawGeometry(null, glowPen1, geometry);
+                        drawingContext.DrawGeometry(null, glowPen2, geometry);
+                        drawingContext.DrawGeometry(new SolidColorBrush(Color.FromArgb(c.A, CoreColor.R, CoreColor.G, CoreColor.B)), null, geometry);
                         return;
                     }
                 }
             }
-            base.OnDraw(dc, stylusPoints, geometry, fillBrush);
+            base.OnDraw(drawingContext, stylusPoints, geometry, fillBrush);
+        }
+    }
+
+    public class AnnotatorCanvas : InkCanvas
+    {
+        public LaserDynamicRenderer LaserRenderer { get; private set; }
+        private DynamicRenderer _defaultRenderer;
+
+        public AnnotatorCanvas() : base()
+        {
+            LaserRenderer = new LaserDynamicRenderer();
+            _defaultRenderer = this.DynamicRenderer;
+        }
+
+        public void EnableLaserMode(bool enable, Color coreColor, double glowSize)
+        {
+            if (enable)
+            {
+                LaserRenderer.CoreColor = coreColor;
+                LaserRenderer.GlowSize = glowSize;
+                if (this.DynamicRenderer != LaserRenderer)
+                    this.DynamicRenderer = LaserRenderer;
+            }
+            else
+            {
+                if (this.DynamicRenderer != _defaultRenderer)
+                    this.DynamicRenderer = _defaultRenderer;
+            }
         }
     }
 
@@ -603,7 +629,6 @@ namespace TeachingAnnotator
         private DispatcherTimer _saveDebounce;
         private long _lastLaserActivityTicks = 0;
         private DispatcherTimer _pdfQualityTimer;
-        private LaserDynamicRenderer _laserRenderer;
 
         private Stack<UndoAction> _undo = new Stack<UndoAction>();
         private Stack<UndoAction> _redo = new Stack<UndoAction>();
@@ -643,10 +668,6 @@ namespace TeachingAnnotator
 
             MainInkCanvas.Strokes.StrokesChanged += MainInkCanvas_StrokesChanged;
             MainInkCanvas.PreviewTouchDown += Canvas_PreviewTouchDown;
-
-            _laserRenderer = new LaserDynamicRenderer();
-            if (MainInkCanvas.DynamicRenderer != null) MainInkCanvas.StylusPlugIns.Remove(MainInkCanvas.DynamicRenderer);
-            MainInkCanvas.StylusPlugIns.Add(_laserRenderer);
 
             _laserFadeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(40) };
             _laserFadeTimer.Tick += LaserFadeLoop_Tick;
@@ -1293,11 +1314,10 @@ namespace TeachingAnnotator
                 da.AddPropertyData(LaserProp, (long)0);
                 MainInkCanvas.DefaultDrawingAttributes = da;
             }
-            if (_laserRenderer != null)
+
+            if (MainInkCanvas is AnnotatorCanvas ac)
             {
-                _laserRenderer.DrawingAttributes = MainInkCanvas.DefaultDrawingAttributes.Clone();
-                _laserRenderer.CoreColor = _laserCoreColor;
-                _laserRenderer.GlowSize = _settings.LaserGlow;
+                ac.EnableLaserMode(LaserBtn.IsChecked == true, _laserCoreColor, _settings.LaserGlow);
             }
             UpdateCursor();
         }
