@@ -325,11 +325,9 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <TextBlock Grid.Column="0" Text="Fade-out (s)" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
 <TextBox x:Name="LaserFadeInput" Grid.Column="1" Text="0.6" Width="44" TextAlignment="Center" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource Sky400}" BorderBrush="{DynamicResource BorderToolbar}" TextChanged="LaserFade_TextChanged"/>
 </Grid>
-<Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-<TextBlock Grid.Column="0" Text="Glow" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
-<Slider x:Name="LaserGlowSlider" Grid.Column="1" Minimum="1" Maximum="50" Value="18" Width="90" ValueChanged="LaserGlow_Changed" IsMoveToPointEnabled="True"/>
-</Grid>
-<TextBlock Text="Glow color = main Color; core stays white." Foreground="{DynamicResource TextSecondary}" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap"/>
+<TextBlock Text="Core Color:" Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,6,0,2"/>
+<WrapPanel x:Name="LaserCorePaletteGrid" Width="180" Margin="0,0,0,4"/>
+<TextBlock Text="Note: Laser strokes on main canvas are selectable and editable." Foreground="{DynamicResource TextSecondary}" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap"/>
 </StackPanel>
 </Border>
 </Popup>
@@ -614,6 +612,14 @@ namespace TeachingAnnotator
                 r.MouseLeftButtonDown += (s, e) => { BgHexInput.Text = h; BgColorPopup.IsOpen = false; };
                 BgPaletteGrid.Children.Add(r);
             }
+            string[] laserHex = { "#FFFFFF", "#FFFF00", "#00FFFF", "#39FF14", "#FF00FF", "#FF3131", "#B026FF", "#000000" };
+            foreach (string hex in laserHex)
+            {
+                var r = new Rectangle { Width = 20, Height = 20, Margin = new Thickness(2), RadiusX = 4, RadiusY = 4, Fill = new SolidColorBrush(SafeColor(hex, Colors.White)), Stroke = new SolidColorBrush(Color.FromRgb(80, 80, 80)), StrokeThickness = 0.5, Cursor = Cursors.Hand };
+                string h = hex;
+                r.MouseLeftButtonDown += (s, e) => { _laserCoreColor = SafeColor(h, Colors.White); _settings.LaserCoreColor = h; ApplyPenAttributes(); ScheduleSave(); LaserMenuToggle.IsChecked = false; };
+                if (LaserCorePaletteGrid != null) LaserCorePaletteGrid.Children.Add(r);
+            }
         }
 
         // ================= PERSISTENCE =================
@@ -807,7 +813,10 @@ namespace TeachingAnnotator
         private NotePage AddPageTo(Section sec)
         {
             var p = new NotePage();
-            if (_activePage != null) { p.CanvasSizeIndex = _activePage.CanvasSizeIndex; p.BgColor = _activePage.BgColor; p.GridPattern = _activePage.GridPattern; p.GridGap = _activePage.GridGap; p.MajorGridColor = _activePage.MajorGridColor; p.MinorGridColor = _activePage.MinorGridColor; }
+            NotePage refPage = _activePage;
+            if (refPage == null && sec.Pages.Count > 0) refPage = sec.Pages[sec.Pages.Count - 1];
+            if (refPage == null && _activeNotebook != null) { var all = _activeNotebook.Sections.SelectMany(s => s.Pages).ToList(); if (all.Count > 0) refPage = all[all.Count - 1]; }
+            if (refPage != null) { p.CanvasSizeIndex = refPage.CanvasSizeIndex; p.BgColor = refPage.BgColor; p.GridPattern = refPage.GridPattern; p.GridGap = refPage.GridGap; p.MajorGridColor = refPage.MajorGridColor; p.MinorGridColor = refPage.MinorGridColor; }
             sec.Pages.Add(p);
             return p;
         }
@@ -1179,7 +1188,7 @@ namespace TeachingAnnotator
             else if (LaserBtn.IsChecked == true) 
             { 
                 MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; 
-                var da = new DrawingAttributes { Color = active, Width = size, Height = size, FitToCurve = true, IgnorePressure = true, StylusTip = StylusTip.Ellipse };
+                var da = new DrawingAttributes { Color = _laserCoreColor, Width = size, Height = size, FitToCurve = true, IgnorePressure = true, StylusTip = StylusTip.Ellipse };
                 da.AddPropertyData(LaserProp, (long)0);
                 MainInkCanvas.DefaultDrawingAttributes = da;
             }
@@ -1291,7 +1300,6 @@ namespace TeachingAnnotator
 
         private void LaserHold_TextChanged(object sender, TextChangedEventArgs e) { if (!_appLoaded) return; if (double.TryParse(LaserHoldInput.Text, out double v)) { _settings.LaserHoldDelay = v; ScheduleSave(); } }
         private void LaserFade_TextChanged(object sender, TextChangedEventArgs e) { if (!_appLoaded) return; if (double.TryParse(LaserFadeInput.Text, out double v)) { _settings.LaserFadeDuration = v; ScheduleSave(); } }
-        private void LaserGlow_Changed(object sender, RoutedPropertyChangedEventArgs<double> e) { if (!_appLoaded) return; _settings.LaserGlow = LaserGlowSlider.Value; if (LaserBtn.IsChecked == true) ApplyPenAttributes(); ScheduleSave(); }
 
         // ================= UNDO / STROKES =================
         private void EnforceStrokeZOrder()
