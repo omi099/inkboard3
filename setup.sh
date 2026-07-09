@@ -341,6 +341,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="8" Padding="6" MinWidth="200">
 <StackPanel>
 <Button Style="{StaticResource DropdownItem}" Click="GridToggle_Click" Content="Cycle Grid Pattern (G)"/>
+<Button Style="{StaticResource DropdownItem}" Click="GridAdvanced_Click" Content="Advanced Grid Customization..."/>
 <Button x:Name="BgColorBtn" Style="{StaticResource DropdownItem}" Click="BgColorBtn_Click" Content="Page Background Color..."/>
 <Button Style="{StaticResource DropdownItem}" Click="PageSizeCycle_Click" Content="Cycle Blank Page Size"/>
 <Button Style="{StaticResource DropdownItem}" Click="ToggleInk_Click" Content="Hide / Show Ink (V)"/>
@@ -350,23 +351,36 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 </StackPanel>
 </Border>
 </Popup>
+<Popup x:Name="GridAdvancedPopup" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=ViewMenuToggle}" Placement="Top" VerticalOffset="-10">
+<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="10" Padding="14" MinWidth="260">
+<StackPanel>
+<CheckBox x:Name="AdvGridToggle" Content="Enable advanced grid customization" IsChecked="False" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" Margin="0,0,0,6" Checked="AdvGrid_Changed" Unchecked="AdvGrid_Changed"/>
+<TextBlock Text="Off by default. When enabled, overrides preset grid colors, thickness and gap." Foreground="{DynamicResource TextSecondary}" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,10"/>
+<TextBlock Text="Minor line color (hex)" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,3"/>
+<StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+<TextBox x:Name="AdvMinorHex" Width="96" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="4" TextChanged="AdvGridHex_Changed"/>
+<Button Style="{StaticResource TailwindButton}" Click="AdvMinorWheel_Click" Content="Color Wheel"/>
+</StackPanel>
+<TextBlock Text="Major axis color (hex)" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,3"/>
+<StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+<TextBox x:Name="AdvMajorHex" Width="96" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="4" TextChanged="AdvGridHex_Changed"/>
+<Button Style="{StaticResource TailwindButton}" Click="AdvMajorWheel_Click" Content="Color Wheel"/>
+</StackPanel>
+<TextBlock Text="Minor line thickness" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,3"/>
+<Slider x:Name="AdvMinorThick" Minimum="0.1" Maximum="3" Value="0.5" Margin="0,0,0,8" ValueChanged="AdvGridSlider_Changed" IsMoveToPointEnabled="True"/>
+<TextBlock Text="Major axis thickness" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,3"/>
+<Slider x:Name="AdvMajorThick" Minimum="0.1" Maximum="5" Value="1.2" Margin="0,0,0,8" ValueChanged="AdvGridSlider_Changed" IsMoveToPointEnabled="True"/>
+<TextBlock Text="Grid gap / spacing" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,3"/>
+<Slider x:Name="AdvSpacing" Minimum="10" Maximum="120" Value="40" Margin="0,0,0,2" ValueChanged="AdvGridSlider_Changed" IsMoveToPointEnabled="True"/>
+</StackPanel>
+</Border>
+</Popup>
 <Popup x:Name="BgColorPopup" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=ViewMenuToggle}" Placement="Top" VerticalOffset="-10">
 <Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="6" Padding="10">
 <StackPanel>
-<TextBlock Text="Page Presets:" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,4"/>
-<WrapPanel Width="120" x:Name="BgPaletteGrid" Margin="0,0,0,8"/>
-<Expander Header="Advanced Grid Settings" Foreground="{DynamicResource TextPrimary}" FontSize="11">
-<StackPanel Margin="0,8,0,0">
-<TextBlock Text="Custom Page Hex:" Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
-<TextBox x:Name="BgHexInput" Text="#FFFFFF" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="4" Margin="0,2,0,6" TextChanged="BgHexInput_TextChanged"/>
-<TextBlock Text="Major Line Hex:" Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
-<TextBox x:Name="MajorHexInput" Text="" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="4" Margin="0,2,0,6" TextChanged="GridCustom_TextChanged" ToolTip="Leave empty for auto"/>
-<TextBlock Text="Minor Line Hex:" Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
-<TextBox x:Name="MinorHexInput" Text="" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="4" Margin="0,2,0,6" TextChanged="GridCustom_TextChanged" ToolTip="Leave empty for auto"/>
-<TextBlock Text="Grid Size (px):" Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
-<TextBox x:Name="GridSizeInput" Text="40" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="4" Margin="0,2,0,0" TextChanged="GridCustom_TextChanged"/>
-</StackPanel>
-</Expander>
+<TextBlock Text="Page Hex:" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,4"/>
+<TextBox x:Name="BgHexInput" Text="#FFFFFF" Width="100" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="4" Margin="0,0,0,8" TextChanged="BgHexInput_TextChanged"/>
+<WrapPanel Width="120" x:Name="BgPaletteGrid"/>
 </StackPanel>
 </Border>
 </Popup>
@@ -459,9 +473,6 @@ namespace TeachingAnnotator
         public int CanvasSizeIndex { get; set; } = 1;
         public string BgColor { get; set; } = "#FFFFFF";
         public int GridPattern { get; set; } = 1;
-        public string MajorLineColor { get; set; } = "";
-        public string MinorLineColor { get; set; } = "";
-        public double GridSize { get; set; } = 40.0;
     }
 
     public class Section
@@ -498,6 +509,12 @@ namespace TeachingAnnotator
         public bool PressureEnabled { get; set; } = true;
         public bool StrokeEraserEnabled { get; set; } = true;
         public bool PenOnly { get; set; } = true;
+		public bool AdvancedGridEnabled { get; set; } = false;
+		public string GridMinorColorHex { get; set; } = "";
+		public string GridMajorColorHex { get; set; } = "";
+		public double GridSpacing { get; set; } = 40.0;
+		public double GridMinorThickness { get; set; } = 0.5;
+		public double GridMajorThickness { get; set; } = 1.2;
     }
 
     public class UndoAction
@@ -604,7 +621,7 @@ namespace TeachingAnnotator
                 r.MouseLeftButtonDown += (s, e) => { HexInput.Text = h; ColorPopup.IsOpen = false; };
                 PaletteGrid.Children.Add(r);
             }
-            string[] bgHex = { "#FFFFFF", "#FDF6E3", "#F0F4F8", "#E6F0E6", "#FFFBF0", "#2D2D30", "#1E1E1E", "#181A1F", "#0F172A", "#000000" };
+            string[] bgHex = { "#FFFFFF", "#FAFAF7", "#FBF0DA", "#FDF6EC", "#EAF4F4", "#EDF2FB", "#F4ECF7", "#ECF4EC", "#1C1C1E", "#0B1120" };
             foreach (string hex in bgHex)
             {
                 var r = new Rectangle { Width = 20, Height = 20, Margin = new Thickness(2), RadiusX = 4, RadiusY = 4, Fill = new SolidColorBrush(SafeColor(hex, Colors.White)), Stroke = new SolidColorBrush(Color.FromRgb(80, 80, 80)), StrokeThickness = 0.5, Cursor = Cursors.Hand };
@@ -938,14 +955,6 @@ namespace TeachingAnnotator
             ApplyTheme();
             RenderThumbs();
             SyncToolToUI();
-            
-            _isUpdatingUI = true;
-            if (BgHexInput != null) BgHexInput.Text = _activePage.BgColor;
-            if (MajorHexInput != null) MajorHexInput.Text = _activePage.MajorLineColor;
-            if (MinorHexInput != null) MinorHexInput.Text = _activePage.MinorLineColor;
-            if (GridSizeInput != null) GridSizeInput.Text = _activePage.GridSize.ToString();
-            _isUpdatingUI = false;
-
             MainScroll.ScrollToHorizontalOffset(0);
             MainScroll.ScrollToVerticalOffset(0);
             UpdateCanvasCentering();
@@ -1089,54 +1098,57 @@ namespace TeachingAnnotator
             if (_activePage != null && _activePage.Kind != "Pdf")
             {
                 double lum = (_customBgColor.R * 0.299 + _customBgColor.G * 0.587 + _customBgColor.B * 0.114);
-                Color autoMajor = lum > 130 ? Color.FromArgb(32, 0, 0, 0) : Color.FromArgb(35, 255, 255, 255);
-                Color autoMinor = lum > 130 ? Color.FromArgb(14, 0, 0, 0) : Color.FromArgb(15, 255, 255, 255);
-                Color major = string.IsNullOrWhiteSpace(_activePage.MajorLineColor) ? autoMajor : SafeColor(_activePage.MajorLineColor, autoMajor);
-                Color minor = string.IsNullOrWhiteSpace(_activePage.MinorLineColor) ? autoMinor : SafeColor(_activePage.MinorLineColor, autoMinor);
-                double size = _activePage.GridSize > 5 ? _activePage.GridSize : 40.0;
-                PageHost.Background = CreateGridBrush(_customBgColor, major, minor, _zoom, size);
+                Color major = lum > 130 ? Color.FromArgb(32, 0, 0, 0) : Color.FromArgb(35, 255, 255, 255);
+                Color minor = lum > 130 ? Color.FromArgb(14, 0, 0, 0) : Color.FromArgb(15, 255, 255, 255);
+                PageHost.Background = CreateGridBrush(_customBgColor, major, minor, _zoom);
             }
         }
 
-        private DrawingBrush CreateGridBrush(Color bg, Color majorLine, Color minorLine, double zoom, double size)
+        private DrawingBrush CreateGridBrush(Color bg, Color majorLine, Color minorLine, double zoom)
         {
             var group = new DrawingGroup();
-            group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(bg), Geometry = new RectangleGeometry(new Rect(0, 0, size, size)) });
+			if (_settings.AdvancedGridEnabled) { if (!string.IsNullOrWhiteSpace(_settings.GridMinorColorHex)) minorLine = SafeColor(_settings.GridMinorColorHex, minorLine); if (!string.IsNullOrWhiteSpace(_settings.GridMajorColorHex)) majorLine = SafeColor(_settings.GridMajorColorHex, majorLine); }
+            group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(bg), Geometry = new RectangleGeometry(new Rect(0, 0, 40, 40)) });
+            
+            // Professional highly aesthetic visual fix for grids: lock exact screen stroke width inverse to zoom.
             double t = 0.6 / zoom; 
+            
             if (_gridPattern == 1)
             {
-                var minorPen = new Pen(new SolidColorBrush(minorLine), t * 0.5);
-                var majorPen = new Pen(new SolidColorBrush(majorLine), t * 1.2);
+                var minorPen = new Pen(new SolidColorBrush(minorLine), t * (_settings.AdvancedGridEnabled ? _settings.GridMinorThickness : 0.5));
+                var majorPen = new Pen(new SolidColorBrush(majorLine), t * (_settings.AdvancedGridEnabled ? _settings.GridMajorThickness : 1.2));
                 var minorGrp = new GeometryGroup();
-                double step = size / 4.0;
-                for (double i = step; i < size - 0.01; i += step) { minorGrp.Children.Add(new LineGeometry(new Point(i, 0), new Point(i, size))); minorGrp.Children.Add(new LineGeometry(new Point(0, i), new Point(size, i))); }
+                for (int i = 10; i < 40; i += 10) { minorGrp.Children.Add(new LineGeometry(new Point(i, 0), new Point(i, 40))); minorGrp.Children.Add(new LineGeometry(new Point(0, i), new Point(40, i))); }
                 group.Children.Add(new GeometryDrawing { Pen = minorPen, Geometry = minorGrp });
                 var majorGrp = new GeometryGroup();
-                majorGrp.Children.Add(new LineGeometry(new Point(size, 0), new Point(size, size)));
-                majorGrp.Children.Add(new LineGeometry(new Point(0, size), new Point(size, size)));
+                majorGrp.Children.Add(new LineGeometry(new Point(40, 0), new Point(40, 40)));
+                majorGrp.Children.Add(new LineGeometry(new Point(0, 40), new Point(40, 40)));
                 group.Children.Add(new GeometryDrawing { Pen = majorPen, Geometry = majorGrp });
             }
-            else if (_gridPattern == 2)
+            else if (_gridPattern == 2) // Dot Grid (Notebook aesthetic)
             {
                 double r = 1.35 / zoom;
-                group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(majorLine), Geometry = new EllipseGeometry(new Point(size/2, size/2), r, r) });
+                group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(majorLine), Geometry = new EllipseGeometry(new Point(20, 20), r, r) });
             }
-            else if (_gridPattern == 3)
+            else if (_gridPattern == 3) // Lined Rule (Legal / Writing)
             {
                 var pen = new Pen(new SolidColorBrush(majorLine), t);
                 var gg = new GeometryGroup();
-                gg.Children.Add(new LineGeometry(new Point(0, size), new Point(size, size)));
+                gg.Children.Add(new LineGeometry(new Point(0, 40), new Point(40, 40)));
                 group.Children.Add(new GeometryDrawing { Pen = pen, Geometry = gg });
             }
-            else if (_gridPattern == 4)
-            {
-                var pen = new Pen(new SolidColorBrush(majorLine), t);
-                var gg = new GeometryGroup();
-                gg.Children.Add(new LineGeometry(new Point(size, 0), new Point(size, size)));
-                gg.Children.Add(new LineGeometry(new Point(0, size), new Point(size, size)));
-                group.Children.Add(new GeometryDrawing { Pen = pen, Geometry = gg });
-            }
-            return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, size, size), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
+            
+            else if (_gridPattern == 4) // Simple Grid (uniform single-weight squares)
+			{
+				var pen = new Pen(new SolidColorBrush(majorLine), _settings.AdvancedGridEnabled ? t * _settings.GridMajorThickness : t);
+				var gg = new GeometryGroup();
+				gg.Children.Add(new LineGeometry(new Point(40, 0), new Point(40, 40)));
+				gg.Children.Add(new LineGeometry(new Point(0, 40), new Point(40, 40)));
+				group.Children.Add(new GeometryDrawing { Pen = pen, Geometry = gg });
+			}
+
+			double vp = (_settings.AdvancedGridEnabled && _settings.GridSpacing > 4) ? _settings.GridSpacing : 40;
+			return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, vp, vp), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
         }
 
         // ================= TOOLS =================
@@ -1214,21 +1226,58 @@ namespace TeachingAnnotator
 
         private void BgHexInput_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (!_appLoaded || _activePage == null || _isUpdatingUI) return;
+            if (!_appLoaded || _activePage == null) return;
             try { _customBgColor = (Color)ColorConverter.ConvertFromString(BgHexInput.Text); _activePage.BgColor = BgHexInput.Text; ApplyTheme(); ScheduleSave(); } catch { }
         }
 
-        private void GridCustom_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (!_appLoaded || _activePage == null || _isUpdatingUI) return;
-            _activePage.MajorLineColor = MajorHexInput.Text.Trim();
-            _activePage.MinorLineColor = MinorHexInput.Text.Trim();
-            if (double.TryParse(GridSizeInput.Text, out double s)) { _activePage.GridSize = s; }
-            UpdateGridBackground();
-            ScheduleSave();
-        }
-
         private void GridToggle_Click(object sender, RoutedEventArgs e) { if (_activePage == null) return; _gridPattern = (_gridPattern + 1) % 5; _activePage.GridPattern = _gridPattern; UpdateGridBackground(); ScheduleSave(); }
+
+		private void GridAdvanced_Click(object sender, RoutedEventArgs e)
+		{
+			_isUpdatingUI = true;
+			AdvGridToggle.IsChecked = _settings.AdvancedGridEnabled;
+			AdvMinorHex.Text = _settings.GridMinorColorHex;
+			AdvMajorHex.Text = _settings.GridMajorColorHex;
+			AdvMinorThick.Value = _settings.GridMinorThickness;
+			AdvMajorThick.Value = _settings.GridMajorThickness;
+			AdvSpacing.Value = _settings.GridSpacing;
+			_isUpdatingUI = false;
+			GridAdvancedPopup.IsOpen = true;
+		}
+
+		private void AdvGrid_Changed(object sender, RoutedEventArgs e)
+		{
+			if (!_appLoaded || _isUpdatingUI) return;
+			_settings.AdvancedGridEnabled = AdvGridToggle.IsChecked == true;
+			UpdateGridBackground(); ScheduleSave();
+		}
+
+		private void AdvGridHex_Changed(object sender, TextChangedEventArgs e)
+		{
+			if (!_appLoaded || _isUpdatingUI) return;
+			_settings.GridMinorColorHex = AdvMinorHex.Text;
+			_settings.GridMajorColorHex = AdvMajorHex.Text;
+			UpdateGridBackground(); ScheduleSave();
+		}
+
+		private void AdvGridSlider_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+		{
+			if (!_appLoaded || _isUpdatingUI) return;
+			_settings.GridMinorThickness = AdvMinorThick.Value;
+			_settings.GridMajorThickness = AdvMajorThick.Value;
+			_settings.GridSpacing = AdvSpacing.Value;
+			UpdateGridBackground(); ScheduleSave();
+		}
+
+		private void AdvMinorWheel_Click(object sender, RoutedEventArgs e)
+		{
+			using (var cd = new System.Windows.Forms.ColorDialog { FullOpen = true }) { if (cd.ShowDialog() == System.Windows.Forms.DialogResult.OK) AdvMinorHex.Text = $"#{cd.Color.R:X2}{cd.Color.G:X2}{cd.Color.B:X2}"; }
+		}
+
+		private void AdvMajorWheel_Click(object sender, RoutedEventArgs e)
+		{
+			using (var cd = new System.Windows.Forms.ColorDialog { FullOpen = true }) { if (cd.ShowDialog() == System.Windows.Forms.DialogResult.OK) AdvMajorHex.Text = $"#{cd.Color.R:X2}{cd.Color.G:X2}{cd.Color.B:X2}"; }
+		}
 
         private void PageSizeCycle_Click(object sender, RoutedEventArgs e)
         {
@@ -1567,38 +1616,32 @@ namespace TeachingAnnotator
         {
             Color bgc = SafeColor(page.BgColor, Colors.White);
             gfx.DrawRectangle(new XSolidBrush(XColor.FromArgb(255, bgc.R, bgc.G, bgc.B)), 0, 0, w, h);
+            
             double lum = (bgc.R * 0.299 + bgc.G * 0.587 + bgc.B * 0.114);
-            XColor autoMajor = lum > 130 ? XColor.FromArgb(32, 0, 0, 0) : XColor.FromArgb(35, 255, 255, 255);
-            XColor autoMinor = lum > 130 ? XColor.FromArgb(14, 0, 0, 0) : XColor.FromArgb(15, 255, 255, 255);
-            Color customM = string.IsNullOrWhiteSpace(page.MajorLineColor) ? Color.FromArgb(autoMajor.A, autoMajor.R, autoMajor.G, autoMajor.B) : SafeColor(page.MajorLineColor, Color.FromArgb(autoMajor.A, autoMajor.R, autoMajor.G, autoMajor.B));
-            Color customMin = string.IsNullOrWhiteSpace(page.MinorLineColor) ? Color.FromArgb(autoMinor.A, autoMinor.R, autoMinor.G, autoMinor.B) : SafeColor(page.MinorLineColor, Color.FromArgb(autoMinor.A, autoMinor.R, autoMinor.G, autoMinor.B));
-            XColor majorLine = XColor.FromArgb(customM.A, customM.R, customM.G, customM.B);
-            XColor minorLine = XColor.FromArgb(customMin.A, customMin.R, customMin.G, customMin.B);
-            double size = page.GridSize > 5 ? page.GridSize : 40.0;
+            XColor majorLine = lum > 130 ? XColor.FromArgb(32, 0, 0, 0) : XColor.FromArgb(35, 255, 255, 255);
+            XColor minorLine = lum > 130 ? XColor.FromArgb(14, 0, 0, 0) : XColor.FromArgb(15, 255, 255, 255);
+            
             if (page.GridPattern == 1)
             {
                 var minorPen = new XPen(minorLine, 0.25);
                 var majorPen = new XPen(majorLine, 0.6);
-                int steps = 4;
-                double step = size / steps;
-                int ix = 1; for (double x = step; x < w; x += step, ix++) gfx.DrawLine((ix % steps == 0) ? majorPen : minorPen, x, 0, x, h);
-                int iy = 1; for (double y = step; y < h; y += step, iy++) gfx.DrawLine((iy % steps == 0) ? majorPen : minorPen, 0, y, w, y);
+                for (double x = 10; x < w; x += 10) gfx.DrawLine((x % 40 == 0) ? majorPen : minorPen, x, 0, x, h);
+                for (double y = 10; y < h; y += 10) gfx.DrawLine((y % 40 == 0) ? majorPen : minorPen, 0, y, w, y);
             }
             else if (page.GridPattern == 2)
             {
                 var b = new XSolidBrush(majorLine);
-                for (double x = size/2; x < w; x += size) for (double y = size/2; y < h; y += size) gfx.DrawEllipse(b, x - 1.35, y - 1.35, 2.7, 2.7);
+                for (double x = 20; x < w; x += 40) for (double y = 20; y < h; y += 40) gfx.DrawEllipse(b, x - 1.35, y - 1.35, 2.7, 2.7);
             }
             else if (page.GridPattern == 3)
             {
                 var pen = new XPen(majorLine, 0.5);
-                for (double y = size; y < h; y += size) gfx.DrawLine(pen, 0, y, w, y);
-            }
-            else if (page.GridPattern == 4)
-            {
-                var pen = new XPen(majorLine, 0.5);
-                for (double x = size; x < w; x += size) gfx.DrawLine(pen, x, 0, x, h);
-                for (double y = size; y < h; y += size) gfx.DrawLine(pen, 0, y, w, y);
+                for (double y = 40; y < h; y += 40) gfx.DrawLine(pen, 0, y, w, y); }
+			else if (page.GridPattern == 4)
+			{
+				var gpen = new XPen(majorLine, 0.5);
+				for (double x = 40; x < w; x += 40) gfx.DrawLine(gpen, x, 0, x, h);
+				for (double y = 40; y < h; y += 40) gfx.DrawLine(gpen, 0, y, w, y);
             }
         }
 
