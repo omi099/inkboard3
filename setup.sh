@@ -38,7 +38,7 @@ cat << 'EOF' > MainWindow.xaml
         Title="Anydraw - Professional Whiteboard" 
         WindowState="Maximized" 
         WindowStartupLocation="CenterScreen"
-        KeyDown="Window_KeyDown" Closing="Window_Closing" StylusOutOfRange="Window_StylusOutOfRange" FontFamily="Segoe UI, Helvetica, Arial, sans-serif">
+        KeyDown="Window_KeyDown" Closing="Window_Closing" StylusOutOfRange="Window_StylusOutOfRange" StylusInRange="Window_StylusInRange" FontFamily="Segoe UI, Helvetica, Arial, sans-serif">
 
     <Window.Resources>
         <SolidColorBrush x:Key="BgPrimary" Color="#000000"/>
@@ -676,10 +676,50 @@ namespace TeachingAnnotator
             _isUndoRedoActive = false;
         }
 
+        private bool _penInRange = false;
+        private bool _laserPermanent = false;
+        private DispatcherTimer _laserKeepAliveTimer;
+
+        private void Window_StylusInRange(object sender, StylusEventArgs e)
+        {
+            // Pen is within the tablet's detection range -> keep the laser fully visible; never fade while in range (touching or hovering).
+            _penInRange = true;
+            _lastLaserActivityTime = DateTime.Now;
+            if (LaserInkCanvas != null) LaserInkCanvas.Opacity = 1;
+            _laserTimer.Stop();
+            if (_laserKeepAliveTimer == null)
+            {
+                _laserKeepAliveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+                _laserKeepAliveTimer.Tick += (s, ev) =>
+                {
+                    if (_penInRange)
+                    {
+                        _lastLaserActivityTime = DateTime.Now;
+                        if (LaserInkCanvas != null && LaserInkCanvas.Opacity < 1) LaserInkCanvas.Opacity = 1;
+                    }
+                    else _laserKeepAliveTimer.Stop();
+                };
+            }
+            _laserKeepAliveTimer.Start();
+        }
+
         private void Window_StylusOutOfRange(object sender, StylusEventArgs e)
         {
-            // Pen left the Wacom tablet's proximity/hover range -> force the laser trail to fade out immediately.
+            // Pen physically left the tablet's range. Only now may the laser vanish -- and only if it is not set to Permanent.
+            _penInRange = false;
+            _laserKeepAliveTimer?.Stop();
+            if (_laserPermanent) return;
             if (_laserStrokes.Count > 0)
+            {
+                _lastLaserActivityTime = DateTime.MinValue;
+                if (!_laserTimer.IsEnabled) _laserTimer.Start();
+            }
+        }
+
+        private void LaserPermanent_Changed(object sender, RoutedEventArgs e)
+        {
+            _laserPermanent = (sender as System.Windows.Controls.Primitives.ToggleButton)?.IsChecked == true;
+            if (!_laserPermanent && !_penInRange && _laserStrokes.Count > 0)
             {
                 _lastLaserActivityTime = DateTime.MinValue;
                 if (!_laserTimer.IsEnabled) _laserTimer.Start();
