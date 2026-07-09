@@ -525,11 +525,19 @@ namespace TeachingAnnotator
         {
             var c = da.Color;
             if (c.A == 0) return;
-            var glowDa = da.Clone();
-            glowDa.Width += GlowSize;
-            glowDa.Height += GlowSize;
-            glowDa.Color = Color.FromArgb((byte)(c.A / 3), c.R, c.G, c.B);
-            dc.DrawGeometry(new SolidColorBrush(glowDa.Color), null, this.GetGeometry(glowDa));
+            
+            var glowDa1 = da.Clone();
+            glowDa1.Width += GlowSize;
+            glowDa1.Height += GlowSize;
+            glowDa1.Color = Color.FromArgb((byte)(c.A / 5), c.R, c.G, c.B);
+            dc.DrawGeometry(new SolidColorBrush(glowDa1.Color), null, this.GetGeometry(glowDa1));
+
+            var glowDa2 = da.Clone();
+            glowDa2.Width += GlowSize * 0.4;
+            glowDa2.Height += GlowSize * 0.4;
+            glowDa2.Color = Color.FromArgb((byte)(c.A / 2), c.R, c.G, c.B);
+            dc.DrawGeometry(new SolidColorBrush(glowDa2.Color), null, this.GetGeometry(glowDa2));
+
             var coreDa = da.Clone();
             coreDa.Color = Color.FromArgb(c.A, CoreColor.R, CoreColor.G, CoreColor.B);
             dc.DrawGeometry(new SolidColorBrush(coreDa.Color), null, this.GetGeometry(coreDa));
@@ -561,6 +569,7 @@ namespace TeachingAnnotator
         public static readonly Guid LaserAlphaProp = new Guid("22222222-3333-4444-5555-666666666666");
         private DispatcherTimer _laserFadeTimer;
         private DispatcherTimer _saveDebounce;
+        private long _lastLaserActivityTicks = 0;
         private DispatcherTimer _pdfQualityTimer;
 
         private Stack<UndoAction> _undo = new Stack<UndoAction>();
@@ -1305,22 +1314,20 @@ namespace TeachingAnnotator
         // ================= LASER FADE =================
         private void LaserFadeLoop_Tick(object sender, EventArgs e)
         {
-            if (_isUpdatingUI || _penInRange) return;
+            if (_isUpdatingUI) return;
             bool hasLaser = false;
             var toRemove = new StrokeCollection();
             long now = DateTime.Now.Ticks;
             long holdTicks = (long)(_settings.LaserHoldDelay * 10000000);
             long fadeTicks = (long)(_settings.LaserFadeDuration * 10000000);
+            long elapsed = now - _lastLaserActivityTicks;
             
             foreach (var s in MainInkCanvas.Strokes)
             {
-                if (s.ContainsPropertyData(LaserProp))
+                if (s.ContainsPropertyData(LaserProp) || s is LaserStroke)
                 {
                     hasLaser = true;
                     if (_settings.LaserPermanent) continue;
-                    
-                    long created = (long)s.GetPropertyData(LaserProp);
-                    long elapsed = now - created;
                     
                     if (elapsed > holdTicks)
                     {
@@ -1337,14 +1344,21 @@ namespace TeachingAnnotator
                             if (c.A != newA) s.DrawingAttributes.Color = Color.FromArgb(newA, c.R, c.G, c.B);
                         }
                     }
+                    else
+                    {
+                        byte initialAlpha = 255;
+                        if (s.ContainsPropertyData(LaserAlphaProp)) initialAlpha = (byte)s.GetPropertyData(LaserAlphaProp);
+                        var c = s.DrawingAttributes.Color;
+                        if (c.A != initialAlpha) s.DrawingAttributes.Color = Color.FromArgb(initialAlpha, c.R, c.G, c.B);
+                    }
                 }
             }
             if (toRemove.Count > 0) { _isUpdatingUI = true; MainInkCanvas.Strokes.Remove(toRemove); _isUpdatingUI = false; ScheduleSave(); }
             if (!hasLaser) _laserFadeTimer.Stop();
         }
 
-        private void Window_StylusInRange(object sender, StylusEventArgs e) { _penInRange = true; }
-        private void Window_StylusOutOfRange(object sender, StylusEventArgs e) { _penInRange = false; }
+        private void Window_StylusInRange(object sender, StylusEventArgs e) { _penInRange = true; _lastLaserActivityTicks = DateTime.Now.Ticks; }
+        private void Window_StylusOutOfRange(object sender, StylusEventArgs e) { _penInRange = false; _lastLaserActivityTicks = DateTime.Now.Ticks; }
 
         private void LaserPermanent_Changed(object sender, RoutedEventArgs e)
         {
@@ -1391,8 +1405,8 @@ namespace TeachingAnnotator
                     if (s.GetType() == typeof(Stroke))
                     {
                         var ls = new LaserStroke(s.StylusPoints, s.DrawingAttributes, _laserCoreColor, _settings.LaserGlow);
-                        if (s.ContainsPropertyData(LaserProp)) ls.AddPropertyData(LaserProp, s.GetPropertyData(LaserProp));
-                        else ls.AddPropertyData(LaserProp, DateTime.Now.Ticks);
+                        if (s.ContainsPropertyData(LaserProp)) ls.AddPropertyData(LaserProp, (long)0);
+                        else ls.AddPropertyData(LaserProp, (long)0);
                         
                         if (s.ContainsPropertyData(LaserAlphaProp)) ls.AddPropertyData(LaserAlphaProp, s.GetPropertyData(LaserAlphaProp));
                         else ls.AddPropertyData(LaserAlphaProp, s.DrawingAttributes.Color.A);
@@ -1402,12 +1416,14 @@ namespace TeachingAnnotator
                     }
                     else
                     {
-                        if (!s.ContainsPropertyData(LaserProp)) s.AddPropertyData(LaserProp, DateTime.Now.Ticks);
+                        if (!s.ContainsPropertyData(LaserProp)) s.AddPropertyData(LaserProp, (long)0);
                         if (!s.ContainsPropertyData(LaserAlphaProp)) s.AddPropertyData(LaserAlphaProp, s.DrawingAttributes.Color.A);
                     }
                     laserInvolved = true;
                 }
             }
+
+            if (laserInvolved) _lastLaserActivityTicks = DateTime.Now.Ticks;
 
             if (toRemove.Count > 0)
             {
@@ -1473,6 +1489,7 @@ namespace TeachingAnnotator
 
         private void MainInkCanvas_MouseMove(object sender, MouseEventArgs e)
         {
+            if (e.LeftButton == MouseButtonState.Pressed || e.StylusDevice != null) _lastLaserActivityTicks = DateTime.Now.Ticks;
             if (SelectBtn.IsChecked == true || PointerBtn.IsChecked == true) return;
             CustomDotCursor.Visibility = Visibility.Visible;
             Point p = e.GetPosition(CursorCanvas);
@@ -1738,7 +1755,8 @@ namespace TeachingAnnotator
                 
                 if (stroke is LaserStroke ls)
                 {
-                    XColor glowColor = XColor.FromArgb((byte)(col.A / 3), col.R, col.G, col.B);
+                    XColor glowColor1 = XColor.FromArgb((byte)(col.A / 5), col.R, col.G, col.B);
+                    XColor glowColor2 = XColor.FromArgb((byte)(col.A / 2), col.R, col.G, col.B);
                     XColor coreColor = XColor.FromArgb(col.A, ls.CoreColor.R, ls.CoreColor.G, ls.CoreColor.B);
                     
                     XGraphicsPath path = new XGraphicsPath();
@@ -1746,7 +1764,8 @@ namespace TeachingAnnotator
                     path.AddLine(pts[0].X * sx, pts[0].Y * sy, pts[1].X * sx, pts[1].Y * sy);
                     for (int j = 1; j < pts.Count - 1; j++) path.AddLine(pts[j].X * sx, pts[j].Y * sy, pts[j+1].X * sx, pts[j+1].Y * sy);
                     
-                    gfx.DrawPath(new XPen(glowColor, (stroke.DrawingAttributes.Width + ls.GlowSize) * sx) { LineJoin = XLineJoin.Round, LineCap = XLineCap.Round }, path);
+                    gfx.DrawPath(new XPen(glowColor1, (stroke.DrawingAttributes.Width + ls.GlowSize) * sx) { LineJoin = XLineJoin.Round, LineCap = XLineCap.Round }, path);
+                    gfx.DrawPath(new XPen(glowColor2, (stroke.DrawingAttributes.Width + ls.GlowSize * 0.4) * sx) { LineJoin = XLineJoin.Round, LineCap = XLineCap.Round }, path);
                     gfx.DrawPath(new XPen(coreColor, thick) { LineJoin = XLineJoin.Round, LineCap = XLineCap.Round }, path);
                     continue;
                 }
