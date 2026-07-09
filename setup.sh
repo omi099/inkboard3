@@ -643,7 +643,7 @@ namespace TeachingAnnotator
             MainInkCanvas.PreviewTouchDown += Canvas_PreviewTouchDown;
 
             _laserRenderer = new LaserDynamicRenderer();
-            MainInkCanvas.DynamicRenderer = _laserRenderer;
+            typeof(InkCanvas).GetProperty("DynamicRenderer").GetSetMethod(true).Invoke(MainInkCanvas, new object[] { _laserRenderer });
 
             _laserFadeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(40) };
             _laserFadeTimer.Tick += LaserFadeLoop_Tick;
