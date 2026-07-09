@@ -230,7 +230,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 </Grid>
 </ScrollViewer>
 
-<InkCanvas x:Name="LaserInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" IsHitTestVisible="False" Panel.ZIndex="500" MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter"/>
+
 
 <Border x:Name="MainToolbar" Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="16" Padding="5,8" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,24" Panel.ZIndex="600">
 <Border.RenderTransform><TranslateTransform x:Name="ToolbarTransform" X="0" Y="0"/></Border.RenderTransform>
@@ -570,12 +570,11 @@ namespace TeachingAnnotator
             _customBgColor = Colors.White;
 
             MainInkCanvas.Strokes.StrokesChanged += MainInkCanvas_StrokesChanged;
-            LaserInkCanvas.Strokes.StrokesChanged += LaserInkCanvas_StrokesChanged;
+            MainInkCanvas.StrokeCollected += MainInkCanvas_StrokeCollected;
             MainInkCanvas.PreviewTouchDown += Canvas_PreviewTouchDown;
-            LaserInkCanvas.PreviewTouchDown += Canvas_PreviewTouchDown;
 
-            _laserHoldTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.2) };
-            _laserHoldTimer.Tick += LaserHold_Tick;
+            _laserHoldTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(30) };
+            _laserHoldTimer.Tick += LaserFadeTimer_Tick;
             _saveDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1200) };
             _saveDebounce.Tick += (s, e) => { _saveDebounce.Stop(); PersistAll(); };
             
@@ -920,10 +919,7 @@ namespace TeachingAnnotator
             SaveActivePageStrokes();
             _activePage = page;
             _undo.Clear(); _redo.Clear();
-            _isUpdatingUI = true;
-            LaserInkCanvas.Strokes.Clear();
-            _isUpdatingUI = false;
-            CancelLaserFade();
+            ClearLaserStrokes();
             _customBgColor = SafeColor(page.BgColor, Colors.White);
             _gridPattern = page.GridPattern;
             _zoom = 1.0; ZoomTransform.ScaleX = 1; ZoomTransform.ScaleY = 1; UpdateZoomUI();
@@ -1174,16 +1170,12 @@ namespace TeachingAnnotator
 
             if (LaserBtn.IsChecked == true)
             {
-                MainInkCanvas.IsHitTestVisible = false;
-                LaserInkCanvas.IsHitTestVisible = true;
-                LaserInkCanvas.EditingMode = InkCanvasEditingMode.Ink;
-                LaserInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = _laserCoreColor, Width = size, Height = size, FitToCurve = true, IgnorePressure = true, StylusTip = StylusTip.Ellipse };
-                LaserInkCanvas.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = active, BlurRadius = _settings.LaserGlow, ShadowDepth = 0, Opacity = 1.0, RenderingBias = System.Windows.Media.Effects.RenderingBias.Performance };
-                CancelLaserFade();
+                MainInkCanvas.IsHitTestVisible = true;
+                MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink;
+                MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = active, Width = size, Height = size, FitToCurve = true, IgnorePressure = true, StylusTip = StylusTip.Ellipse, IsHighlighter = false };
             }
             else
             {
-                LaserInkCanvas.IsHitTestVisible = false;
                 MainInkCanvas.IsHitTestVisible = true;
                 if (PointerBtn.IsChecked == true) MainInkCanvas.EditingMode = InkCanvasEditingMode.None;
                 else if (PenBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = active, Width = size, Height = size, FitToCurve = true, IgnorePressure = ignore, StylusTip = StylusTip.Ellipse }; }
@@ -1247,61 +1239,96 @@ namespace TeachingAnnotator
         }
 
         // ================= LASER FADE =================
-        private void LaserInkCanvas_StrokesChanged(object sender, StrokeCollectionChangedEventArgs e)
-        {
-            if (_isUpdatingUI) return;
-            if (e.Added.Count > 0) { CancelLaserFade(); RestartLaserHold(); }
-        }
+        public static readonly Guid LaserPropertyId = new Guid("A1B2C3D4-E5F6-4A5B-8C9D-E0F1A2B3C4D5");
+        private class LaserTrack { public Stroke Stroke; public DateTime StartTime; public double InitialAlpha; }
+        private List<LaserTrack> _laserTracks = new List<LaserTrack>();
 
-        private void CancelLaserFade() { if (LaserInkCanvas == null) return; LaserInkCanvas.BeginAnimation(UIElement.OpacityProperty, null); LaserInkCanvas.Opacity = 1.0; }
-
-        private void RestartLaserHold()
+        private void MainInkCanvas_StrokeCollected(object sender, InkCanvasStrokeCollectedEventArgs e)
         {
-            if (_settings.LaserPermanent) return;
-            _laserHoldTimer.Stop();
-            _laserHoldTimer.Interval = TimeSpan.FromSeconds(Math.Max(0.1, _settings.LaserHoldDelay));
-            _laserHoldTimer.Start();
-        }
-
-        private void LaserHold_Tick(object sender, EventArgs e)
-        {
-            _laserHoldTimer.Stop();
-            if (_penInRange || _settings.LaserPermanent) return;
-            StartLaserFade();
-        }
-
-        private void StartLaserFade()
-        {
-            if (LaserInkCanvas.Strokes.Count == 0) return;
-            var anim = new DoubleAnimation(1.0, 0.0, new Duration(TimeSpan.FromSeconds(Math.Max(0.1, _settings.LaserFadeDuration))));
-            anim.Completed += (s, e) =>
+            if (LaserBtn.IsChecked == true)
             {
-                _isUpdatingUI = true; LaserInkCanvas.Strokes.Clear(); _isUpdatingUI = false;
-                LaserInkCanvas.BeginAnimation(UIElement.OpacityProperty, null);
-                LaserInkCanvas.Opacity = 1.0;
-            };
-            LaserInkCanvas.BeginAnimation(UIElement.OpacityProperty, anim);
+                e.Stroke.AddPropertyData(LaserPropertyId, true);
+                if (!_settings.LaserPermanent)
+                {
+                    _laserTracks.Add(new LaserTrack { Stroke = e.Stroke, StartTime = DateTime.Now, InitialAlpha = e.Stroke.DrawingAttributes.Color.A });
+                    if (!_laserHoldTimer.IsEnabled) _laserHoldTimer.Start();
+                }
+            }
+        }
+
+        private void ClearLaserStrokes() { 
+            _laserTracks.Clear(); 
+            _laserHoldTimer.Stop(); 
+            if (MainInkCanvas != null) {
+                _isUpdatingUI = true;
+                var toRemove = new StrokeCollection();
+                foreach (var s in MainInkCanvas.Strokes) { if (s.ContainsPropertyData(LaserPropertyId)) toRemove.Add(s); }
+                if (toRemove.Count > 0) MainInkCanvas.Strokes.Remove(toRemove);
+                _isUpdatingUI = false;
+            }
+        }
+        
+        private void RestoreLaserAlphas() {
+            foreach (var t in _laserTracks) {
+                var c = t.Stroke.DrawingAttributes.Color;
+                t.Stroke.DrawingAttributes.Color = Color.FromArgb((byte)t.InitialAlpha, c.R, c.G, c.B);
+            }
+        }
+
+        private void LaserFadeTimer_Tick(object sender, EventArgs e)
+        {
+            if (_settings.LaserPermanent || _laserTracks.Count == 0) return;
+            var now = DateTime.Now;
+            var toRemove = new StrokeCollection();
+            for (int i = _laserTracks.Count - 1; i >= 0; i--)
+            {
+                var t = _laserTracks[i];
+                double elapsed = (now - t.StartTime).TotalSeconds;
+                if (elapsed > _settings.LaserHoldDelay)
+                {
+                    double fadePhase = elapsed - _settings.LaserHoldDelay;
+                    if (fadePhase >= _settings.LaserFadeDuration)
+                    {
+                        toRemove.Add(t.Stroke);
+                        _laserTracks.RemoveAt(i);
+                    }
+                    else
+                    {
+                        double ratio = 1.0 - (fadePhase / Math.Max(0.1, _settings.LaserFadeDuration));
+                        byte newAlpha = (byte)(t.InitialAlpha * ratio);
+                        if (t.Stroke.DrawingAttributes.Color.A != newAlpha)
+                        {
+                            var c = t.Stroke.DrawingAttributes.Color;
+                            t.Stroke.DrawingAttributes.Color = Color.FromArgb(newAlpha, c.R, c.G, c.B);
+                        }
+                    }
+                }
+            }
+            if (toRemove.Count > 0)
+            {
+                _isUpdatingUI = true;
+                MainInkCanvas.Strokes.Remove(toRemove);
+                _isUpdatingUI = false;
+            }
+            if (_laserTracks.Count == 0) _laserHoldTimer.Stop();
         }
 
         private void Window_StylusInRange(object sender, StylusEventArgs e)
         {
             _penInRange = true;
-            _laserHoldTimer.Stop();
-            CancelLaserFade();
         }
 
         private void Window_StylusOutOfRange(object sender, StylusEventArgs e)
         {
             _penInRange = false;
-            if (!_settings.LaserPermanent && LaserInkCanvas.Strokes.Count > 0) RestartLaserHold();
         }
 
         private void LaserPermanent_Changed(object sender, RoutedEventArgs e)
         {
             if (!_appLoaded) return;
             _settings.LaserPermanent = LaserPermanentToggle.IsChecked == true;
-            if (_settings.LaserPermanent) { _laserHoldTimer.Stop(); CancelLaserFade(); }
-            else if (!_penInRange && LaserInkCanvas.Strokes.Count > 0) RestartLaserHold();
+            if (_settings.LaserPermanent) { _laserHoldTimer.Stop(); RestoreLaserAlphas(); }
+            else { foreach (var t in _laserTracks) t.StartTime = DateTime.Now; if (!_laserHoldTimer.IsEnabled) _laserHoldTimer.Start(); }
             ScheduleSave();
         }
 
@@ -1333,6 +1360,7 @@ namespace TeachingAnnotator
             if (_isUndoRedoActive || _isUpdatingUI) return;
             var a = new UndoAction { Added = new StrokeCollection(e.Added), Removed = new StrokeCollection(e.Removed) };
             if (a.Added.Count > 0 || a.Removed.Count > 0) { _undo.Push(a); _redo.Clear(); }
+            foreach (var s in e.Removed) { _laserTracks.RemoveAll(x => x.Stroke == s); }
             EnforceStrokeZOrder();
             ScheduleSave();
         }
