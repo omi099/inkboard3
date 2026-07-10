@@ -229,7 +229,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Path Data="M12 2 L2 22 L6 22 L12 10 L18 22 L22 22 Z" Fill="{DynamicResource Sky400}" Height="20" Stretch="Uniform" Margin="0,0,10,0"/>
 <TextBlock Text="My Library" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
 </StackPanel>
-<TextBox x:Name="LibrarySearchBox" Grid.Column="1" Width="260" Padding="10,8" VerticalContentAlignment="Center" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="6" TextChanged="LibrarySearch_TextChanged" ToolTip="Search notebooks" Margin="0,0,24,0" WindowChrome.IsHitTestVisibleInChrome="True"/>
+<TextBox x:Name="LibrarySearchBox" Grid.Column="1" Width="260" Padding="10,8" VerticalContentAlignment="Center" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" TextChanged="LibrarySearch_TextChanged" ToolTip="Search notebooks" Margin="0,0,24,0" WindowChrome.IsHitTestVisibleInChrome="True"/>
 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
 <Button Style="{StaticResource CaptionButton}" Click="Min_Click" ToolTip="Minimize"><Path Data="M 1 5 L 9 5" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1"/></Button>
 <Button Style="{StaticResource CaptionButton}" x:Name="LibMaxBtn" Click="Max_Click" ToolTip="Maximize"><Path x:Name="LibMaxIcon" Data="M 1 1 L 9 1 L 9 9 L 1 9 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1"/></Button>
@@ -372,7 +372,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Border.Effect><DropShadowEffect Color="Black" BlurRadius="15" Opacity="0.5" ShadowDepth="4"/></Border.Effect>
 <StackPanel>
 <TextBlock Text="CUSTOM HEX" Foreground="{DynamicResource TextSecondary}" FontSize="10" FontWeight="Bold" Margin="0,0,0,6"/>
-<TextBox x:Name="HexInput" Text="#EF4444" Width="100" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="6" CornerRadius="4" Margin="0,0,0,12" TextChanged="HexInput_TextChanged" HorizontalAlignment="Left"/>
+<TextBox x:Name="HexInput" Text="#EF4444" Width="100" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="6" Margin="0,0,0,12" TextChanged="HexInput_TextChanged" HorizontalAlignment="Left"/>
 <TextBlock Text="PREMIUM SWATCHES" Foreground="{DynamicResource TextSecondary}" FontSize="10" FontWeight="Bold" Margin="0,0,0,6"/>
 <WrapPanel Width="130" x:Name="PaletteGrid"/>
 </StackPanel>
@@ -406,11 +406,11 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <CheckBox x:Name="LaserPermanentToggle" Content="Permanent (Never vanish)" Foreground="{DynamicResource TextPrimary}" Margin="0,2,0,10" Checked="LaserPermanent_Changed" Unchecked="LaserPermanent_Changed"/>
 <Grid Margin="0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
 <TextBlock Grid.Column="0" Text="Hold Delay (sec)" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
-<TextBox x:Name="LaserHoldInput" Grid.Column="1" Text="1.2" Width="48" Padding="4" TextAlignment="Center" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource Sky400}" BorderBrush="{DynamicResource BorderToolbar}" CornerRadius="4" TextChanged="LaserHold_TextChanged"/>
+<TextBox x:Name="LaserHoldInput" Grid.Column="1" Text="1.2" Width="48" Padding="4" TextAlignment="Center" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource Sky400}" BorderBrush="{DynamicResource BorderToolbar}" TextChanged="LaserHold_TextChanged"/>
 </Grid>
 <Grid Margin="0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
 <TextBlock Grid.Column="0" Text="Fade Out (sec)" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
-<TextBox x:Name="LaserFadeInput" Grid.Column="1" Text="0.6" Width="48" Padding="4" TextAlignment="Center" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource Sky400}" BorderBrush="{DynamicResource BorderToolbar}" CornerRadius="4" TextChanged="LaserFade_TextChanged"/>
+<TextBox x:Name="LaserFadeInput" Grid.Column="1" Text="0.6" Width="48" Padding="4" TextAlignment="Center" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource Sky400}" BorderBrush="{DynamicResource BorderToolbar}" TextChanged="LaserFade_TextChanged"/>
 </Grid>
 <Grid Margin="0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
 <TextBlock Grid.Column="0" Text="Neon Glow Spread" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
@@ -447,15 +447,15 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <StackPanel x:Name="AdvancedGridPanel" Visibility="Collapsed" Margin="0,10,0,0">
 <TextBlock Text="Background (Hex):" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,4,0,2"/>
 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-<TextBox x:Name="BgHexInput" Grid.Column="0" Text="#FFFFFF" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="6" CornerRadius="4" TextChanged="BgHexInput_TextChanged"/>
+<TextBox x:Name="BgHexInput" Grid.Column="0" Text="#FFFFFF" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="6" TextChanged="BgHexInput_TextChanged"/>
 <Button Grid.Column="1" Style="{StaticResource TailwindButton}" Content="Wheel..." Click="CustomBgWheel_Click" Margin="6,0,0,0" Padding="8,4"/>
 </Grid>
 <TextBlock Text="Grid Gap Size:" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,8,0,2"/>
-<TextBox x:Name="GridGapInput" Text="40" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="6" CornerRadius="4" TextChanged="AdvancedGridProp_TextChanged"/>
+<TextBox x:Name="GridGapInput" Text="40" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="6" TextChanged="AdvancedGridProp_TextChanged"/>
 <TextBlock Text="Major Line Color (Hex/Auto):" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,8,0,2"/>
-<TextBox x:Name="MajorGridColorInput" Text="" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="6" CornerRadius="4" TextChanged="AdvancedGridProp_TextChanged"/>
+<TextBox x:Name="MajorGridColorInput" Text="" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="6" TextChanged="AdvancedGridProp_TextChanged"/>
 <TextBlock Text="Minor Line Color (Hex/Auto):" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,8,0,2"/>
-<TextBox x:Name="MinorGridColorInput" Text="" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="6" CornerRadius="4" TextChanged="AdvancedGridProp_TextChanged"/>
+<TextBox x:Name="MinorGridColorInput" Text="" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="6" TextChanged="AdvancedGridProp_TextChanged"/>
 </StackPanel>
 </StackPanel>
 </Border>
@@ -500,7 +500,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Border.Effect><DropShadowEffect Color="Black" BlurRadius="30" Opacity="0.6" ShadowDepth="10"/></Border.Effect>
 <StackPanel>
 <TextBlock x:Name="RenameTitle" Text="Rename" Foreground="{DynamicResource TextPrimary}" FontSize="18" FontWeight="Bold" Margin="0,0,0,16"/>
-<TextBox x:Name="RenameInput" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="6" Padding="10" FontSize="14" Margin="0,0,0,24"/>
+<TextBox x:Name="RenameInput" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" Padding="10" FontSize="14" Margin="0,0,0,24"/>
 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
 <Button Style="{StaticResource TailwindButton}" Click="RenameCancel_Click" Content="Cancel" Margin="0,0,12,0" Padding="16,8"/>
 <Button Style="{StaticResource PrimaryButton}" Click="RenameOk_Click" Content="Save Changes" Padding="16,8"/>
@@ -1332,7 +1332,7 @@ namespace TeachingAnnotator
                 LaserInkCanvas.IsHitTestVisible = true;
                 LaserInkCanvas.EditingMode = InkCanvasEditingMode.Ink;
                 LaserInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = _laserCoreColor, Width = size, Height = size, FitToCurve = true, IgnorePressure = true, StylusTip = StylusTip.Ellipse };
-                LaserInkCanvas.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = active, BlurRadius = _settings.LaserGlow, ShadowDepth = 0, Opacity = 0.8, RenderingBias = System.Windows.Media.Effects.RenderingBias.Performance };
+                LaserInkCanvas.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = active, BlurRadius = _settings.LaserGlow * 1.5, ShadowDepth = 0, Opacity = 0.8, RenderingBias = System.Windows.Media.Effects.RenderingBias.Performance };
                 CancelLaserFade();
             }
             else
