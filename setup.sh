@@ -6,6 +6,7 @@ rm -rf TeachingAnnotator
 dotnet new wpf -n TeachingAnnotator -f net8.0 --force
 cd TeachingAnnotator
 rm -f App.xaml.cs 2>/dev/null || true
+
 cat > TeachingAnnotator.csproj << 'ANYDRAW_EOF'
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
@@ -24,10 +25,10 @@ cat > TeachingAnnotator.csproj << 'ANYDRAW_EOF'
   <ItemGroup>
     <PackageReference Include="PdfSharp" Version="6.1.1" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
-    <PackageReference Include="SharpVectors.Wpf" Version="1.8.4" />
   </ItemGroup>
 </Project>
 ANYDRAW_EOF
+
 cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Window x:Class="TeachingAnnotator.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -298,7 +299,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Border.Effect><DropShadowEffect Color="Black" BlurRadius="25" Opacity="0.4" ShadowDepth="6" Direction="270"/></Border.Effect>
 <Grid>
 <Image x:Name="PdfImage" Stretch="Fill" RenderOptions.BitmapScalingMode="HighQuality" Visibility="Collapsed"/>
-<Image x:Name="BackgroundImageControl" Stretch="Fill" RenderOptions.BitmapScalingMode="HighQuality" Visibility="Collapsed"/>
+<Image x:Name="BgImage" Stretch="Fill" RenderOptions.BitmapScalingMode="HighQuality" Visibility="Collapsed"/>
 </Grid>
 </Border>
 <Grid x:Name="A4GuideContainer" IsHitTestVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" Width="1123" Height="794">
@@ -335,6 +336,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Border.Effect><DropShadowEffect Color="Black" BlurRadius="15" Opacity="0.5" ShadowDepth="4"/></Border.Effect>
 <StackPanel>
 <Button Style="{StaticResource DropdownItem}" Click="ImportPdf_Click" Content="Import PDF into Section"/>
+<Button Style="{StaticResource DropdownItem}" Click="ImportImage_Click" Content="Import PNG/JPG as Background"/>
 <Button Style="{StaticResource DropdownItem}" Click="Export_Click" Content="Export Section as PDF..."/>
 <Button x:Name="ManualSaveBtn" Style="{StaticResource DropdownItem}" Click="ManualSave_Click" Content="Save Now (Ctrl+S)"/>
 <TextBlock x:Name="SaveStatusText" Text="" Foreground="{DynamicResource Sky400}" Margin="12,4,0,2" FontSize="11" FontWeight="SemiBold"/>
@@ -432,7 +434,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Border.Effect><DropShadowEffect Color="Black" BlurRadius="15" Opacity="0.5" ShadowDepth="4"/></Border.Effect>
 <StackPanel>
 <Button Style="{StaticResource DropdownItem}" Click="GridToggle_Click" Content="Cycle Paper Grid (G)"/>
-<Button Style="{StaticResource DropdownItem}" Click="BgColorBtn_Click" Content="Paper Background Color..."/>
+<Button x:Name="BgColorBtn" Style="{StaticResource DropdownItem}" Click="BgColorBtn_Click" Content="Paper Background Color..."/>
 <Button Style="{StaticResource DropdownItem}" Click="PageSizeCycle_Click" Content="Cycle Canvas Size"/>
 <Button Style="{StaticResource DropdownItem}" Click="ToggleInk_Click" Content="Hide / Show Ink (V)"/>
 <Button Style="{StaticResource DropdownItem}" Click="ToggleToolbar_Click" Content="Dock Toolbar (D)"/>
@@ -447,9 +449,6 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <StackPanel>
 <TextBlock Text="PREMIUM PAPER TEXTURES" Foreground="{DynamicResource TextSecondary}" FontSize="10" FontWeight="Bold" Margin="0,0,0,6"/>
 <WrapPanel Width="130" x:Name="BgPaletteGrid" Margin="0,0,0,10" HorizontalAlignment="Left"/>
-<TextBlock Text="IMAGE BACKGROUND" Foreground="{DynamicResource TextSecondary}" FontSize="10" FontWeight="Bold" Margin="0,4,0,6"/>
-<Button Style="{StaticResource DropdownItem}" Click="ImportBgImage_Click" Content="Set Image (PNG/SVG)..."/>
-<Button Style="{StaticResource DropdownItem}" Click="ClearBgImage_Click" Content="Clear Image Background"/>
 <ToggleButton x:Name="AdvancedGridToggle" Style="{StaticResource MenuToggle}" Content="Advanced Grid Setup..." Checked="AdvancedGridToggle_Changed" Unchecked="AdvancedGridToggle_Changed" Margin="0,4,0,0"/>
 <StackPanel x:Name="AdvancedGridPanel" Visibility="Collapsed" Margin="0,10,0,0">
 <TextBlock Text="Background (Hex):" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,4,0,2"/>
@@ -492,7 +491,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <TextBlock Text="Export to PDF" Foreground="{DynamicResource TextPrimary}" FontSize="20" FontWeight="Bold" Margin="0,0,0,20"/>
 <CheckBox x:Name="ExportInkCheck" Content="Include ink annotations" IsChecked="True" Foreground="{DynamicResource TextPrimary}" FontSize="14" Margin="0,6"/>
 <CheckBox x:Name="ExportBgCheck" Content="Include paper background &amp; grid" IsChecked="True" Foreground="{DynamicResource TextPrimary}" FontSize="14" Margin="0,6"/>
-<TextBlock Text="Imported PDFs will always retain their original document content underneath annotations." Foreground="{DynamicResource TextSecondary}" FontSize="12" TextWrapping="Wrap" Margin="0,16,0,24"/>
+<TextBlock Text="Imported backgrounds will always retain their original document content underneath annotations." Foreground="{DynamicResource TextSecondary}" FontSize="12" TextWrapping="Wrap" Margin="0,16,0,24"/>
 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
 <Button Style="{StaticResource TailwindButton}" Click="ExportCancel_Click" Content="Cancel" Margin="0,0,12,0" Padding="16,8"/>
 <Button Style="{StaticResource PrimaryButton}" Click="ExportConfirm_Click" Content="Export Document" Padding="16,8"/>
@@ -523,6 +522,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 </Grid>
 </Window>
 ANYDRAW_EOF
+
 cat > MainWindow.xaml.cs << 'ANYDRAW_EOF'
 using System;
 using System.Collections.Generic;
@@ -551,20 +551,20 @@ namespace TeachingAnnotator
     public class NotePage
     {
         public string Id { get; set; } = Guid.NewGuid().ToString("N");
-        public string Kind { get; set; } = "Blank";
+        public string Kind { get; set; } = "Blank"; // Blank, Pdf, or Image
         public string PdfFileName { get; set; } = null;
         public int PdfPageIndex { get; set; } = 0;
         public double PdfWidth { get; set; } = 0;
         public double PdfHeight { get; set; } = 0;
+        public string ImageFileName { get; set; } = null;
+        public double ImageWidth { get; set; } = 0;
+        public double ImageHeight { get; set; } = 0;
         public int CanvasSizeIndex { get; set; } = 1;
         public string BgColor { get; set; } = "#FFFFFF";
         public int GridPattern { get; set; } = 1;
         public double GridGap { get; set; } = 40.0;
         public string MajorGridColor { get; set; } = "";
         public string MinorGridColor { get; set; } = "";
-        public string ImageFileName { get; set; } = null;
-        public double ImageWidth { get; set; } = 0;
-        public double ImageHeight { get; set; } = 0;
     }
 
     public class Section
@@ -897,7 +897,6 @@ namespace TeachingAnnotator
             if (nb.Sections.Count == 0) AddSectionTo(nb);
             _activeSection = nb.Sections[0];
             
-            // Notebook view fade animation
             NotebookView.Opacity = 0;
             LibraryView.Visibility = Visibility.Collapsed;
             NotebookView.Visibility = Visibility.Visible;
@@ -1002,8 +1001,9 @@ namespace TeachingAnnotator
                 var page = _activeSection.Pages[i];
                 var card = new Border { Margin = new Thickness(0, 0, 0, 12), CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(2), BorderBrush = page == _activePage ? (Brush)FindResource("Sky400") : (Brush)FindResource("BorderToolbar"), Background = (Brush)FindResource("BgToolbar"), Cursor = Cursors.Hand };
                 var g = new Grid();
-                var preview = new Border { Height = 140, CornerRadius = new CornerRadius(6), Margin = new Thickness(8, 8, 8, 28), Background = (page.Kind == "Pdf" || page.Kind == "Image") ? Brushes.White : new SolidColorBrush(SafeColor(page.BgColor, Colors.White)), ClipToBounds = true };
-                if (page.Kind == "Pdf" || page.Kind == "Image")
+                bool hasImageBg = page.Kind == "Pdf" || page.Kind == "Image";
+                var preview = new Border { Height = 140, CornerRadius = new CornerRadius(6), Margin = new Thickness(8, 8, 8, 28), Background = hasImageBg ? Brushes.White : new SolidColorBrush(SafeColor(page.BgColor, Colors.White)), ClipToBounds = true };
+                if (hasImageBg)
                 {
                     var img = new Image { Stretch = Stretch.Uniform, VerticalAlignment = VerticalAlignment.Top };
                     preview.Child = img;
@@ -1049,32 +1049,18 @@ namespace TeachingAnnotator
                 try
                 {
                     string abs = System.IO.Path.Combine(NotebookFolder(_activeNotebook), p.ImageFileName);
-                    if (File.Exists(abs))
+                    var bmp = new BitmapImage();
+                    using (var stream = new FileStream(abs, FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
-                        string ext = System.IO.Path.GetExtension(abs).ToLower();
-                        if (ext == ".svg")
-                        {
-                            var settings = new SharpVectors.Renderers.Wpf.WpfDrawingSettings { IncludeRuntime = false, TextAsGeometry = true };
-                            var converter = new SharpVectors.Converters.FileSvgReader(settings);
-                            var drawingGroup = converter.Read(abs);
-                            if (drawingGroup != null)
-                            {
-                                img.Source = new System.Windows.Media.DrawingImage(drawingGroup);
-                            }
-                        }
-                        else
-                        {
-                            var bmp = new BitmapImage();
-                            bmp.BeginInit();
-                            bmp.CacheOption = BitmapCacheOption.OnLoad;
-                            bmp.UriSource = new Uri(abs);
-                            bmp.DecodeToWidth = 100;
-                            bmp.EndInit();
-                            bmp.Freeze();
-                            _thumbCache[p.Id] = bmp;
-                            img.Source = bmp;
-                        }
+                        bmp.BeginInit();
+                        bmp.DecodePixelWidth = 200;
+                        bmp.CacheOption = BitmapCacheOption.OnLoad;
+                        bmp.StreamSource = stream;
+                        bmp.EndInit();
                     }
+                    bmp.Freeze();
+                    _thumbCache[p.Id] = bmp;
+                    img.Source = bmp;
                 }
                 catch { }
             }
@@ -1100,6 +1086,7 @@ namespace TeachingAnnotator
 
         private async void SwitchPage(NotePage page)
         {
+            if (page == null) return;
             SaveActivePageStrokes();
             _activePage = page;
             _undo.Clear(); _redo.Clear();
@@ -1111,7 +1098,6 @@ namespace TeachingAnnotator
             _gridPattern = page.GridPattern;
             _zoom = 1.0; ZoomTransform.ScaleX = 1; ZoomTransform.ScaleY = 1; UpdateZoomUI();
             
-            // Seamless Premium Page Switching
             Workspace.Opacity = 0;
 
             await RenderPageContent();
@@ -1171,12 +1157,10 @@ namespace TeachingAnnotator
         private async System.Threading.Tasks.Task RenderPageContent()
         {
             var page = _activePage;
-            PdfImage.Visibility = Visibility.Collapsed;
-            BackgroundImageControl.Visibility = Visibility.Collapsed;
-            PageHost.Background = Brushes.White;
-
             if (page.Kind == "Pdf" && !string.IsNullOrEmpty(page.PdfFileName))
             {
+                BgImage.Source = null;
+                BgImage.Visibility = Visibility.Collapsed;
                 try
                 {
                     string abs = System.IO.Path.Combine(NotebookFolder(_activeNotebook), page.PdfFileName);
@@ -1187,61 +1171,55 @@ namespace TeachingAnnotator
                     double scale = Math.Min(8.0, Math.Max(2.0, _zoom * 2.5));
                     PdfImage.Source = await RenderPdf(doc, (uint)page.PdfPageIndex, w, h, scale);
                     PdfImage.Visibility = Visibility.Visible;
+                    PageHost.Background = Brushes.White;
                 }
                 catch { PdfImage.Visibility = Visibility.Collapsed; }
             }
             else if (page.Kind == "Image" && !string.IsNullOrEmpty(page.ImageFileName))
             {
+                PdfImage.Source = null;
+                PdfImage.Visibility = Visibility.Collapsed;
                 try
                 {
                     string abs = System.IO.Path.Combine(NotebookFolder(_activeNotebook), page.ImageFileName);
-                    if (File.Exists(abs))
+                    var bmp = new BitmapImage();
+                    using (var stream = new FileStream(abs, FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
-                        string ext = System.IO.Path.GetExtension(abs).ToLower();
-                        if (ext == ".svg")
-                        {
-                            var settings = new SharpVectors.Renderers.Wpf.WpfDrawingSettings { IncludeRuntime = false, TextAsGeometry = true };
-                            var converter = new SharpVectors.Converters.FileSvgReader(settings);
-                            var drawingGroup = converter.Read(abs);
-                            if (drawingGroup != null)
-                            {
-                                BackgroundImageControl.Source = new System.Windows.Media.DrawingImage(drawingGroup);
-                                BackgroundImageControl.Visibility = Visibility.Visible;
-                            }
-                        }
-                        else
-                        {
-                            var bmp = new BitmapImage();
-                            bmp.BeginInit();
-                            bmp.CacheOption = BitmapCacheOption.OnLoad;
-                            bmp.UriSource = new Uri(abs);
-                            bmp.EndInit();
-                            bmp.Freeze();
-                            BackgroundImageControl.Source = bmp;
-                            BackgroundImageControl.Visibility = Visibility.Visible;
-                        }
+                        bmp.BeginInit();
+                        bmp.CacheOption = BitmapCacheOption.OnLoad;
+                        bmp.StreamSource = stream;
+                        bmp.EndInit();
                     }
+                    bmp.Freeze();
+                    BgImage.Source = bmp;
+                    BgImage.Visibility = Visibility.Visible;
+                    PageHost.Background = Brushes.Transparent;
                 }
-                catch { BackgroundImageControl.Visibility = Visibility.Collapsed; }
+                catch { BgImage.Visibility = Visibility.Collapsed; }
             }
             else
             {
                 PdfImage.Source = null;
-                BackgroundImageControl.Source = null;
+                PdfImage.Visibility = Visibility.Collapsed;
+                BgImage.Source = null;
+                BgImage.Visibility = Visibility.Collapsed;
             }
         }
 
         private async System.Threading.Tasks.Task ReRenderPdfQuality()
         {
-            if (_activePage == null || _activePage.Kind != "Pdf" || PdfImage.Visibility != Visibility.Visible) return;
-            try
+            if (_activePage == null) return;
+            if (_activePage.Kind == "Pdf" && PdfImage.Visibility == Visibility.Visible)
             {
-                string abs = System.IO.Path.Combine(NotebookFolder(_activeNotebook), _activePage.PdfFileName);
-                var doc = await GetPdfDoc(abs);
-                double scale = Math.Min(8.0, Math.Max(2.0, _zoom * 2.5));
-                PdfImage.Source = await RenderPdf(doc, (uint)_activePage.PdfPageIndex, _pdfDisplayW, _pdfDisplayH, scale);
+                try
+                {
+                    string abs = System.IO.Path.Combine(NotebookFolder(_activeNotebook), _activePage.PdfFileName);
+                    var doc = await GetPdfDoc(abs);
+                    double scale = Math.Min(8.0, Math.Max(2.0, _zoom * 2.5));
+                    PdfImage.Source = await RenderPdf(doc, (uint)_activePage.PdfPageIndex, _pdfDisplayW, _pdfDisplayH, scale);
+                }
+                catch { }
             }
-            catch { }
         }
 
         private void GetBlankSize(int idx, out double w, out double h)
@@ -1258,16 +1236,17 @@ namespace TeachingAnnotator
 
         private void RefreshBounds()
         {
+            if (_activePage == null) return;
             double w, h;
             if (_activePage.Kind == "Pdf" && PdfImage.Visibility == Visibility.Visible)
             {
                 w = _pdfDisplayW; h = _pdfDisplayH;
                 A4GuideContainer.Visibility = Visibility.Collapsed;
             }
-            else if (_activePage.Kind == "Image" && BackgroundImageControl.Visibility == Visibility.Visible)
+            else if (_activePage.Kind == "Image" && BgImage.Visibility == Visibility.Visible)
             {
-                w = _activePage.ImageWidth > 0 ? _activePage.ImageWidth : 1123;
-                h = _activePage.ImageHeight > 0 ? _activePage.ImageHeight : 794;
+                w = _activePage.ImageWidth > 0 ? _activePage.ImageWidth : 800;
+                h = _activePage.ImageHeight > 0 ? _activePage.ImageHeight : 600;
                 A4GuideContainer.Visibility = Visibility.Collapsed;
             }
             else
@@ -1316,19 +1295,12 @@ namespace TeachingAnnotator
 
         private void UpdateGridBackground()
         {
-            if (_activePage != null)
+            if (_activePage != null && _activePage.Kind == "Blank")
             {
-                if (_activePage.Kind == "Blank")
-                {
-                    double lum = (_customBgColor.R * 0.299 + _customBgColor.G * 0.587 + _customBgColor.B * 0.114);
-                    Color major = lum > 130 ? Color.FromArgb(25, 0, 0, 0) : Color.FromArgb(30, 255, 255, 255);
-                    Color minor = lum > 130 ? Color.FromArgb(12, 0, 0, 0) : Color.FromArgb(12, 255, 255, 255);
-                    PageHost.Background = CreateGridBrush(_customBgColor, major, minor, _zoom);
-                }
-                else
-                {
-                    PageHost.Background = Brushes.White;
-                }
+                double lum = (_customBgColor.R * 0.299 + _customBgColor.G * 0.587 + _customBgColor.B * 0.114);
+                Color major = lum > 130 ? Color.FromArgb(25, 0, 0, 0) : Color.FromArgb(30, 255, 255, 255);
+                Color minor = lum > 130 ? Color.FromArgb(12, 0, 0, 0) : Color.FromArgb(12, 255, 255, 255);
+                PageHost.Background = CreateGridBrush(_customBgColor, major, minor, _zoom);
             }
         }
 
@@ -1357,12 +1329,12 @@ namespace TeachingAnnotator
                 majorGrp.Children.Add(new LineGeometry(new Point(0, gap), new Point(gap, gap)));
                 group.Children.Add(new GeometryDrawing { Pen = majorPen, Geometry = majorGrp });
             }
-            else if (_gridPattern == 2) // Dot Grid
+            else if (_gridPattern == 2) // Dot Grid (Bullet Journal)
             {
                 double r = 1.35 / zoom;
                 group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(majorLine), Geometry = new EllipseGeometry(new Point(gap/2, gap/2), r, r) });
             }
-            else if (_gridPattern == 3) // Ruled Line
+            else if (_gridPattern == 3) // College Ruled
             {
                 var pen = new Pen(new SolidColorBrush(majorLine), t);
                 var gg = new GeometryGroup();
@@ -1492,80 +1464,9 @@ namespace TeachingAnnotator
 
         private void PageSizeCycle_Click(object sender, RoutedEventArgs e)
         {
-            if (_activePage == null || _activePage.Kind == "Pdf" || _activePage.Kind == "Image") { MessageBox.Show("Page size applies to blank paper templates only."); return; }
+            if (_activePage == null || _activePage.Kind != "Blank") { MessageBox.Show("Page size structures apply to editable blank workspaces only."); return; }
             _activePage.CanvasSizeIndex = (_activePage.CanvasSizeIndex + 1) % 5;
             RefreshBounds(); ApplyTheme(); ScheduleSave();
-        }
-
-        private async void ImportBgImage_Click(object sender, RoutedEventArgs e)
-        {
-            if (_activeNotebook == null || _activePage == null) return;
-            var dlg = new OpenFileDialog { Filter = "Image Files (*.png;*.jpg;*.jpeg;*.svg)|*.png;*.jpg;*.jpeg;*.svg" };
-            if (dlg.ShowDialog() != true) return;
-            try
-            {
-                string ext = System.IO.Path.GetExtension(dlg.FileName).ToLower();
-                string destName = "bg_" + Guid.NewGuid().ToString("N") + ext;
-                string dest = System.IO.Path.Combine(NotebookFolder(_activeNotebook), destName);
-                File.Copy(dlg.FileName, dest, true);
-
-                double imgW = 1123;
-                double imgH = 794;
-
-                if (ext == ".svg")
-                {
-                    var settings = new SharpVectors.Renderers.Wpf.WpfDrawingSettings { IncludeRuntime = false, TextAsGeometry = true };
-                    var converter = new SharpVectors.Converters.FileSvgReader(settings);
-                    var drawingGroup = converter.Read(dest);
-                    if (drawingGroup != null)
-                    {
-                        imgW = drawingGroup.Bounds.Width;
-                        imgH = drawingGroup.Bounds.Height;
-                        if (imgW <= 0 || imgH <= 0 || double.IsInfinity(imgW) || double.IsInfinity(imgH))
-                        {
-                            imgW = 1123; imgH = 794;
-                        }
-                    }
-                }
-                else
-                {
-                    var bmp = new BitmapImage();
-                    bmp.BeginInit();
-                    bmp.CacheOption = BitmapCacheOption.OnLoad;
-                    bmp.UriSource = new Uri(dest);
-                    bmp.EndInit();
-                    imgW = bmp.PixelWidth;
-                    imgH = bmp.PixelHeight;
-                }
-
-                _activePage.Kind = "Image";
-                _activePage.ImageFileName = destName;
-                _activePage.ImageWidth = imgW;
-                _activePage.ImageHeight = imgH;
-
-                TouchModified();
-                PersistAll();
-                await RenderPageContent();
-                RefreshBounds();
-                UpdateGridBackground();
-                RenderThumbs();
-            }
-            catch (Exception ex) { MessageBox.Show("Failed to import background image: " + ex.Message); }
-        }
-
-        private async void ClearBgImage_Click(object sender, RoutedEventArgs e)
-        {
-            if (_activePage == null) return;
-            _activePage.Kind = "Blank";
-            _activePage.ImageFileName = null;
-            _activePage.ImageWidth = 0;
-            _activePage.ImageHeight = 0;
-            TouchModified();
-            PersistAll();
-            await RenderPageContent();
-            RefreshBounds();
-            UpdateGridBackground();
-            RenderThumbs();
         }
 
         // ================= LASER FADE =================
@@ -1672,6 +1573,7 @@ namespace TeachingAnnotator
         {
             if (_liveStrokesBeforeMove == null) return;
             var currentLiveStrokes = MainInkCanvas.GetSelectedStrokes();
+            
             var a = new UndoAction { Added = currentLiveStrokes, Removed = _clonedStrokesBeforeMove };
             _undo.Push(a);
             _redo.Clear();
@@ -1871,7 +1773,39 @@ namespace TeachingAnnotator
                 TouchModified(); PersistAll(); RenderThumbs();
                 if (firstAdded != null) SwitchPage(firstAdded);
             }
-            catch (Exception ex) { MessageBox.Show("Import failed: " + ex.Message); }
+            catch (Exception ex) { MessageBox.Show("PDF Import failed: " + ex.Message); }
+        }
+
+        private void ImportImage_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new OpenFileDialog { Filter = "Image Files (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg" };
+            if (dlg.ShowDialog() != true) return;
+            try
+            {
+                string ext = System.IO.Path.GetExtension(dlg.FileName);
+                string destName = "img_" + Guid.NewGuid().ToString("N") + ext;
+                string dest = System.IO.Path.Combine(NotebookFolder(_activeNotebook), destName);
+                File.Copy(dlg.FileName, dest, true);
+
+                double w = 1123, h = 794;
+                using (var stream = new FileStream(dest, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    var decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.None);
+                    if (decoder.Frames.Count > 0)
+                    {
+                        w = decoder.Frames[0].PixelWidth;
+                        h = decoder.Frames[0].PixelHeight;
+                    }
+                }
+
+                int insertAt = _activeSection.Pages.IndexOf(_activePage) + 1;
+                var np = new NotePage { Kind = "Image", ImageFileName = destName, ImageWidth = w, ImageHeight = h };
+                _activeSection.Pages.Insert(insertAt, np);
+
+                TouchModified(); PersistAll(); RenderThumbs();
+                SwitchPage(np);
+            }
+            catch (Exception ex) { MessageBox.Show("Image background import failed: " + ex.Message); }
         }
 
         private void Export_Click(object sender, RoutedEventArgs e) { 
@@ -1925,58 +1859,18 @@ namespace TeachingAnnotator
                     outPage.Height = XUnit.FromPresentation(h);
                     var gfx = XGraphics.FromPdfPage(outPage);
                     gfx.ScaleTransform(72.0 / 96.0, 72.0 / 96.0);
-
                     if (bg)
                     {
                         try
                         {
                             string abs = System.IO.Path.Combine(NotebookFolder(_activeNotebook), page.ImageFileName);
-                            if (File.Exists(abs))
+                            using (var xImg = XImage.FromFile(abs))
                             {
-                                string ext = System.IO.Path.GetExtension(abs).ToLower();
-                                if (ext == ".svg")
-                                {
-                                    var settings = new SharpVectors.Renderers.Wpf.WpfDrawingSettings { IncludeRuntime = false, TextAsGeometry = true };
-                                    var converter = new SharpVectors.Converters.FileSvgReader(settings);
-                                    var drawingGroup = converter.Read(abs);
-                                    if (drawingGroup != null)
-                                    {
-                                        int renderW = (int)w;
-                                        int renderH = (int)h;
-                                        RenderTargetBitmap rtb = new RenderTargetBitmap(renderW, renderH, 96, 96, PixelFormats.Pbgra32);
-                                        DrawingVisual dv = new DrawingVisual();
-                                        using (DrawingContext dc = dv.RenderOpen())
-                                        {
-                                            dc.DrawRectangle(new SolidColorBrush(SafeColor(page.BgColor, Colors.White)), null, new Rect(0, 0, renderW, renderH));
-                                            dc.DrawDrawing(drawingGroup);
-                                        }
-                                        rtb.Render(dv);
-                                        
-                                        var encoder = new PngBitmapEncoder();
-                                        encoder.Frames.Add(BitmapFrame.Create(rtb));
-                                        using (MemoryStream ms = new MemoryStream())
-                                        {
-                                            encoder.Save(ms);
-                                            ms.Position = 0;
-                                            using (XImage xImg = XImage.FromStream(ms))
-                                            {
-                                                gfx.DrawImage(xImg, 0, 0, w, h);
-                                            }
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    using (XImage xImg = XImage.FromFile(abs))
-                                    {
-                                        gfx.DrawImage(xImg, 0, 0, w, h);
-                                    }
-                                }
+                                gfx.DrawImage(xImg, 0, 0, w, h);
                             }
                         }
                         catch { }
                     }
-
                     if (ink && strokes.Count > 0) DrawStrokes(gfx, strokes, 1.0, 1.0);
                     gfx.Dispose();
                 }
@@ -2149,10 +2043,12 @@ namespace TeachingAnnotator
     }
 }
 ANYDRAW_EOF
+
 cat > App.xaml.cs << 'ANYDRAW_EOF'
 using System.Windows;
 namespace TeachingAnnotator { public partial class App : Application { } }
 ANYDRAW_EOF
+
 echo "==> Source written. Restoring + building (Release)..."
 dotnet build -c Release
 echo ""
