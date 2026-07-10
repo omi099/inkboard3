@@ -229,6 +229,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="24,12">
 <Path Data="M12 2 L2 22 L6 22 L12 10 L18 22 L22 22 Z" Fill="{DynamicResource Sky400}" Height="20" Stretch="Uniform" Margin="0,0,10,0"/>
+<Path Data="M12 2" Fill="{DynamicResource Sky400}" Height="20" Stretch="Uniform" Margin="0,0,10,0"/>
 <TextBlock Text="My Library" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
 </StackPanel>
 <TextBox x:Name="LibrarySearchBox" Grid.Column="1" Width="260" Padding="10,8" VerticalContentAlignment="Center" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" TextChanged="LibrarySearch_TextChanged" ToolTip="Search notebooks" Margin="0,0,24,0" WindowChrome.IsHitTestVisibleInChrome="True"/>
@@ -319,6 +320,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 
 <InkCanvas x:Name="LaserInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" IsHitTestVisible="False" Panel.ZIndex="500" MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter"/>
 
+<!-- MAIN INSTRUMENT TOOLBAR -->
 <Border x:Name="MainToolbar" Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="20" Padding="8,10" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,32" Panel.ZIndex="600">
 <Border.RenderTransform><TranslateTransform x:Name="ToolbarTransform" X="0" Y="0"/></Border.RenderTransform>
 <Border.Effect><DropShadowEffect Color="Black" BlurRadius="30" Opacity="0.6" ShadowDepth="10" Direction="270"/></Border.Effect>
@@ -474,12 +476,23 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 </WrapPanel>
 </Border>
 
-<Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,32,32" Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="12" Padding="6" Panel.ZIndex="600">
+<!-- INTEGRATED PERSISTENT STATUS HUB (ZOOM & PAGE DIRECT CONTROLLERS) -->
+<Border x:Name="StatusControlPanel" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,32,32" Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="12" Padding="8,6" Panel.ZIndex="600">
 <Border.Effect><DropShadowEffect Color="Black" BlurRadius="20" Opacity="0.5" ShadowDepth="6"/></Border.Effect>
 <StackPanel Orientation="Horizontal">
-<Button Style="{StaticResource TailwindButton}" Click="ZoomOut_Click" ToolTip="Zoom Out" Padding="12,6"><TextBlock Text="&#8722;" FontWeight="Bold" FontSize="18"/></Button>
-<TextBlock x:Name="ZoomPercentText" Text="100%" Foreground="{DynamicResource Sky400}" VerticalAlignment="Center" FontWeight="Bold" FontSize="13" Margin="8,0" Width="48" TextAlignment="Center" Cursor="Hand" MouseLeftButtonDown="ZoomReset_Click"/>
-<Button Style="{StaticResource TailwindButton}" Click="ZoomIn_Click" ToolTip="Zoom In" Padding="12,6"><TextBlock Text="+" FontWeight="Bold" FontSize="18"/></Button>
+    <!-- Page Selector Controls -->
+    <Button Style="{StaticResource TailwindButton}" Click="PrevPage_Click" ToolTip="Previous Page (PageUp)" Padding="8,6">
+        <Path Data="M 6 10 L 2 6 L 6 2" Stroke="{DynamicResource TextPrimary}" StrokeThickness="2" Fill="Transparent" Stretch="Uniform" Width="6" Height="10"/>
+    </Button>
+    <TextBox x:Name="PageNumberInput" Text="1" Width="34" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource Sky400}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" TextAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="13" KeyDown="PageNumberInput_KeyDown" LostFocus="PageNumberInput_LostFocus" Margin="4,0"/>
+    <TextBlock x:Name="TotalPagesText" Text="/ 1" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontSize="13" Margin="2,0,8,0" FontWeight="SemiBold"/>
+    
+    <Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="4,2,8,2" VerticalAlignment="Stretch"/>
+    
+    <!-- Universal Zoom Factor Controls -->
+    <Button Style="{StaticResource TailwindButton}" Click="ZoomOut_Click" ToolTip="Zoom Out" Padding="12,6"><TextBlock Text="&#8722;" FontWeight="Bold" FontSize="18" VerticalAlignment="Center"/></Button>
+    <TextBox x:Name="ZoomPercentInput" Text="100%" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource Sky400}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" VerticalAlignment="Center" FontWeight="Bold" FontSize="13" Width="56" TextAlignment="Center" KeyDown="ZoomPercentInput_KeyDown" LostFocus="ZoomPercentInput_LostFocus" Margin="4,0"/>
+    <Button Style="{StaticResource TailwindButton}" Click="ZoomIn_Click" ToolTip="Zoom In" Padding="12,6"><TextBlock Text="+" FontWeight="Bold" FontSize="18" VerticalAlignment="Center"/></Button>
 </StackPanel>
 </Border>
 
@@ -551,7 +564,7 @@ namespace TeachingAnnotator
     public class NotePage
     {
         public string Id { get; set; } = Guid.NewGuid().ToString("N");
-        public string Kind { get; set; } = "Blank"; // Blank, Pdf, or Image
+        public string Kind { get; set; } = "Blank"; 
         public string PdfFileName { get; set; } = null;
         public int PdfPageIndex { get; set; } = 0;
         public double PdfWidth { get; set; } = 0;
@@ -618,7 +631,7 @@ namespace TeachingAnnotator
         private NotePage _activePage;
 
         private readonly string _root;
-        private double _zoom = 1.0; // Global Universal Zoom Level preserved strictly across page changes
+        private double _zoom = 1.0; 
         private bool _appLoaded = false;
         private bool _isUpdatingUI = false;
         
@@ -656,6 +669,9 @@ namespace TeachingAnnotator
         private Action<string> _renameCallback;
         private readonly Random _rng = new Random();
         private readonly string[] _covers = { "#1E3A8A", "#7C3AED", "#0F766E", "#B91C1C", "#B45309", "#0369A1", "#4D7C0F", "#9D174D" };
+
+        // State machine variables tracking thumbnail drag positioning metrics
+        private Point _dragStartPoint;
 
         public MainWindow()
         {
@@ -942,7 +958,6 @@ namespace TeachingAnnotator
         private NotePage AddPageTo(Section sec)
         {
             var p = new NotePage();
-            // Perfectly clones background types, patterns, colors, grids, AND original image configurations flawlessly into the newly generated workspace
             if (_activePage != null) 
             { 
                 p.CanvasSizeIndex = _activePage.CanvasSizeIndex; 
@@ -1029,8 +1044,38 @@ namespace TeachingAnnotator
                     g.Children.Add(delBtn);
                 }
                 card.Child = g;
-                var target = page;
-                card.MouseLeftButtonUp += (s, e) => { if (!e.Handled) SwitchPage(target); };
+
+                // Native Hardware-Accelerated Draggable Page Sorting Engine
+                var targetPage = page;
+                card.PreviewMouseLeftButtonDown += (s, e) => { _dragStartPoint = e.GetPosition(null); };
+                card.MouseMove += (s, e) => {
+                    if (e.LeftButton == MouseButtonState.Pressed) {
+                        Point currentPos = e.GetPosition(null);
+                        if (Math.Abs(currentPos.X - _dragStartPoint.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                            Math.Abs(currentPos.Y - _dragStartPoint.Y) > SystemParameters.MinimumVerticalDragDistance) {
+                            DragDrop.DoDragDrop(card, targetPage, DragDropEffects.Move);
+                        }
+                    }
+                };
+                card.AllowDrop = true;
+                card.DragOver += (s, e) => {
+                    if (e.Data.GetDataPresent(typeof(NotePage))) { e.Effects = DragDropEffects.Move; e.Handled = true; }
+                };
+                card.Drop += (s, e) => {
+                    var droppedPage = e.Data.GetData(typeof(NotePage)) as NotePage;
+                    if (droppedPage != null && droppedPage != targetPage) {
+                        int oldIdx = _activeSection.Pages.IndexOf(droppedPage);
+                        int newIdx = _activeSection.Pages.IndexOf(targetPage);
+                        if (oldIdx >= 0 && newIdx >= 0) {
+                            _activeSection.Pages.RemoveAt(oldIdx);
+                            _activeSection.Pages.Insert(newIdx, droppedPage);
+                            TouchModified(); PersistAll(); RenderThumbs(); UpdatePageUI();
+                        }
+                    }
+                };
+
+                var finalTarget = page;
+                card.MouseLeftButtonUp += (s, e) => { if (!e.Handled) SwitchPage(finalTarget); };
                 PageThumbPanel.Children.Add(card);
             }
         }
@@ -1089,6 +1134,7 @@ namespace TeachingAnnotator
             _activeSection.Pages.Remove(page);
             TouchModified(); PersistAll(); RenderThumbs();
             if (wasActive) SwitchPage(_activeSection.Pages[Math.Max(0, idx - 1)]);
+            else UpdatePageUI();
         }
 
         private async void SwitchPage(NotePage page)
@@ -1104,10 +1150,11 @@ namespace TeachingAnnotator
             _customBgColor = SafeColor(page.BgColor, Colors.White);
             _gridPattern = page.GridPattern;
             
-            // STRICT REQUIREMENT COMPLIANCE: The universal zoom factor (_zoom) is preserved globally and instantly applied across layouts.
+            // ZOOM STABILITY RESOLUTION: Retain global zoom tier seamlessly during tab changes
             ZoomTransform.ScaleX = _zoom; 
             ZoomTransform.ScaleY = _zoom; 
             UpdateZoomUI();
+            UpdatePageUI();
             
             Workspace.Opacity = 0;
 
@@ -1128,6 +1175,15 @@ namespace TeachingAnnotator
             UpdateCanvasCentering();
             
             Workspace.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200)));
+        }
+
+        private void UpdatePageUI()
+        {
+            if (_activeSection == null || _activePage == null || PageNumberInput == null || TotalPagesText == null) return;
+            _isUpdatingUI = true;
+            PageNumberInput.Text = (_activeSection.Pages.IndexOf(_activePage) + 1).ToString();
+            TotalPagesText.Text = "/ " + _activeSection.Pages.Count;
+            _isUpdatingUI = false;
         }
 
         private async System.Threading.Tasks.Task<Windows.Data.Pdf.PdfDocument> GetPdfDoc(string absPath)
@@ -1644,7 +1700,7 @@ namespace TeachingAnnotator
         private void MainInkCanvas_MouseEnter(object sender, MouseEventArgs e) { if (SelectBtn.IsChecked != true && PointerBtn.IsChecked != true) CustomDotCursor.Visibility = Visibility.Visible; }
 
         // ================= ZOOM / PAN =================
-        private void UpdateZoomUI() { if (ZoomPercentText != null) ZoomPercentText.Text = Math.Round(_zoom * 100) + "%"; }
+        private void UpdateZoomUI() { if (ZoomPercentInput != null) ZoomPercentInput.Text = Math.Round(_zoom * 100) + "%"; }
 
         private void PerformZoom(double delta, Point? mousePos = null)
         {
@@ -1666,6 +1722,56 @@ namespace TeachingAnnotator
             
             if (_activePage != null && _activePage.Kind == "Pdf") { _pdfQualityTimer.Stop(); _pdfQualityTimer.Start(); }
         }
+
+        // UNIVERSAL INTERACTIVE ZOOM EDIT ENGINE
+        private void ZoomPercentInput_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter) { CommitZoomStringInput(); e.Handled = true; Workspace.Focus(); }
+        }
+        private void ZoomPercentInput_LostFocus(object sender, RoutedEventArgs e) { CommitZoomStringInput(); }
+        private void CommitZoomStringInput()
+        {
+            if (_activePage == null || _isUpdatingUI) return;
+            string cleanStr = ZoomPercentInput.Text.Replace("%", "").Trim();
+            if (double.TryParse(cleanStr, out double percentage))
+            {
+                double finalZoomTarget = Math.Max(25.0, Math.Min(percentage, 1000.0)) / 100.0;
+                PerformZoom(finalZoomTarget - _zoom);
+            }
+            else { UpdateZoomUI(); }
+        }
+
+        // UNIVERSAL DIRECT PAGE NUMBER SWITCH ENGINE
+        private void PageNumberInput_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter) { CommitPageJumpInput(); e.Handled = true; Workspace.Focus(); }
+        }
+        private void PageNumberInput_LostFocus(object sender, RoutedEventArgs e) { CommitPageJumpInput(); }
+        private void CommitPageJumpInput()
+        {
+            if (_activeSection == null || _isUpdatingUI) return;
+            if (int.TryParse(PageNumberInput.Text, out int pageIndexNumber))
+            {
+                int nativeIdx = pageIndexNumber - 1;
+                if (nativeIdx >= 0 && nativeIdx < _activeSection.Pages.Count) SwitchPage(_activeSection.Pages[nativeIdx]);
+                else { UpdatePageUI(); }
+            }
+            else { UpdatePageUI(); }
+        }
+
+        private void ShiftActivePageSelection(int offsetValue)
+        {
+            if (_activeSection == null || _activePage == null) return;
+            int currentIdx = _activeSection.Pages.IndexOf(_activePage);
+            int prospectiveTargetIdx = currentIdx + offsetValue;
+            if (prospectiveTargetIdx >= 0 && prospectiveTargetIdx < _activeSection.Pages.Count)
+            {
+                SwitchPage(_activeSection.Pages[prospectiveTargetIdx]);
+            }
+        }
+
+        private void PrevPage_Click(object sender, RoutedEventArgs e) { ShiftActivePageSelection(-1); }
+        private void NextPage_Click(object sender, RoutedEventArgs e) { ShiftActivePageSelection(1); }
 
         private void MainScroll_SizeChanged(object sender, SizeChangedEventArgs e) { UpdateCanvasCentering(); }
 
@@ -2016,12 +2122,28 @@ namespace TeachingAnnotator
                 return;
             }
             if (e.Key == Key.Delete) { var s = MainInkCanvas.GetSelectedStrokes(); if (s.Count > 0) MainInkCanvas.Strokes.Remove(s); return; }
-            if (HexInput.IsFocused || BgHexInput.IsFocused || SizeInput.IsFocused || LaserHoldInput.IsFocused || LaserFadeInput.IsFocused || RenameInput.IsFocused || LibrarySearchBox.IsFocused) return;
             
+            // STRICT SHORTCUT BLOCKING EXCLUSIONS FOR ACTIVE CONTROLS
+            if (HexInput.IsFocused || BgHexInput.IsFocused || SizeInput.IsFocused || LaserHoldInput.IsFocused || LaserFadeInput.IsFocused || RenameInput.IsFocused || LibrarySearchBox.IsFocused || PageNumberInput.IsFocused || ZoomPercentInput.IsFocused) return;
+            
+            // UNIVERSAL UI HUD master toggle shortcut configuration
+            if (e.Key == Key.H)
+            {
+                var nextVisibilityState = MainToolbar.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+                MainToolbar.Visibility = nextVisibilityState;
+                StatusControlPanel.Visibility = nextVisibilityState;
+                e.Handled = true;
+                return;
+            }
+
+            // ACCURATE KEYBOARD SHEET CHANGING ROUTINES
+            if (e.Key == Key.PageUp) { ShiftActivePageSelection(-1); e.Handled = true; return; }
+            if (e.Key == Key.PageDown) { ShiftActivePageSelection(1); e.Handled = true; return; }
+
             if (e.Key == Key.Left) { MainScroll.ScrollToHorizontalOffset(MainScroll.HorizontalOffset - 60); return; }
             if (e.Key == Key.Right) { MainScroll.ScrollToHorizontalOffset(MainScroll.HorizontalOffset + 60); return; }
             if (e.Key == Key.Up) { MainScroll.ScrollToVerticalOffset(MainScroll.VerticalOffset - 60); return; }
-            if (e.Key == Key.Down) { MainScroll.ScrollToVerticalOffset(MainScroll.VerticalOffset + 60); return; }
+            if (e.Key == Key.Down) { MainScroll.ScrollToVerticalOffset(MainScroll.VerticalOffset - 60); return; }
             
             if (e.Key == Key.P) PenBtn.IsChecked = true;
             else if (e.Key == Key.M) HighlightBtn.IsChecked = true;
