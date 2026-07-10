@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e
-echo "==> Anydraw V42 (TeachingAnnotator) professional setup starting..."
+echo "==> Anydraw V43 (Premium Edition) professional setup starting..."
 command -v dotnet >/dev/null 2>&1 || { echo "ERROR: .NET SDK 8 not found. Install from https://dotnet.microsoft.com/download"; exit 1; }
 rm -rf TeachingAnnotator
 dotnet new wpf -n TeachingAnnotator -f net8.0 --force
@@ -18,8 +18,8 @@ cat > TeachingAnnotator.csproj << 'ANYDRAW_EOF'
     <LangVersion>latest</LangVersion>
     <AssemblyName>Anydraw</AssemblyName>
     <RootNamespace>TeachingAnnotator</RootNamespace>
-    <ApplicationTitle>Anydraw</ApplicationTitle>
-    <Version>42.0.0</Version>
+    <ApplicationTitle>Anydraw Premium</ApplicationTitle>
+    <Version>43.0.0</Version>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="PdfSharp" Version="6.1.1" />
@@ -33,7 +33,12 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Anydraw - Professional Whiteboard" WindowState="Maximized" WindowStartupLocation="CenterScreen"
     KeyDown="Window_KeyDown" Closing="Window_Closing" StylusInRange="Window_StylusInRange" StylusOutOfRange="Window_StylusOutOfRange"
-    FontFamily="Segoe UI, Helvetica, Arial, sans-serif">
+    FontFamily="Segoe UI, Helvetica, Arial, sans-serif"
+    Background="{DynamicResource BgPrimary}">
+
+<WindowChrome.WindowChrome>
+    <WindowChrome CaptionHeight="1" GlassFrameThickness="0" ResizeBorderThickness="6"/>
+</WindowChrome.WindowChrome>
 
 <Window.Resources>
 <SolidColorBrush x:Key="BgPrimary" Color="#0B0D10"/>
@@ -150,19 +155,24 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 </Style>
 </Window.Resources>
 
-<Grid x:Name="RootGrid" Background="{DynamicResource BgPrimary}">
+<Grid x:Name="RootGrid" Background="Transparent">
 
 <!-- ============ LIBRARY (HOME) VIEW ============ -->
 <Grid x:Name="LibraryView" Visibility="Visible">
 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-<Border Grid.Row="0" Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="0,0,0,1" Padding="30,20">
+<Border Grid.Row="0" Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="0,0,0,1" Padding="30,16" MouseLeftButtonDown="Header_MouseDown">
 <Grid>
-<Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+<Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
 <Path Data="M12 2 L2 22 L6 22 L12 10 L18 22 L22 22 Z" Fill="{DynamicResource Sky400}" Height="22" Stretch="Uniform" Margin="0,0,10,0"/>
 <TextBlock Text="My Library" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
 </StackPanel>
-<TextBox x:Name="LibrarySearchBox" Grid.Column="1" Width="240" Padding="8,6" VerticalContentAlignment="Center" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" TextChanged="LibrarySearch_TextChanged" ToolTip="Search notebooks"/>
+<TextBox x:Name="LibrarySearchBox" Grid.Column="1" Width="240" Padding="8,6" VerticalContentAlignment="Center" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" TextChanged="LibrarySearch_TextChanged" ToolTip="Search notebooks" Margin="0,0,24,0"/>
+<StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+<Button Style="{StaticResource TailwindButton}" Content="—" Click="Min_Click" ToolTip="Minimize" Padding="12,6"/>
+<Button Style="{StaticResource TailwindButton}" Content="☐" Click="Max_Click" ToolTip="Maximize" Padding="12,6"/>
+<Button Style="{StaticResource TailwindButton}" Content="✕" Click="Close_Click" ToolTip="Close" Padding="12,6" Foreground="{DynamicResource Rose500}"/>
+</StackPanel>
 </Grid>
 </Border>
 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
@@ -174,22 +184,27 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Grid x:Name="NotebookView" Visibility="Collapsed">
 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
 
-<Border Grid.Row="0" Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="0,0,0,1" Padding="10,8" Panel.ZIndex="100">
+<Border Grid.Row="0" Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="0,0,0,1" Padding="10,6" Panel.ZIndex="100" MouseLeftButtonDown="Header_MouseDown">
 <Grid>
-<Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+<Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
 <Button Style="{StaticResource TailwindButton}" Click="BackToLibrary_Click" ToolTip="Back to Library">
 <StackPanel Orientation="Horizontal"><TextBlock Text="&#8592;" FontSize="16" Margin="0,0,6,0"/><TextBlock Text="Library"/></StackPanel>
 </Button>
 <TextBlock x:Name="NotebookTitleText" Text="Notebook" Foreground="{DynamicResource TextPrimary}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center" Margin="12,0" Cursor="Hand" MouseLeftButtonUp="NotebookTitle_Click" ToolTip="Click to rename notebook"/>
 </StackPanel>
-<ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+<ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="10,0">
 <StackPanel x:Name="SectionTabsPanel" Orientation="Horizontal" VerticalAlignment="Center"/>
 </ScrollViewer>
-<StackPanel Grid.Column="2" Orientation="Horizontal">
+<StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,16,0">
 <Button Style="{StaticResource TailwindButton}" Click="ToggleSidebar_Click" ToolTip="Toggle Sidebar" Content="☰ Sidebar"/>
 <Button Style="{StaticResource TailwindButton}" Click="AddSection_Click" ToolTip="Add Section" Content="+ Section"/>
 <Button Style="{StaticResource TailwindButton}" Click="RenameSection_Click" ToolTip="Rename Section" Content="Rename"/>
+</StackPanel>
+<StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+<Button Style="{StaticResource TailwindButton}" Content="—" Click="Min_Click" ToolTip="Minimize" Padding="10,6"/>
+<Button Style="{StaticResource TailwindButton}" Content="☐" Click="Max_Click" ToolTip="Maximize" Padding="10,6"/>
+<Button Style="{StaticResource TailwindButton}" Content="✕" Click="Close_Click" ToolTip="Close" Padding="10,6" Foreground="{DynamicResource Rose500}"/>
 </StackPanel>
 </Grid>
 </Border>
@@ -326,7 +341,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <TextBox x:Name="LaserFadeInput" Grid.Column="1" Text="0.6" Width="44" TextAlignment="Center" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource Sky400}" BorderBrush="{DynamicResource BorderToolbar}" TextChanged="LaserFade_TextChanged"/>
 </Grid>
 <Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-<TextBlock Grid.Column="0" Text="Glow" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
+<TextBlock Grid.Column="0" Text="Glow Spread" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
 <Slider x:Name="LaserGlowSlider" Grid.Column="1" Minimum="1" Maximum="50" Value="18" Width="90" ValueChanged="LaserGlow_Changed" IsMoveToPointEnabled="True"/>
 </Grid>
 <TextBlock Text="Glow color = main Color; core stays white." Foreground="{DynamicResource TextSecondary}" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap"/>
@@ -353,7 +368,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Popup x:Name="BgColorPopup" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=ViewMenuToggle}" Placement="Top" VerticalOffset="-10">
 <Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="6" Padding="10" MaxWidth="280">
 <StackPanel>
-<TextBlock Text="Preset Backgrounds:" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,4"/>
+<TextBlock Text="Premium Backgrounds:" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,0,0,4"/>
 <WrapPanel Width="120" x:Name="BgPaletteGrid" Margin="0,0,0,8" HorizontalAlignment="Left"/>
 <ToggleButton x:Name="AdvancedGridToggle" Style="{StaticResource MenuToggle}" Content="Advanced Customization..." Checked="AdvancedGridToggle_Changed" Unchecked="AdvancedGridToggle_Changed" Margin="0,4,0,0"/>
 <StackPanel x:Name="AdvancedGridPanel" Visibility="Collapsed" Margin="0,8,0,0">
@@ -521,7 +536,6 @@ namespace TeachingAnnotator
         private bool _appLoaded = false;
         private bool _isUpdatingUI = false;
         
-
         private double _penSize = 3.0, _highlightSize = 20.0, _laserSize = 6.0;
         private Color _penColor, _highlightColor, _laserColor, _laserCoreColor, _customBgColor;
         private int _gridPattern = 1;
@@ -537,10 +551,12 @@ namespace TeachingAnnotator
         private Stack<UndoAction> _redo = new Stack<UndoAction>();
         private bool _isUndoRedoActive = false;
 
+        private StrokeCollection _liveStrokesBeforeMove;
+        private StrokeCollection _clonedStrokesBeforeMove;
+
         private bool _isDraggingToolbar = false;
         private Point _toolbarDragStart;
         private bool _isToolbarVertical = false;
-        private int _fullScreenLevel = 1;
 
         private bool _isPanning = false;
         private Point _panStart;
@@ -563,23 +579,30 @@ namespace TeachingAnnotator
             Directory.CreateDirectory(System.IO.Path.Combine(_root, "notebooks"));
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
-            _penColor = SafeColor("#EF4444", Colors.Red);
+            _penColor = SafeColor("#FFFFFF", Colors.White);
             _highlightColor = SafeColor("#FFFF00", Colors.Yellow);
-            _laserColor = SafeColor("#EF4444", Colors.Red);
+            _laserColor = SafeColor("#FF3B30", Colors.Red);
             _laserCoreColor = Colors.White;
             _customBgColor = Colors.White;
 
             MainInkCanvas.Strokes.StrokesChanged += MainInkCanvas_StrokesChanged;
             LaserInkCanvas.Strokes.StrokesChanged += LaserInkCanvas_StrokesChanged;
-            MainInkCanvas.PreviewTouchDown += Canvas_PreviewTouchDown;
-            LaserInkCanvas.PreviewTouchDown += Canvas_PreviewTouchDown;
+            
+            // Proper hardware palm rejection via Stylus logic
+            MainInkCanvas.PreviewStylusDown += InkCanvas_PreviewStylusDown;
+            LaserInkCanvas.PreviewStylusDown += InkCanvas_PreviewStylusDown;
+            
+            // Undo/Redo support for selection transformations
+            MainInkCanvas.SelectionMoving += MainInkCanvas_SelectionTransforming;
+            MainInkCanvas.SelectionMoved += MainInkCanvas_SelectionTransformed;
+            MainInkCanvas.SelectionResizing += MainInkCanvas_SelectionTransforming;
+            MainInkCanvas.SelectionResized += MainInkCanvas_SelectionTransformed;
 
             _laserHoldTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.2) };
             _laserHoldTimer.Tick += LaserHold_Tick;
             _saveDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1200) };
             _saveDebounce.Tick += (s, e) => { _saveDebounce.Stop(); PersistAll(); };
             
-            // Highly optimized responsive PDF unblur timer
             _pdfQualityTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
             _pdfQualityTimer.Tick += async (s, e) => { _pdfQualityTimer.Stop(); await ReRenderPdfQuality(); };
 
@@ -591,6 +614,17 @@ namespace TeachingAnnotator
             ShowLibrary();
         }
 
+        // Custom Title Bar Dragging
+        private void Header_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left)
+                this.DragMove();
+        }
+
+        private void Min_Click(object sender, RoutedEventArgs e) { WindowState = WindowState.Minimized; }
+        private void Max_Click(object sender, RoutedEventArgs e) { WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized; }
+        private void Close_Click(object sender, RoutedEventArgs e) { Close(); }
+
         private Color SafeColor(string s, Color fallback)
         {
             try { return (Color)ColorConverter.ConvertFromString(s); } catch { return fallback; }
@@ -598,16 +632,18 @@ namespace TeachingAnnotator
 
         private void BuildPalettes()
         {
-            string[] toolHex = { "#EF4444", "#3B82F6", "#22C55E", "#EAB308", "#A855F7", "#F97316", "#EC4899", "#14B8A6", "#000000", "#FFFFFF" };
-            foreach (string hex in toolHex)
+            // Premium digital art palette
+            string[] premiumInk = { "#1C1C1E", "#FFFFFF", "#FF3B30", "#007AFF", "#34C759", "#FF9500", "#AF52DE", "#5AC8FA", "#E2C29F", "#8E8E93" };
+            foreach (string hex in premiumInk)
             {
                 var r = new Rectangle { Width = 20, Height = 20, Margin = new Thickness(2), RadiusX = 4, RadiusY = 4, Fill = new SolidColorBrush(SafeColor(hex, Colors.Black)), Cursor = Cursors.Hand };
                 string h = hex;
                 r.MouseLeftButtonDown += (s, e) => { HexInput.Text = h; ColorPopup.IsOpen = false; };
                 PaletteGrid.Children.Add(r);
             }
-            string[] bgHex = { "#FFFFFF", "#F8FAFC", "#F4F0E6", "#E2E8F0", "#D1FAE5", "#2C2C2C", "#1E293B", "#171717", "#0F172A", "#000000" };
-            foreach (string hex in bgHex)
+            // Premium eye-care and document backgrounds
+            string[] premiumPaper = { "#FFFFFF", "#F4F4F9", "#FDF6E3", "#EFE9D9", "#282A36", "#1E1E1E", "#000000" };
+            foreach (string hex in premiumPaper)
             {
                 var r = new Rectangle { Width = 20, Height = 20, Margin = new Thickness(2), RadiusX = 4, RadiusY = 4, Fill = new SolidColorBrush(SafeColor(hex, Colors.White)), Stroke = new SolidColorBrush(Color.FromRgb(80, 80, 80)), StrokeThickness = 0.5, Cursor = Cursors.Hand };
                 string h = hex;
@@ -961,14 +997,20 @@ namespace TeachingAnnotator
             {
                 var opt = new Windows.Data.Pdf.PdfPageRenderOptions { DestinationWidth = (uint)Math.Max(1, w * scale), DestinationHeight = (uint)Math.Max(1, h * scale) };
                 await page.RenderToStreamAsync(stream, opt);
-                var reader = new DataReader(stream.GetInputStreamAt(0));
-                await reader.LoadAsync((uint)stream.Size);
-                byte[] bytes = new byte[stream.Size];
-                reader.ReadBytes(bytes);
-                using (var ms = new MemoryStream(bytes))
+                using (var reader = new DataReader(stream.GetInputStreamAt(0)))
                 {
+                    await reader.LoadAsync((uint)stream.Size);
+                    byte[] bytes = new byte[stream.Size];
+                    reader.ReadBytes(bytes);
                     var bmp = new BitmapImage();
-                    bmp.BeginInit(); bmp.CacheOption = BitmapCacheOption.OnLoad; bmp.StreamSource = ms; bmp.EndInit(); bmp.Freeze();
+                    using (var ms = new MemoryStream(bytes))
+                    {
+                        bmp.BeginInit();
+                        bmp.CacheOption = BitmapCacheOption.OnLoad;
+                        bmp.StreamSource = ms;
+                        bmp.EndInit();
+                    }
+                    bmp.Freeze();
                     return bmp;
                 }
             }
@@ -986,7 +1028,6 @@ namespace TeachingAnnotator
                     double w = page.PdfWidth > 0 ? page.PdfWidth : 800, h = page.PdfHeight > 0 ? page.PdfHeight : 1100;
                     _pdfDisplayW = w; _pdfDisplayH = h;
                     
-                    // High quality render scale directly mapped to current zoom logic bounds
                     double scale = Math.Min(8.0, Math.Max(2.0, _zoom * 2.5));
                     PdfImage.Source = await RenderPdf(doc, (uint)page.PdfPageIndex, w, h, scale);
                     PdfImage.Visibility = Visibility.Visible;
@@ -1008,7 +1049,6 @@ namespace TeachingAnnotator
             {
                 string abs = System.IO.Path.Combine(NotebookFolder(_activeNotebook), _activePage.PdfFileName);
                 var doc = await GetPdfDoc(abs);
-                // Unpixelated dynamic scaling proportional to the user's zoom factor up to extreme detail limits
                 double scale = Math.Min(8.0, Math.Max(2.0, _zoom * 2.5));
                 PdfImage.Source = await RenderPdf(doc, (uint)_activePage.PdfPageIndex, _pdfDisplayW, _pdfDisplayH, scale);
             }
@@ -1017,13 +1057,12 @@ namespace TeachingAnnotator
 
         private void GetBlankSize(int idx, out double w, out double h)
         {
-            // Fully accurate standard pixel mapping at 96 DPI logic
             switch (idx) { 
-                case 1: w = 1123; h = 794; break;  // A4 Landscape
-                case 2: w = 1056; h = 816; break;  // US Letter Landscape
-                case 3: w = 1920; h = 1080; break; // 16:9 Presentation Screen
-                case 4: w = 2400; h = 3000; break; // Infinite/Custom Giant Canvas
-                case 0: w = 794; h = 1123; break;  // A4 Portrait
+                case 1: w = 1123; h = 794; break;  
+                case 2: w = 1056; h = 816; break;  
+                case 3: w = 1920; h = 1080; break; 
+                case 4: w = 2400; h = 3000; break; 
+                case 0: w = 794; h = 1123; break;  
                 default: w = 1123; h = 794; break; 
             }
         }
@@ -1163,7 +1202,15 @@ namespace TeachingAnnotator
         private void EraserMode_Changed(object sender, RoutedEventArgs e) { if (!_appLoaded) return; _settings.StrokeEraserEnabled = StrokeEraserToggle.IsChecked == true; ApplyPenAttributes(); ScheduleSave(); }
         private void PenOnly_Changed(object sender, RoutedEventArgs e) { if (!_appLoaded) return; _settings.PenOnly = PenOnlyToggle.IsChecked == true; ScheduleSave(); }
 
-        private void Canvas_PreviewTouchDown(object sender, TouchEventArgs e) { if (_settings.PenOnly) e.Handled = true; }
+        // Proper Palm Rejection via Stylus logic
+        private void InkCanvas_PreviewStylusDown(object sender, StylusDownEventArgs e)
+        {
+            if (_settings.PenOnly)
+            {
+                if (e.StylusDevice.TabletDevice.Type == TabletDeviceType.Touch)
+                    e.Handled = true;
+            }
+        }
 
         private void ApplyPenAttributes()
         {
@@ -1178,7 +1225,7 @@ namespace TeachingAnnotator
                 LaserInkCanvas.IsHitTestVisible = true;
                 LaserInkCanvas.EditingMode = InkCanvasEditingMode.Ink;
                 LaserInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = _laserCoreColor, Width = size, Height = size, FitToCurve = true, IgnorePressure = true, StylusTip = StylusTip.Ellipse };
-                LaserInkCanvas.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = active, BlurRadius = _settings.LaserGlow, ShadowDepth = 0, Opacity = 1.0, RenderingBias = System.Windows.Media.Effects.RenderingBias.Performance };
+                LaserInkCanvas.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = active, BlurRadius = _settings.LaserGlow * 1.5, ShadowDepth = 0, Opacity = 0.75, RenderingBias = System.Windows.Media.Effects.RenderingBias.Performance };
                 CancelLaserFade();
             }
             else
@@ -1337,6 +1384,30 @@ namespace TeachingAnnotator
             ScheduleSave();
         }
 
+        // Handle undoing lasso selection moves/resizes
+        private void MainInkCanvas_SelectionTransforming(object sender, InkCanvasSelectionEditingEventArgs e)
+        {
+            if (_liveStrokesBeforeMove == null)
+            {
+                _liveStrokesBeforeMove = MainInkCanvas.GetSelectedStrokes();
+                _clonedStrokesBeforeMove = _liveStrokesBeforeMove.Clone();
+            }
+        }
+        
+        private void MainInkCanvas_SelectionTransformed(object sender, EventArgs e)
+        {
+            if (_liveStrokesBeforeMove == null) return;
+            var currentLiveStrokes = MainInkCanvas.GetSelectedStrokes();
+            
+            // Treat transformation as a replacement: Removing original clones, adding the current live ones
+            var a = new UndoAction { Added = currentLiveStrokes, Removed = _clonedStrokesBeforeMove };
+            _undo.Push(a);
+            _redo.Clear();
+            _liveStrokesBeforeMove = null;
+            _clonedStrokesBeforeMove = null;
+            ScheduleSave();
+        }
+
         private void PerformUndo()
         {
             if (_undo.Count == 0) return;
@@ -1409,8 +1480,6 @@ namespace TeachingAnnotator
             MainScroll.ScrollToVerticalOffset(uy * newZoom - target.Y);
             UpdateCanvasCentering();
             
-            
-            // Queue highly accurate PDF re-render on zoom
             if (_activePage != null && _activePage.Kind == "Pdf") { _pdfQualityTimer.Stop(); _pdfQualityTimer.Start(); }
         }
 
@@ -1436,10 +1505,7 @@ namespace TeachingAnnotator
             e.Handled = true;
             if (Keyboard.Modifiers == ModifierKeys.Control) PerformZoom(e.Delta > 0 ? 0.15 : -0.15, e.GetPosition(MainScroll));
             else if (Keyboard.Modifiers == ModifierKeys.Shift) MainScroll.ScrollToHorizontalOffset(MainScroll.HorizontalOffset - e.Delta * 0.5);
-            else {
-                // Ensure proper trackpad horizontal swipe reading via Shift constraint bypass natively if configured or simply handle delta.
-                MainScroll.ScrollToVerticalOffset(MainScroll.VerticalOffset - e.Delta * 0.5);
-            }
+            else MainScroll.ScrollToVerticalOffset(MainScroll.VerticalOffset - e.Delta * 0.5);
         }
 
         private void MainScroll_PreviewMouseDown(object sender, MouseButtonEventArgs e)
@@ -1501,10 +1567,7 @@ namespace TeachingAnnotator
 
         private void FullScreen_Click(object sender, RoutedEventArgs e)
         {
-            _fullScreenLevel = (_fullScreenLevel + 1) % 3;
-            if (_fullScreenLevel == 0) { WindowStyle = WindowStyle.SingleBorderWindow; ResizeMode = ResizeMode.CanResize; WindowState = WindowState.Normal; Topmost = false; }
-            else if (_fullScreenLevel == 1) { WindowStyle = WindowStyle.SingleBorderWindow; ResizeMode = ResizeMode.CanResize; WindowState = WindowState.Maximized; Topmost = false; }
-            else { WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.NoResize; Topmost = true; WindowState = WindowState.Normal; WindowState = WindowState.Maximized; }
+            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
         }
 
         private void Theme_Click(object sender, RoutedEventArgs e) { _settings.IsDarkTheme = !_settings.IsDarkTheme; ApplyTheme(); UpdateCursor(); ScheduleSave(); }
@@ -1642,10 +1705,8 @@ namespace TeachingAnnotator
                 var pts = stroke.StylusPoints;
                 if (pts.Count <= 1) continue;
                 
-                // HIGHLIGHTER FIX: Prevent line joint overlapping opacity multiplication by building a single path
                 if (stroke.DrawingAttributes.IsHighlighter || stroke.DrawingAttributes.IgnorePressure)
                 {
-                    // For highlighters in PDF, reduce alpha significantly to maintain readability over text
                     int alpha = stroke.DrawingAttributes.IsHighlighter ? Math.Max(20, col.A / 3) : col.A;
                     XColor color = XColor.FromArgb(alpha, col.R, col.G, col.B);
                     
@@ -1661,7 +1722,6 @@ namespace TeachingAnnotator
                 }
                 else
                 {
-                    // Pen pressure handling 
                     XColor color = XColor.FromArgb(col.A, col.R, col.G, col.B);
                     for (int j = 0; j < pts.Count - 1; j++)
                     {
@@ -1713,7 +1773,6 @@ namespace TeachingAnnotator
             if (e.Key == Key.Delete) { var s = MainInkCanvas.GetSelectedStrokes(); if (s.Count > 0) MainInkCanvas.Strokes.Remove(s); return; }
             if (HexInput.IsFocused || BgHexInput.IsFocused || SizeInput.IsFocused || LaserHoldInput.IsFocused || LaserFadeInput.IsFocused || RenameInput.IsFocused || LibrarySearchBox.IsFocused) return;
             
-            // Allow flawless keyboard arrow panning logic
             if (e.Key == Key.Left) { MainScroll.ScrollToHorizontalOffset(MainScroll.HorizontalOffset - 60); return; }
             if (e.Key == Key.Right) { MainScroll.ScrollToHorizontalOffset(MainScroll.HorizontalOffset + 60); return; }
             if (e.Key == Key.Up) { MainScroll.ScrollToVerticalOffset(MainScroll.VerticalOffset - 60); return; }
