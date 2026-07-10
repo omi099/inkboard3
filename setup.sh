@@ -1,521 +1,3 @@
-#!/usr/bin/env bash
-set -e
-echo "==> Anydraw V44 (Ultra Premium Edition) professional setup starting..."
-command -v dotnet >/dev/null 2>&1 || { echo "ERROR: .NET SDK 8 not found. Install from https://dotnet.microsoft.com/download"; exit 1; }
-rm -rf TeachingAnnotator
-dotnet new wpf -n TeachingAnnotator -f net8.0 --force
-cd TeachingAnnotator
-rm -f App.xaml.cs 2>/dev/null || true
-cat > TeachingAnnotator.csproj << 'ANYDRAW_EOF'
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
-    <UseWPF>true</UseWPF>
-    <UseWindowsForms>true</UseWindowsForms>
-    <Nullable>disable</Nullable>
-    <ImplicitUsings>disable</ImplicitUsings>
-    <LangVersion>latest</LangVersion>
-    <AssemblyName>Anydraw</AssemblyName>
-    <RootNamespace>TeachingAnnotator</RootNamespace>
-    <ApplicationTitle>Anydraw Premium</ApplicationTitle>
-    <Version>44.0.0</Version>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="PdfSharp" Version="6.1.1" />
-    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
-  </ItemGroup>
-</Project>
-ANYDRAW_EOF
-cat > MainWindow.xaml << 'ANYDRAW_EOF'
-<Window x:Class="TeachingAnnotator.MainWindow"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="Anydraw Premium" WindowState="Maximized" WindowStartupLocation="CenterScreen"
-    KeyDown="Window_KeyDown" Closing="Window_Closing" StylusInRange="Window_StylusInRange" StylusOutOfRange="Window_StylusOutOfRange"
-    StateChanged="Window_StateChanged"
-    FontFamily="Segoe UI Variable, Segoe UI, Helvetica, Arial, sans-serif"
-    Background="{DynamicResource BgPrimary}">
-
-<WindowChrome.WindowChrome>
-    <WindowChrome CaptionHeight="0" GlassFrameThickness="0" ResizeBorderThickness="6"/>
-</WindowChrome.WindowChrome>
-
-<Window.Resources>
-<!-- Premium Color Palette -->
-<SolidColorBrush x:Key="BgPrimary" Color="#0D0F12"/>
-<SolidColorBrush x:Key="BgToolbar" Color="#16191E"/>
-<SolidColorBrush x:Key="BgPanel" Color="#1A1D24"/>
-<SolidColorBrush x:Key="BorderToolbar" Color="#2A2D35"/>
-<SolidColorBrush x:Key="TextPrimary" Color="#F8FAFC"/>
-<SolidColorBrush x:Key="TextSecondary" Color="#94A3B8"/>
-<SolidColorBrush x:Key="ButtonHoverBg" Color="#252A33"/>
-<SolidColorBrush x:Key="ButtonHoverText" Color="#FFFFFF"/>
-<SolidColorBrush x:Key="Sky400" Color="#38BDF8"/>
-<SolidColorBrush x:Key="Rose500" Color="#F43F5E"/>
-<SolidColorBrush x:Key="OverlayBg" Color="#B2000000"/>
-
-<!-- Premium Tooltips -->
-<Style TargetType="ToolTip">
-    <Setter Property="Background" Value="{DynamicResource BgToolbar}"/>
-    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource BorderToolbar}"/>
-    <Setter Property="BorderThickness" Value="1"/>
-    <Setter Property="Padding" Value="8,4"/>
-    <Setter Property="Placement" Value="Top"/>
-    <Setter Property="VerticalOffset" Value="-4"/>
-    <Setter Property="Template">
-        <Setter.Value>
-            <ControlTemplate TargetType="ToolTip">
-                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                    <Border.Effect><DropShadowEffect Color="Black" Opacity="0.3" BlurRadius="6" ShadowDepth="2"/></Border.Effect>
-                    <ContentPresenter TextElement.FontSize="11" TextElement.FontWeight="SemiBold"/>
-                </Border>
-            </ControlTemplate>
-        </Setter.Value>
-    </Setter>
-</Style>
-
-<!-- Modern Sleek ScrollBar -->
-<Style x:Key="ScrollThumb" TargetType="Thumb">
-    <Setter Property="Background" Value="{DynamicResource BorderToolbar}"/>
-    <Setter Property="Template">
-        <Setter.Value>
-            <ControlTemplate TargetType="Thumb">
-                <Border Background="{TemplateBinding Background}" CornerRadius="3" Margin="2"/>
-            </ControlTemplate>
-        </Setter.Value>
-    </Setter>
-</Style>
-<Style TargetType="ScrollBar">
-    <Setter Property="Background" Value="Transparent"/>
-    <Setter Property="BorderThickness" Value="0"/>
-    <Setter Property="Width" Value="10"/>
-    <Setter Property="Template">
-        <Setter.Value>
-            <ControlTemplate TargetType="ScrollBar">
-                <Border Background="{TemplateBinding Background}">
-                    <Track Name="PART_Track" IsDirectionReversed="True">
-                        <Track.Thumb><Thumb Style="{StaticResource ScrollThumb}"/></Track.Thumb>
-                    </Track>
-                </Border>
-            </ControlTemplate>
-        </Setter.Value>
-    </Setter>
-    <Style.Triggers><Trigger Property="Orientation" Value="Horizontal"><Setter Property="Width" Value="Auto"/><Setter Property="Height" Value="10"/></Trigger></Style.Triggers>
-</Style>
-
-<!-- Window Control Buttons (Min/Max/Close) -->
-<Style TargetType="Button" x:Key="CaptionButton">
-    <Setter Property="Background" Value="Transparent"/>
-    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
-    <Setter Property="Width" Value="46"/>
-    <Setter Property="Height" Value="32"/>
-    <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
-    <Setter Property="Template">
-        <Setter.Value>
-            <ControlTemplate TargetType="Button">
-                <Border Background="{TemplateBinding Background}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-            </ControlTemplate>
-        </Setter.Value>
-    </Setter>
-    <Style.Triggers>
-        <Trigger Property="IsMouseOver" Value="True">
-            <Setter Property="Background" Value="{DynamicResource ButtonHoverBg}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-        </Trigger>
-    </Style.Triggers>
-</Style>
-<Style TargetType="Button" x:Key="CloseCaptionButton" BasedOn="{StaticResource CaptionButton}">
-    <Style.Triggers>
-        <Trigger Property="IsMouseOver" Value="True">
-            <Setter Property="Background" Value="#E81123"/>
-            <Setter Property="Foreground" Value="White"/>
-        </Trigger>
-    </Style.Triggers>
-</Style>
-
-<!-- Tool Radio Buttons -->
-<Style TargetType="RadioButton" x:Key="TailwindTool">
-<Setter Property="Background" Value="Transparent"/>
-<Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
-<Setter Property="Cursor" Value="Hand"/>
-<Setter Property="Margin" Value="2,0"/>
-<Setter Property="Template">
-<Setter.Value>
-<ControlTemplate TargetType="RadioButton">
-<Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="8" Padding="10,8">
-<ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-</Border>
-<ControlTemplate.Triggers>
-<Trigger Property="IsMouseOver" Value="True"><Setter TargetName="border" Property="Background" Value="{DynamicResource ButtonHoverBg}"/><Setter Property="Foreground" Value="{DynamicResource ButtonHoverText}"/></Trigger>
-<Trigger Property="IsChecked" Value="True"><Setter TargetName="border" Property="Background" Value="#1E3A8A"/><Setter Property="Foreground" Value="{DynamicResource Sky400}"/></Trigger>
-</ControlTemplate.Triggers>
-</ControlTemplate>
-</Setter.Value>
-</Setter>
-</Style>
-
-<Style TargetType="Button" x:Key="TailwindButton">
-<Setter Property="Background" Value="Transparent"/>
-<Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
-<Setter Property="Cursor" Value="Hand"/>
-<Setter Property="Padding" Value="10,6"/>
-<Setter Property="Margin" Value="2,0"/>
-<Setter Property="Template">
-<Setter.Value>
-<ControlTemplate TargetType="Button">
-<Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-<ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="border" Property="Background" Value="{DynamicResource ButtonHoverBg}"/><Setter Property="Foreground" Value="{DynamicResource ButtonHoverText}"/></Trigger></ControlTemplate.Triggers>
-</ControlTemplate>
-</Setter.Value>
-</Setter>
-</Style>
-
-<Style TargetType="Button" x:Key="PrimaryButton" BasedOn="{StaticResource TailwindButton}">
-<Setter Property="Background" Value="#1E3A8A"/>
-<Setter Property="Foreground" Value="White"/>
-<Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#1E40AF"/></Trigger></Style.Triggers>
-</Style>
-
-<Style TargetType="Button" x:Key="DropdownItem">
-<Setter Property="Background" Value="Transparent"/>
-<Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-<Setter Property="Cursor" Value="Hand"/>
-<Setter Property="Padding" Value="12,8"/>
-<Setter Property="Margin" Value="0,1"/>
-<Setter Property="HorizontalContentAlignment" Value="Left"/>
-<Setter Property="FontSize" Value="12"/>
-<Setter Property="FontWeight" Value="Medium"/>
-<Setter Property="Template">
-<Setter.Value>
-<ControlTemplate TargetType="Button">
-<Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/></Border>
-<ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="{DynamicResource ButtonHoverBg}"/><Setter Property="Foreground" Value="{DynamicResource Sky400}"/></Trigger></ControlTemplate.Triggers>
-</ControlTemplate>
-</Setter.Value>
-</Setter>
-</Style>
-
-<Style TargetType="ToggleButton" x:Key="MenuToggle">
-<Setter Property="Background" Value="Transparent"/>
-<Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
-<Setter Property="Cursor" Value="Hand"/>
-<Setter Property="Padding" Value="10,6"/>
-<Setter Property="Margin" Value="2,0"/>
-<Setter Property="Template">
-<Setter.Value>
-<ControlTemplate TargetType="ToggleButton">
-<Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-<ControlTemplate.Triggers>
-<Trigger Property="IsMouseOver" Value="True"><Setter TargetName="border" Property="Background" Value="{DynamicResource ButtonHoverBg}"/><Setter Property="Foreground" Value="{DynamicResource ButtonHoverText}"/></Trigger>
-<Trigger Property="IsChecked" Value="True"><Setter TargetName="border" Property="Background" Value="#1E3A8A"/><Setter Property="Foreground" Value="{DynamicResource Sky400}"/></Trigger>
-</ControlTemplate.Triggers>
-</ControlTemplate>
-</Setter.Value>
-</Setter>
-</Style>
-</Window.Resources>
-
-<Grid x:Name="RootGrid" Background="Transparent">
-
-<!-- ============ LIBRARY (HOME) VIEW ============ -->
-<Grid x:Name="LibraryView" Visibility="Visible">
-<Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-<Border Grid.Row="0" Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="0,0,0,1" MouseLeftButtonDown="Header_MouseDown">
-<Grid>
-<Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-<StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="24,12">
-<Path Data="M12 2 L2 22 L6 22 L12 10 L18 22 L22 22 Z" Fill="{DynamicResource Sky400}" Height="20" Stretch="Uniform" Margin="0,0,10,0"/>
-<TextBlock Text="My Library" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
-</StackPanel>
-<TextBox x:Name="LibrarySearchBox" Grid.Column="1" Width="260" Padding="10,8" VerticalContentAlignment="Center" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" TextChanged="LibrarySearch_TextChanged" ToolTip="Search notebooks" Margin="0,0,24,0" WindowChrome.IsHitTestVisibleInChrome="True"/>
-<StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
-<Button Style="{StaticResource CaptionButton}" Click="Min_Click" ToolTip="Minimize"><Path Data="M 1 5 L 9 5" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1"/></Button>
-<Button Style="{StaticResource CaptionButton}" x:Name="LibMaxBtn" Click="Max_Click" ToolTip="Maximize"><Path x:Name="LibMaxIcon" Data="M 1 1 L 9 1 L 9 9 L 1 9 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1"/></Button>
-<Button Style="{StaticResource CloseCaptionButton}" Click="Close_Click" ToolTip="Close"><Path Data="M 2 2 L 8 8 M 8 2 L 2 8" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1"/></Button>
-</StackPanel>
-</Grid>
-</Border>
-<ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-<WrapPanel x:Name="NotebookGrid" Margin="32"/>
-</ScrollViewer>
-</Grid>
-
-<!-- ============ NOTEBOOK VIEW ============ -->
-<Grid x:Name="NotebookView" Visibility="Collapsed">
-<Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-
-<Border Grid.Row="0" Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="0,0,0,1" Panel.ZIndex="100" MouseLeftButtonDown="Header_MouseDown">
-<Grid>
-<Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-<StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,4,4,4" WindowChrome.IsHitTestVisibleInChrome="True">
-<Button Style="{StaticResource TailwindButton}" Click="BackToLibrary_Click" ToolTip="Back to Library" Padding="8,6">
-<StackPanel Orientation="Horizontal">
-<Path Data="M 14 18 L 8 12 L 14 6" Stroke="{DynamicResource TextPrimary}" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Margin="0,0,6,0" VerticalAlignment="Center"/>
-<TextBlock Text="Library" FontWeight="SemiBold"/>
-</StackPanel>
-</Button>
-<TextBlock x:Name="NotebookTitleText" Text="Notebook" Foreground="{DynamicResource TextPrimary}" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" Margin="16,0" Cursor="Hand" MouseLeftButtonUp="NotebookTitle_Click" ToolTip="Click to rename notebook"/>
-</StackPanel>
-<ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="10,0" WindowChrome.IsHitTestVisibleInChrome="True">
-<StackPanel x:Name="SectionTabsPanel" Orientation="Horizontal" VerticalAlignment="Bottom"/>
-</ScrollViewer>
-<StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,16,0" WindowChrome.IsHitTestVisibleInChrome="True">
-<Button Style="{StaticResource TailwindButton}" Click="ToggleSidebar_Click" ToolTip="Toggle Sidebar"><Path Data="M 2 4 L 14 4 M 2 8 L 14 8 M 2 12 L 14 12" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.5" Stretch="Uniform" Height="14"/></Button>
-<Button Style="{StaticResource TailwindButton}" Click="AddSection_Click" ToolTip="Add Section" Content="+ Section"/>
-<Button Style="{StaticResource TailwindButton}" Click="RenameSection_Click" ToolTip="Rename Section" Content="Rename"/>
-</StackPanel>
-<StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
-<Button Style="{StaticResource CaptionButton}" Click="Min_Click" ToolTip="Minimize"><Path Data="M 1 5 L 9 5" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1"/></Button>
-<Button Style="{StaticResource CaptionButton}" x:Name="NoteMaxBtn" Click="Max_Click" ToolTip="Maximize"><Path x:Name="NoteMaxIcon" Data="M 1 1 L 9 1 L 9 9 L 1 9 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1"/></Button>
-<Button Style="{StaticResource CloseCaptionButton}" Click="Close_Click" ToolTip="Close"><Path Data="M 2 2 L 8 8 M 8 2 L 2 8" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1"/></Button>
-</StackPanel>
-</Grid>
-</Border>
-
-<Grid Grid.Row="1">
-<Grid.ColumnDefinitions><ColumnDefinition x:Name="SidebarColumn" Width="200"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-
-<Border Grid.Column="0" Background="{DynamicResource BgPanel}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="0,0,1,0">
-<DockPanel>
-<Button DockPanel.Dock="Bottom" Style="{StaticResource TailwindButton}" Click="AddPage_Click" Margin="12" Padding="8,10" ToolTip="Add Page to Section">
-<StackPanel Orientation="Horizontal"><TextBlock Text="+" FontWeight="Bold" Margin="0,0,6,0"/><TextBlock Text="Add Page"/></StackPanel>
-</Button>
-<ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel x:Name="PageThumbPanel" Margin="10"/></ScrollViewer>
-</DockPanel>
-</Border>
-
-<Grid Grid.Column="1">
-<ScrollViewer Grid.Row="1" x:Name="MainScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PanningMode="Both"
-  PreviewMouseWheel="MainScroll_PreviewMouseWheel" SizeChanged="MainScroll_SizeChanged"
-  PreviewMouseDown="MainScroll_PreviewMouseDown" PreviewMouseMove="MainScroll_PreviewMouseMove" PreviewMouseUp="MainScroll_PreviewMouseUp"
-  Background="Transparent" Panel.ZIndex="10">
-<Grid x:Name="Workspace" HorizontalAlignment="Left" VerticalAlignment="Top" Background="Transparent">
-<Grid.LayoutTransform><ScaleTransform x:Name="ZoomTransform" ScaleX="1" ScaleY="1"/></Grid.LayoutTransform>
-<Border x:Name="PageHost" HorizontalAlignment="Left" VerticalAlignment="Top" Background="White">
-<Border.Effect><DropShadowEffect Color="Black" BlurRadius="25" Opacity="0.4" ShadowDepth="6" Direction="270"/></Border.Effect>
-<Image x:Name="PdfImage" Stretch="Fill" RenderOptions.BitmapScalingMode="HighQuality"/>
-</Border>
-<Grid x:Name="A4GuideContainer" IsHitTestVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" Width="1123" Height="794">
-<Rectangle x:Name="A4GuideRect" Stroke="{DynamicResource TextSecondary}" StrokeThickness="2" StrokeDashArray="6 6" Opacity="0.4"/>
-</Grid>
-<AdornerDecorator>
-<InkCanvas x:Name="MainInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" Focusable="True"
-  MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter"/>
-</AdornerDecorator>
-<Canvas x:Name="CursorCanvas" IsHitTestVisible="False" Panel.ZIndex="999">
-<Ellipse x:Name="CustomDotCursor" Visibility="Hidden" IsHitTestVisible="False">
-<Ellipse.Effect><DropShadowEffect x:Name="CursorGlow" BlurRadius="4" ShadowDepth="1" Opacity="0.6"/></Ellipse.Effect>
-</Ellipse>
-</Canvas>
-</Grid>
-</ScrollViewer>
-
-<InkCanvas x:Name="LaserInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" IsHitTestVisible="False" Panel.ZIndex="500" MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter"/>
-
-<Border x:Name="MainToolbar" Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="20" Padding="8,10" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,32" Panel.ZIndex="600">
-<Border.RenderTransform><TranslateTransform x:Name="ToolbarTransform" X="0" Y="0"/></Border.RenderTransform>
-<Border.Effect><DropShadowEffect Color="Black" BlurRadius="30" Opacity="0.6" ShadowDepth="10" Direction="270"/></Border.Effect>
-<WrapPanel x:Name="ToolbarWrapPanel" Orientation="Horizontal" VerticalAlignment="Center">
-
-<Border Background="Transparent" Cursor="SizeAll" MouseLeftButtonDown="ToolbarDrag_MouseDown" MouseMove="ToolbarDrag_MouseMove" MouseLeftButtonUp="ToolbarDrag_MouseUp" Padding="6,10" Margin="2,0,8,0" ToolTip="Drag Toolbar">
-<Path Data="M 2 4 A 1 1 0 1 1 2 6 A 1 1 0 1 1 2 4 Z M 2 11 A 1 1 0 1 1 2 13 A 1 1 0 1 1 2 11 Z M 2 18 A 1 1 0 1 1 2 20 A 1 1 0 1 1 2 18 Z M 8 4 A 1 1 0 1 1 8 6 A 1 1 0 1 1 8 4 Z M 8 11 A 1 1 0 1 1 8 13 A 1 1 0 1 1 8 11 Z M 8 18 A 1 1 0 1 1 8 20 A 1 1 0 1 1 8 18 Z" Fill="{DynamicResource TextSecondary}" Stretch="Uniform" Width="8"/>
-</Border>
-
-<ToggleButton x:Name="FileMenuToggle" Style="{StaticResource MenuToggle}" ToolTip="File &amp; Export">
-<StackPanel Orientation="Horizontal"><TextBlock Text="File" FontWeight="SemiBold" FontSize="13"/><TextBlock Text="&#9662;" FontSize="10" Margin="4,2,0,0"/></StackPanel>
-</ToggleButton>
-<Popup PlacementTarget="{Binding ElementName=FileMenuToggle}" IsOpen="{Binding IsChecked, ElementName=FileMenuToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" Placement="Top" VerticalOffset="-12">
-<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="8" Padding="6" MinWidth="180">
-<Border.Effect><DropShadowEffect Color="Black" BlurRadius="15" Opacity="0.5" ShadowDepth="4"/></Border.Effect>
-<StackPanel>
-<Button Style="{StaticResource DropdownItem}" Click="ImportPdf_Click" Content="Import PDF into Section"/>
-<Button Style="{StaticResource DropdownItem}" Click="Export_Click" Content="Export Section as PDF..."/>
-<Button x:Name="ManualSaveBtn" Style="{StaticResource DropdownItem}" Click="ManualSave_Click" Content="Save Now (Ctrl+S)"/>
-<TextBlock x:Name="SaveStatusText" Text="" Foreground="{DynamicResource Sky400}" Margin="12,4,0,2" FontSize="11" FontWeight="SemiBold"/>
-</StackPanel>
-</Border>
-</Popup>
-
-<Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="8,4"/>
-
-<RadioButton Style="{StaticResource TailwindTool}" x:Name="PointerBtn" Checked="Tool_Checked" ToolTip="Pan / Pointer (Esc)">
-<Path Data="M 6 4 L 14 24 L 17 17 L 24 14 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
-</RadioButton>
-<RadioButton Style="{StaticResource TailwindTool}" x:Name="SelectBtn" Checked="Tool_Checked" ToolTip="Smart Lasso (S)">
-<Path Data="M 4 10 C 6 4, 12 6, 18 8 C 22 10, 16 20, 10 18 C 4 16, 2 16, 4 10 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeDashArray="3,2" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
-</RadioButton>
-<RadioButton Style="{StaticResource TailwindTool}" x:Name="PenBtn" IsChecked="True" Checked="Tool_Checked" ToolTip="Pro Pen (P)">
-<Path Data="M 18 4 L 20 6 L 9 17 L 4 18 L 5 13 Z M 16 6 L 18 8" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
-</RadioButton>
-<RadioButton Style="{StaticResource TailwindTool}" x:Name="HighlightBtn" Checked="Tool_Checked" ToolTip="Highlighter (M)">
-<Path Data="M 16 4 L 20 8 L 8 20 L 2 20 L 2 14 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
-</RadioButton>
-<RadioButton Style="{StaticResource TailwindTool}" x:Name="LaserBtn" Checked="Tool_Checked" ToolTip="Neon Laser (L)">
-<Path Data="M 7 17 L 15 9 A 2 2 0 0 1 18 12 L 10 20 A 2 2 0 0 1 7 17 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
-</RadioButton>
-<RadioButton Style="{StaticResource TailwindTool}" x:Name="EraserBtn" Checked="Tool_Checked" ToolTip="Smart Eraser (E)">
-<Path Data="M 18 4 L 22 8 L 12 18 L 6 12 Z M 12 18 L 2 18" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/>
-</RadioButton>
-
-<Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="10,4"/>
-
-<Button x:Name="ColorBtn" Style="{StaticResource TailwindButton}" Click="ColorBtn_Click" ToolTip="Premium Palette">
-<StackPanel Orientation="Horizontal">
-<Ellipse x:Name="ActiveColorIndicator" Width="20" Height="20" Fill="#EF4444" Stroke="{DynamicResource BorderToolbar}" StrokeThickness="1"/>
-<TextBlock Text="&#9662;" FontSize="10" Margin="6,2,0,0" VerticalAlignment="Center"/>
-</StackPanel>
-</Button>
-<Popup x:Name="ColorPopup" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=ColorBtn}" Placement="Top" VerticalOffset="-12">
-<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="10" Padding="14">
-<Border.Effect><DropShadowEffect Color="Black" BlurRadius="15" Opacity="0.5" ShadowDepth="4"/></Border.Effect>
-<StackPanel>
-<TextBlock Text="CUSTOM HEX" Foreground="{DynamicResource TextSecondary}" FontSize="10" FontWeight="Bold" Margin="0,0,0,6"/>
-<TextBox x:Name="HexInput" Text="#EF4444" Width="100" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="6" Margin="0,0,0,12" TextChanged="HexInput_TextChanged" HorizontalAlignment="Left"/>
-<TextBlock Text="PREMIUM SWATCHES" Foreground="{DynamicResource TextSecondary}" FontSize="10" FontWeight="Bold" Margin="0,0,0,6"/>
-<WrapPanel Width="130" x:Name="PaletteGrid"/>
-</StackPanel>
-</Border>
-</Popup>
-
-<Slider x:Name="SizeSlider" Minimum="0.5" Maximum="50" Value="3" Width="80" VerticalAlignment="Center" Margin="10,0" ValueChanged="Size_Changed" IsMoveToPointEnabled="True"/>
-<TextBox x:Name="SizeInput" Text="{Binding Value, ElementName=SizeSlider, UpdateSourceTrigger=PropertyChanged, StringFormat=F1}" Width="36" TextAlignment="Center" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold" Background="Transparent" Foreground="{DynamicResource TextPrimary}" BorderThickness="0"/>
-
-<ToggleButton x:Name="StrokeMenuToggle" Style="{StaticResource MenuToggle}" ToolTip="Ink Settings">
-<StackPanel Orientation="Horizontal"><TextBlock Text="Stroke" FontWeight="SemiBold" FontSize="13"/><TextBlock Text="&#9662;" FontSize="10" Margin="4,2,0,0"/></StackPanel>
-</ToggleButton>
-<Popup PlacementTarget="{Binding ElementName=StrokeMenuToggle}" IsOpen="{Binding IsChecked, ElementName=StrokeMenuToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" Placement="Top" VerticalOffset="-12">
-<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="10" Padding="12" MinWidth="180">
-<Border.Effect><DropShadowEffect Color="Black" BlurRadius="15" Opacity="0.5" ShadowDepth="4"/></Border.Effect>
-<StackPanel>
-<CheckBox x:Name="PressureToggle" Content="Pressure Sensitivity" IsChecked="True" Foreground="{DynamicResource TextPrimary}" Margin="0,4" Checked="Pressure_Changed" Unchecked="Pressure_Changed"/>
-<CheckBox x:Name="StrokeEraserToggle" Content="Erase Whole Stroke" IsChecked="True" Foreground="{DynamicResource TextPrimary}" Margin="0,4" Checked="EraserMode_Changed" Unchecked="EraserMode_Changed"/>
-<CheckBox x:Name="PenOnlyToggle" Content="Strict Palm Rejection" IsChecked="True" Foreground="{DynamicResource TextPrimary}" Margin="0,4" Checked="PenOnly_Changed" Unchecked="PenOnly_Changed"/>
-</StackPanel>
-</Border>
-</Popup>
-
-<ToggleButton x:Name="LaserMenuToggle" Style="{StaticResource MenuToggle}" ToolTip="Laser Engine">
-<StackPanel Orientation="Horizontal"><TextBlock Text="Laser" FontWeight="SemiBold" FontSize="13"/><TextBlock Text="&#9662;" FontSize="10" Margin="4,2,0,0"/></StackPanel>
-</ToggleButton>
-<Popup PlacementTarget="{Binding ElementName=LaserMenuToggle}" IsOpen="{Binding IsChecked, ElementName=LaserMenuToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" Placement="Top" VerticalOffset="-12">
-<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="10" Padding="12" MinWidth="220">
-<Border.Effect><DropShadowEffect Color="Black" BlurRadius="15" Opacity="0.5" ShadowDepth="4"/></Border.Effect>
-<StackPanel>
-<CheckBox x:Name="LaserPermanentToggle" Content="Permanent (Never vanish)" Foreground="{DynamicResource TextPrimary}" Margin="0,2,0,10" Checked="LaserPermanent_Changed" Unchecked="LaserPermanent_Changed"/>
-<Grid Margin="0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-<TextBlock Grid.Column="0" Text="Hold Delay (sec)" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
-<TextBox x:Name="LaserHoldInput" Grid.Column="1" Text="1.2" Width="48" Padding="4" TextAlignment="Center" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource Sky400}" BorderBrush="{DynamicResource BorderToolbar}" TextChanged="LaserHold_TextChanged"/>
-</Grid>
-<Grid Margin="0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-<TextBlock Grid.Column="0" Text="Fade Out (sec)" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
-<TextBox x:Name="LaserFadeInput" Grid.Column="1" Text="0.6" Width="48" Padding="4" TextAlignment="Center" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource Sky400}" BorderBrush="{DynamicResource BorderToolbar}" TextChanged="LaserFade_TextChanged"/>
-</Grid>
-<Grid Margin="0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-<TextBlock Grid.Column="0" Text="Neon Glow Spread" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
-<Slider x:Name="LaserGlowSlider" Grid.Column="1" Minimum="1" Maximum="50" Value="24" Width="90" ValueChanged="LaserGlow_Changed" IsMoveToPointEnabled="True"/>
-</Grid>
-</StackPanel>
-</Border>
-</Popup>
-
-<ToggleButton x:Name="ViewMenuToggle" Style="{StaticResource MenuToggle}" ToolTip="Canvas &amp; View">
-<StackPanel Orientation="Horizontal"><TextBlock Text="View" FontWeight="SemiBold" FontSize="13"/><TextBlock Text="&#9662;" FontSize="10" Margin="4,2,0,0"/></StackPanel>
-</ToggleButton>
-<Popup PlacementTarget="{Binding ElementName=ViewMenuToggle}" IsOpen="{Binding IsChecked, ElementName=ViewMenuToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" Placement="Top" VerticalOffset="-12">
-<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="10" Padding="8" MinWidth="210">
-<Border.Effect><DropShadowEffect Color="Black" BlurRadius="15" Opacity="0.5" ShadowDepth="4"/></Border.Effect>
-<StackPanel>
-<Button Style="{StaticResource DropdownItem}" Click="GridToggle_Click" Content="Cycle Paper Grid (G)"/>
-<Button x:Name="BgColorBtn" Style="{StaticResource DropdownItem}" Click="BgColorBtn_Click" Content="Paper Background Color..."/>
-<Button Style="{StaticResource DropdownItem}" Click="PageSizeCycle_Click" Content="Cycle Canvas Size"/>
-<Button Style="{StaticResource DropdownItem}" Click="ToggleInk_Click" Content="Hide / Show Ink (V)"/>
-<Button Style="{StaticResource DropdownItem}" Click="ToggleToolbar_Click" Content="Dock Toolbar (D)"/>
-<Button Style="{StaticResource DropdownItem}" Click="FullScreen_Click" Content="Toggle Full Screen (F)"/>
-<Button Style="{StaticResource DropdownItem}" Click="Theme_Click" Content="Toggle App Dark / Light"/>
-</StackPanel>
-</Border>
-</Popup>
-<Popup x:Name="BgColorPopup" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" PlacementTarget="{Binding ElementName=ViewMenuToggle}" Placement="Top" VerticalOffset="-12">
-<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="10" Padding="14" MaxWidth="300">
-<Border.Effect><DropShadowEffect Color="Black" BlurRadius="15" Opacity="0.5" ShadowDepth="4"/></Border.Effect>
-<StackPanel>
-<TextBlock Text="PREMIUM PAPER TEXTURES" Foreground="{DynamicResource TextSecondary}" FontSize="10" FontWeight="Bold" Margin="0,0,0,6"/>
-<WrapPanel Width="130" x:Name="BgPaletteGrid" Margin="0,0,0,10" HorizontalAlignment="Left"/>
-<ToggleButton x:Name="AdvancedGridToggle" Style="{StaticResource MenuToggle}" Content="Advanced Grid Setup..." Checked="AdvancedGridToggle_Changed" Unchecked="AdvancedGridToggle_Changed" Margin="0,4,0,0"/>
-<StackPanel x:Name="AdvancedGridPanel" Visibility="Collapsed" Margin="0,10,0,0">
-<TextBlock Text="Background (Hex):" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,4,0,2"/>
-<Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-<TextBox x:Name="BgHexInput" Grid.Column="0" Text="#FFFFFF" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="6" TextChanged="BgHexInput_TextChanged"/>
-<Button Grid.Column="1" Style="{StaticResource TailwindButton}" Content="Wheel..." Click="CustomBgWheel_Click" Margin="6,0,0,0" Padding="8,4"/>
-</Grid>
-<TextBlock Text="Grid Gap Size:" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,8,0,2"/>
-<TextBox x:Name="GridGapInput" Text="40" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="6" TextChanged="AdvancedGridProp_TextChanged"/>
-<TextBlock Text="Major Line Color (Hex/Auto):" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,8,0,2"/>
-<TextBox x:Name="MajorGridColorInput" Text="" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="6" TextChanged="AdvancedGridProp_TextChanged"/>
-<TextBlock Text="Minor Line Color (Hex/Auto):" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,8,0,2"/>
-<TextBox x:Name="MinorGridColorInput" Text="" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="6" TextChanged="AdvancedGridProp_TextChanged"/>
-</StackPanel>
-</StackPanel>
-</Border>
-</Popup>
-
-<Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="10,4"/>
-<Button Style="{StaticResource TailwindButton}" Click="ClearInk_Click" ToolTip="Clear Page Annotations">
-<TextBlock Text="Clear" Foreground="{DynamicResource Rose500}" FontWeight="Bold" FontSize="13"/>
-</Button>
-</WrapPanel>
-</Border>
-
-<Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,32,32" Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="12" Padding="6" Panel.ZIndex="600">
-<Border.Effect><DropShadowEffect Color="Black" BlurRadius="20" Opacity="0.5" ShadowDepth="6"/></Border.Effect>
-<StackPanel Orientation="Horizontal">
-<Button Style="{StaticResource TailwindButton}" Click="ZoomOut_Click" ToolTip="Zoom Out" Padding="12,6"><TextBlock Text="&#8722;" FontWeight="Bold" FontSize="18"/></Button>
-<TextBlock x:Name="ZoomPercentText" Text="100%" Foreground="{DynamicResource Sky400}" VerticalAlignment="Center" FontWeight="Bold" FontSize="13" Margin="8,0" Width="48" TextAlignment="Center" Cursor="Hand" MouseLeftButtonDown="ZoomReset_Click"/>
-<Button Style="{StaticResource TailwindButton}" Click="ZoomIn_Click" ToolTip="Zoom In" Padding="12,6"><TextBlock Text="+" FontWeight="Bold" FontSize="18"/></Button>
-</StackPanel>
-</Border>
-
-<!-- EXPORT OVERLAY -->
-<Grid x:Name="ExportOverlay" Visibility="Collapsed" Background="{DynamicResource OverlayBg}" Panel.ZIndex="2000">
-<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="16" Padding="32" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="360">
-<Border.Effect><DropShadowEffect Color="Black" BlurRadius="30" Opacity="0.6" ShadowDepth="10"/></Border.Effect>
-<StackPanel>
-<TextBlock Text="Export to PDF" Foreground="{DynamicResource TextPrimary}" FontSize="20" FontWeight="Bold" Margin="0,0,0,20"/>
-<CheckBox x:Name="ExportInkCheck" Content="Include ink annotations" IsChecked="True" Foreground="{DynamicResource TextPrimary}" FontSize="14" Margin="0,6"/>
-<CheckBox x:Name="ExportBgCheck" Content="Include paper background &amp; grid" IsChecked="True" Foreground="{DynamicResource TextPrimary}" FontSize="14" Margin="0,6"/>
-<TextBlock Text="Imported PDFs will always retain their original document content underneath annotations." Foreground="{DynamicResource TextSecondary}" FontSize="12" TextWrapping="Wrap" Margin="0,16,0,24"/>
-<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-<Button Style="{StaticResource TailwindButton}" Click="ExportCancel_Click" Content="Cancel" Margin="0,0,12,0" Padding="16,8"/>
-<Button Style="{StaticResource PrimaryButton}" Click="ExportConfirm_Click" Content="Export Document" Padding="16,8"/>
-</StackPanel>
-</StackPanel>
-</Border>
-</Grid>
-
-<!-- RENAME OVERLAY -->
-<Grid x:Name="RenameOverlay" Visibility="Collapsed" Background="{DynamicResource OverlayBg}" Panel.ZIndex="2000">
-<Border Background="{DynamicResource BgToolbar}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" CornerRadius="16" Padding="32" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="340">
-<Border.Effect><DropShadowEffect Color="Black" BlurRadius="30" Opacity="0.6" ShadowDepth="10"/></Border.Effect>
-<StackPanel>
-<TextBlock x:Name="RenameTitle" Text="Rename" Foreground="{DynamicResource TextPrimary}" FontSize="18" FontWeight="Bold" Margin="0,0,0,16"/>
-<TextBox x:Name="RenameInput" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" Padding="10" FontSize="14" Margin="0,0,0,24"/>
-<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-<Button Style="{StaticResource TailwindButton}" Click="RenameCancel_Click" Content="Cancel" Margin="0,0,12,0" Padding="16,8"/>
-<Button Style="{StaticResource PrimaryButton}" Click="RenameOk_Click" Content="Save Changes" Padding="16,8"/>
-</StackPanel>
-</StackPanel>
-</Border>
-</Grid>
-
-</Grid>
-</Grid>
-</Grid>
-
-</Grid>
-</Window>
-ANYDRAW_EOF
 cat > MainWindow.xaml.cs << 'ANYDRAW_EOF'
 using System;
 using System.Collections.Generic;
@@ -585,7 +67,7 @@ namespace TeachingAnnotator
         public string LaserCoreColor { get; set; } = "#FFFFFF";
         public double LaserHoldDelay { get; set; } = 1.2;
         public double LaserFadeDuration { get; set; } = 0.6;
-        public double LaserGlow { get; set; } = 24.0;
+        public double LaserGlow { get; set; } = 18.0;
         public bool LaserPermanent { get; set; } = false;
         public bool IsDarkTheme { get; set; } = true;
         public bool PressureEnabled { get; set; } = true;
@@ -611,7 +93,7 @@ namespace TeachingAnnotator
         private double _zoom = 1.0;
         private bool _appLoaded = false;
         private bool _isUpdatingUI = false;
-        
+
         private double _penSize = 3.0, _highlightSize = 20.0, _laserSize = 6.0;
         private Color _penColor, _highlightColor, _laserColor, _laserCoreColor, _customBgColor;
         private int _gridPattern = 1;
@@ -663,12 +145,12 @@ namespace TeachingAnnotator
 
             MainInkCanvas.Strokes.StrokesChanged += MainInkCanvas_StrokesChanged;
             LaserInkCanvas.Strokes.StrokesChanged += LaserInkCanvas_StrokesChanged;
-            
-            // Ultra-accurate Hardware Palm Rejection via Stylus logic
+
+            // Proper hardware palm rejection via Stylus logic
             MainInkCanvas.PreviewStylusDown += InkCanvas_PreviewStylusDown;
             LaserInkCanvas.PreviewStylusDown += InkCanvas_PreviewStylusDown;
-            
-            // Rock-solid Undo/Redo support for selection transformations
+
+            // Undo/Redo support for selection transformations
             MainInkCanvas.SelectionMoving += MainInkCanvas_SelectionTransforming;
             MainInkCanvas.SelectionMoved += MainInkCanvas_SelectionTransformed;
             MainInkCanvas.SelectionResizing += MainInkCanvas_SelectionTransforming;
@@ -678,7 +160,7 @@ namespace TeachingAnnotator
             _laserHoldTimer.Tick += LaserHold_Tick;
             _saveDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1200) };
             _saveDebounce.Tick += (s, e) => { _saveDebounce.Stop(); PersistAll(); };
-            
+
             _pdfQualityTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
             _pdfQualityTimer.Tick += async (s, e) => { _pdfQualityTimer.Stop(); await ReRenderPdfQuality(); };
 
@@ -690,26 +172,16 @@ namespace TeachingAnnotator
             ShowLibrary();
         }
 
-        // Custom Window Chrome dragging & controls
+        // Custom Title Bar Dragging
         private void Header_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.ChangedButton == MouseButton.Left && e.ButtonState == MouseButtonState.Pressed)
+            if (e.ChangedButton == MouseButton.Left)
                 this.DragMove();
         }
 
         private void Min_Click(object sender, RoutedEventArgs e) { WindowState = WindowState.Minimized; }
         private void Max_Click(object sender, RoutedEventArgs e) { WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized; }
         private void Close_Click(object sender, RoutedEventArgs e) { Close(); }
-        
-        private void Window_StateChanged(object sender, EventArgs e)
-        {
-            // Toggle Maximize/Restore SVG icon state
-            string maxPath = "M 1 1 L 9 1 L 9 9 L 1 9 Z";
-            string restorePath = "M 3 1 L 9 1 L 9 7 M 1 3 L 7 3 L 7 9 L 1 9 Z";
-            string p = WindowState == WindowState.Maximized ? restorePath : maxPath;
-            if (LibMaxIcon != null) LibMaxIcon.Data = Geometry.Parse(p);
-            if (NoteMaxIcon != null) NoteMaxIcon.Data = Geometry.Parse(p);
-        }
 
         private Color SafeColor(string s, Color fallback)
         {
@@ -722,7 +194,7 @@ namespace TeachingAnnotator
             string[] premiumInk = { "#1C1C1E", "#FFFFFF", "#FF3B30", "#007AFF", "#34C759", "#FF9500", "#AF52DE", "#5AC8FA", "#E2C29F", "#8E8E93" };
             foreach (string hex in premiumInk)
             {
-                var r = new Rectangle { Width = 22, Height = 22, Margin = new Thickness(2), RadiusX = 11, RadiusY = 11, Fill = new SolidColorBrush(SafeColor(hex, Colors.Black)), Cursor = Cursors.Hand };
+                var r = new Rectangle { Width = 20, Height = 20, Margin = new Thickness(2), RadiusX = 4, RadiusY = 4, Fill = new SolidColorBrush(SafeColor(hex, Colors.Black)), Cursor = Cursors.Hand };
                 string h = hex;
                 r.MouseLeftButtonDown += (s, e) => { HexInput.Text = h; ColorPopup.IsOpen = false; };
                 PaletteGrid.Children.Add(r);
@@ -731,7 +203,7 @@ namespace TeachingAnnotator
             string[] premiumPaper = { "#FFFFFF", "#F4F4F9", "#FDF6E3", "#EFE9D9", "#282A36", "#1E1E1E", "#000000" };
             foreach (string hex in premiumPaper)
             {
-                var r = new Rectangle { Width = 22, Height = 22, Margin = new Thickness(2), RadiusX = 4, RadiusY = 4, Fill = new SolidColorBrush(SafeColor(hex, Colors.White)), Stroke = new SolidColorBrush(Color.FromRgb(80, 80, 80)), StrokeThickness = 0.5, Cursor = Cursors.Hand };
+                var r = new Rectangle { Width = 20, Height = 20, Margin = new Thickness(2), RadiusX = 4, RadiusY = 4, Fill = new SolidColorBrush(SafeColor(hex, Colors.White)), Stroke = new SolidColorBrush(Color.FromRgb(80, 80, 80)), StrokeThickness = 0.5, Cursor = Cursors.Hand };
                 string h = hex;
                 r.MouseLeftButtonDown += (s, e) => { BgHexInput.Text = h; BgColorPopup.IsOpen = false; };
                 BgPaletteGrid.Children.Add(r);
@@ -802,14 +274,12 @@ namespace TeachingAnnotator
         {
             SaveActivePageStrokes();
             PersistAll();
+            // Free PDF/thumbnail caches when leaving a notebook (prevents memory growth & held file handles)
+            _pdfCache.Clear();
+            _thumbCache.Clear();
             _activeNotebook = null; _activeSection = null; _activePage = null;
-            
-            // Clean fade-in transition
-            LibraryView.Opacity = 0;
             LibraryView.Visibility = Visibility.Visible;
             NotebookView.Visibility = Visibility.Collapsed;
-            LibraryView.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(250)));
-            
             RenderLibrary(LibrarySearchBox.Text);
         }
 
@@ -828,10 +298,10 @@ namespace TeachingAnnotator
 
         private Border BuildNewNotebookCard()
         {
-            var b = new Border { Width = 190, Height = 240, CornerRadius = new CornerRadius(12), Margin = new Thickness(16), BorderBrush = (Brush)FindResource("BorderToolbar"), BorderThickness = new Thickness(2), Background = (Brush)FindResource("BgPanel"), Cursor = Cursors.Hand };
+            var b = new Border { Width = 170, Height = 210, CornerRadius = new CornerRadius(10), Margin = new Thickness(12), BorderBrush = (Brush)FindResource("BorderToolbar"), BorderThickness = new Thickness(2), Background = (Brush)FindResource("BgPanel"), Cursor = Cursors.Hand };
             var sp = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-            sp.Children.Add(new TextBlock { Text = "+", FontSize = 48, FontWeight = FontWeights.Light, Foreground = (Brush)FindResource("Sky400"), HorizontalAlignment = HorizontalAlignment.Center });
-            sp.Children.Add(new TextBlock { Text = "New Notebook", Foreground = (Brush)FindResource("TextSecondary"), Margin = new Thickness(0, 12, 0, 0), FontWeight = FontWeights.SemiBold, FontSize = 14 });
+            sp.Children.Add(new TextBlock { Text = "+", FontSize = 40, FontWeight = FontWeights.Bold, Foreground = (Brush)FindResource("Sky400"), HorizontalAlignment = HorizontalAlignment.Center });
+            sp.Children.Add(new TextBlock { Text = "New Notebook", Foreground = (Brush)FindResource("TextSecondary"), Margin = new Thickness(0, 8, 0, 0), FontWeight = FontWeights.SemiBold });
             b.Child = sp;
             b.MouseLeftButtonUp += (s, e) => NewNotebook();
             return b;
@@ -839,22 +309,19 @@ namespace TeachingAnnotator
 
         private Border BuildNotebookCard(Notebook nb)
         {
-            var cover = new Border { Width = 190, Height = 240, CornerRadius = new CornerRadius(12), Margin = new Thickness(16), Background = new SolidColorBrush(SafeColor(nb.CoverColor, SafeColor("#1E3A8A", Colors.Navy))), Cursor = Cursors.Hand };
-            cover.Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 25, Opacity = 0.4, ShadowDepth = 8, Direction = 270, Color = Colors.Black };
+            var cover = new Border { Width = 170, Height = 210, CornerRadius = new CornerRadius(10), Margin = new Thickness(12), Background = new SolidColorBrush(SafeColor(nb.CoverColor, SafeColor("#1E3A8A", Colors.Navy))), Cursor = Cursors.Hand };
+            cover.Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 22, Opacity = 0.30, ShadowDepth = 4, Color = Colors.Black };
             var grid = new Grid();
-            var spine = new Border { Width = 14, HorizontalAlignment = HorizontalAlignment.Left, Background = new SolidColorBrush(Color.FromArgb(50, 0, 0, 0)), CornerRadius = new CornerRadius(12, 0, 0, 12) };
+            var spine = new Border { Width = 10, HorizontalAlignment = HorizontalAlignment.Left, Background = new SolidColorBrush(Color.FromArgb(60, 0, 0, 0)), CornerRadius = new CornerRadius(10, 0, 0, 10) };
             grid.Children.Add(spine);
-            var stack = new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(24, 16, 16, 20) };
-            stack.Children.Add(new TextBlock { Text = nb.Title, Foreground = Brushes.White, FontWeight = FontWeights.Bold, FontSize = 16, TextWrapping = TextWrapping.Wrap });
+            var stack = new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(16, 12, 12, 14) };
+            stack.Children.Add(new TextBlock { Text = nb.Title, Foreground = Brushes.White, FontWeight = FontWeights.Bold, FontSize = 15, TextWrapping = TextWrapping.Wrap });
             int pages = nb.Sections.Sum(s => s.Pages.Count);
-            stack.Children.Add(new TextBlock { Text = nb.Sections.Count + " sections \u00B7 " + pages + " pages", Foreground = new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)), FontSize = 12, Margin = new Thickness(0, 6, 0, 0) });
+            stack.Children.Add(new TextBlock { Text = nb.Sections.Count + " sections \u00B7 " + pages + " pages", Foreground = new SolidColorBrush(Color.FromArgb(210, 255, 255, 255)), FontSize = 11, Margin = new Thickness(0, 4, 0, 0) });
             grid.Children.Add(stack);
-            
-            var delBtn = new Button { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Width = 30, Height = 30, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(8), Cursor = Cursors.Hand };
-            delBtn.Content = new Path { Data = Geometry.Parse("M 0 0 L 12 12 M 12 0 L 0 12"), Stroke = new SolidColorBrush(Color.FromArgb(180, 255, 255, 255)), StrokeThickness = 2, Stretch = Stretch.Uniform, Width = 10, Height = 10 };
-            delBtn.Click += (s, e) => { e.Handled = true; DeleteNotebook(nb); };
-            grid.Children.Add(delBtn);
-            
+            var del = new Button { Content = "\u00D7", Width = 26, Height = 26, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(6), Background = Brushes.Transparent, BorderThickness = new Thickness(0), Foreground = Brushes.White, FontSize = 16, FontWeight = FontWeights.Bold, Cursor = Cursors.Hand };
+            del.Click += (s, e) => { e.Handled = true; DeleteNotebook(nb); };
+            grid.Children.Add(del);
             cover.Child = grid;
             cover.MouseLeftButtonUp += (s, e) => { if (!e.Handled) OpenNotebook(nb); };
             return cover;
@@ -886,12 +353,8 @@ namespace TeachingAnnotator
             _activeNotebook = nb;
             if (nb.Sections.Count == 0) AddSectionTo(nb);
             _activeSection = nb.Sections[0];
-            
-            NotebookView.Opacity = 0;
             LibraryView.Visibility = Visibility.Collapsed;
             NotebookView.Visibility = Visibility.Visible;
-            NotebookView.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(250)));
-            
             NotebookTitleText.Text = nb.Title;
             RenderSections();
             if (_activeSection.Pages.Count == 0) AddPageTo(_activeSection);
@@ -911,15 +374,14 @@ namespace TeachingAnnotator
             SectionTabsPanel.Children.Clear();
             foreach (var sec in _activeNotebook.Sections)
             {
-                var b = new Border { CornerRadius = new CornerRadius(8, 8, 0, 0), Padding = new Thickness(16, 8, 16, 8), Margin = new Thickness(0, 0, 4, 0), Cursor = Cursors.Hand, Background = sec == _activeSection ? (Brush)FindResource("ButtonHoverBg") : Brushes.Transparent };
+                var b = new Border { CornerRadius = new CornerRadius(8, 8, 0, 0), Padding = new Thickness(12, 6, 12, 6), Margin = new Thickness(0, 0, 3, 0), Cursor = Cursors.Hand, Background = sec == _activeSection ? (Brush)FindResource("ButtonHoverBg") : Brushes.Transparent };
                 var sp = new StackPanel { Orientation = Orientation.Horizontal };
-                var dot = new Ellipse { Width = 10, Height = 10, Fill = new SolidColorBrush(SafeColor(sec.Color, Colors.SkyBlue)), Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center };
+                var dot = new Ellipse { Width = 9, Height = 9, Fill = new SolidColorBrush(SafeColor(sec.Color, Colors.SkyBlue)), Margin = new Thickness(0, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center };
                 sp.Children.Add(dot);
-                sp.Children.Add(new TextBlock { Text = sec.Title, Foreground = sec == _activeSection ? (Brush)FindResource("Sky400") : (Brush)FindResource("TextSecondary"), FontWeight = FontWeights.SemiBold, FontSize = 13, VerticalAlignment = VerticalAlignment.Center });
+                sp.Children.Add(new TextBlock { Text = sec.Title, Foreground = sec == _activeSection ? (Brush)FindResource("Sky400") : (Brush)FindResource("TextSecondary"), FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
                 if (_activeNotebook.Sections.Count > 1)
                 {
-                    var close = new Button { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Margin = new Thickness(8, 0, 0, 0), Cursor = Cursors.Hand };
-                    close.Content = new Path { Data = Geometry.Parse("M 0 0 L 8 8 M 8 0 L 0 8"), Stroke = (Brush)FindResource("TextSecondary"), StrokeThickness = 1.5, Stretch = Stretch.Uniform, Width = 8, Height = 8 };
+                    var close = new Button { Content = "\u00D7", Background = Brushes.Transparent, BorderThickness = new Thickness(0), Foreground = (Brush)FindResource("TextSecondary"), Cursor = Cursors.Hand, Margin = new Thickness(6, 0, 0, 0), FontWeight = FontWeights.Bold };
                     var captured = sec;
                     close.Click += (s, e) => { e.Handled = true; DeleteSection(captured); };
                     sp.Children.Add(close);
@@ -947,7 +409,7 @@ namespace TeachingAnnotator
             return p;
         }
 
-        private void ToggleSidebar_Click(object sender, RoutedEventArgs e) { SidebarColumn.Width = SidebarColumn.Width.Value > 0 ? new GridLength(0) : new GridLength(200); }
+        private void ToggleSidebar_Click(object sender, RoutedEventArgs e) { SidebarColumn.Width = SidebarColumn.Width.Value > 0 ? new GridLength(0) : new GridLength(186); }
 
         private void AddSection_Click(object sender, RoutedEventArgs e)
         {
@@ -989,9 +451,9 @@ namespace TeachingAnnotator
             for (int i = 0; i < _activeSection.Pages.Count; i++)
             {
                 var page = _activeSection.Pages[i];
-                var card = new Border { Margin = new Thickness(0, 0, 0, 12), CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(2), BorderBrush = page == _activePage ? (Brush)FindResource("Sky400") : (Brush)FindResource("BorderToolbar"), Background = (Brush)FindResource("BgToolbar"), Cursor = Cursors.Hand };
+                var card = new Border { Margin = new Thickness(0, 0, 0, 10), CornerRadius = new CornerRadius(6), BorderThickness = new Thickness(2), BorderBrush = page == _activePage ? (Brush)FindResource("Sky400") : (Brush)FindResource("BorderToolbar"), Background = (Brush)FindResource("BgToolbar"), Cursor = Cursors.Hand };
                 var g = new Grid();
-                var preview = new Border { Height = 140, CornerRadius = new CornerRadius(6), Margin = new Thickness(8, 8, 8, 28), Background = page.Kind == "Pdf" ? Brushes.White : new SolidColorBrush(SafeColor(page.BgColor, Colors.White)), ClipToBounds = true };
+                var preview = new Border { Height = 150, CornerRadius = new CornerRadius(4), Margin = new Thickness(6, 6, 6, 24), Background = page.Kind == "Pdf" ? Brushes.White : new SolidColorBrush(SafeColor(page.BgColor, Colors.White)), ClipToBounds = true };
                 if (page.Kind == "Pdf")
                 {
                     var img = new Image { Stretch = Stretch.Uniform, VerticalAlignment = VerticalAlignment.Top };
@@ -1001,14 +463,13 @@ namespace TeachingAnnotator
                     else preview.Child = new TextBlock { Text = "PDF", Foreground = Brushes.Gray, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
                 }
                 g.Children.Add(preview);
-                g.Children.Add(new TextBlock { Text = "Page " + (i + 1), Foreground = (Brush)FindResource("TextSecondary"), FontSize = 12, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 8) });
+                g.Children.Add(new TextBlock { Text = (i + 1).ToString(), Foreground = (Brush)FindResource("TextSecondary"), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 6) });
                 if (_activeSection.Pages.Count > 1)
                 {
-                    var delBtn = new Button { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Width = 26, Height = 26, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(6), Cursor = Cursors.Hand };
-                    delBtn.Content = new Path { Data = Geometry.Parse("M 0 0 L 10 10 M 10 0 L 0 10"), Stroke = (Brush)FindResource("Rose500"), StrokeThickness = 2, Stretch = Stretch.Uniform, Width = 8, Height = 8 };
+                    var del = new Button { Content = "\u00D7", Width = 22, Height = 22, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(4), Background = Brushes.Transparent, BorderThickness = new Thickness(0), Foreground = (Brush)FindResource("Rose500"), FontWeight = FontWeights.Bold, Cursor = Cursors.Hand };
                     var captured = page;
-                    delBtn.Click += (s, e) => { e.Handled = true; DeletePage(captured); };
-                    g.Children.Add(delBtn);
+                    del.Click += (s, e) => { e.Handled = true; DeletePage(captured); };
+                    g.Children.Add(del);
                 }
                 card.Child = g;
                 var target = page;
@@ -1063,9 +524,6 @@ namespace TeachingAnnotator
             _customBgColor = SafeColor(page.BgColor, Colors.White);
             _gridPattern = page.GridPattern;
             _zoom = 1.0; ZoomTransform.ScaleX = 1; ZoomTransform.ScaleY = 1; UpdateZoomUI();
-            
-            // Premium Page Transition
-            Workspace.Opacity = 0;
 
             await RenderPageContent();
 
@@ -1082,8 +540,6 @@ namespace TeachingAnnotator
             MainScroll.ScrollToHorizontalOffset(0);
             MainScroll.ScrollToVerticalOffset(0);
             UpdateCanvasCentering();
-            
-            Workspace.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200)));
         }
 
         private async System.Threading.Tasks.Task<Windows.Data.Pdf.PdfDocument> GetPdfDoc(string absPath)
@@ -1132,7 +588,7 @@ namespace TeachingAnnotator
                     var doc = await GetPdfDoc(abs);
                     double w = page.PdfWidth > 0 ? page.PdfWidth : 800, h = page.PdfHeight > 0 ? page.PdfHeight : 1100;
                     _pdfDisplayW = w; _pdfDisplayH = h;
-                    
+
                     double scale = Math.Min(8.0, Math.Max(2.0, _zoom * 2.5));
                     PdfImage.Source = await RenderPdf(doc, (uint)page.PdfPageIndex, w, h, scale);
                     PdfImage.Visibility = Visibility.Visible;
@@ -1162,13 +618,13 @@ namespace TeachingAnnotator
 
         private void GetBlankSize(int idx, out double w, out double h)
         {
-            switch (idx) { 
-                case 1: w = 1123; h = 794; break;  
-                case 2: w = 1056; h = 816; break;  
-                case 3: w = 1920; h = 1080; break; 
-                case 4: w = 2400; h = 3000; break; 
-                case 0: w = 794; h = 1123; break;  
-                default: w = 1123; h = 794; break; 
+            switch (idx) {
+                case 1: w = 1123; h = 794; break;
+                case 2: w = 1056; h = 816; break;
+                case 3: w = 1920; h = 1080; break;
+                case 4: w = 2400; h = 3000; break;
+                case 0: w = 794; h = 1123; break;
+                default: w = 1123; h = 794; break;
             }
         }
 
@@ -1183,8 +639,9 @@ namespace TeachingAnnotator
             else
             {
                 GetBlankSize(_activePage.CanvasSizeIndex, out w, out h);
-                A4GuideContainer.Visibility = Visibility.Collapsed;
+                // Show the dashed A4 guide only for the portrait-A4 blank size (index 0)
                 A4GuideContainer.Width = 794; A4GuideContainer.Height = 1123;
+                A4GuideContainer.Visibility = _activePage.CanvasSizeIndex == 0 ? Visibility.Visible : Visibility.Collapsed;
             }
             PageHost.Width = w; PageHost.Height = h;
             MainInkCanvas.Width = w; MainInkCanvas.Height = h;
@@ -1199,27 +656,26 @@ namespace TeachingAnnotator
         {
             if (_settings.IsDarkTheme)
             {
-                Resources["BgPrimary"] = new SolidColorBrush(Color.FromRgb(13, 15, 18));
-                Resources["BgToolbar"] = new SolidColorBrush(Color.FromRgb(22, 25, 30));
-                Resources["BgPanel"] = new SolidColorBrush(Color.FromRgb(26, 29, 36));
-                Resources["BorderToolbar"] = new SolidColorBrush(Color.FromRgb(42, 45, 53));
-                Resources["TextPrimary"] = new SolidColorBrush(Color.FromRgb(248, 250, 252));
-                Resources["TextSecondary"] = new SolidColorBrush(Color.FromRgb(148, 163, 184));
-                Resources["ButtonHoverBg"] = new SolidColorBrush(Color.FromRgb(37, 42, 51));
+                // Mirrors the premium dark palette declared in Window.Resources so theme toggling stays consistent
+                Resources["BgPrimary"] = new SolidColorBrush(Color.FromRgb(0x0A, 0x0C, 0x0F));
+                Resources["BgToolbar"] = new SolidColorBrush(Color.FromRgb(0x14, 0x16, 0x1B));
+                Resources["BgPanel"] = new SolidColorBrush(Color.FromRgb(0x0F, 0x11, 0x15));
+                Resources["BorderToolbar"] = new SolidColorBrush(Color.FromRgb(0x26, 0x2A, 0x33));
+                Resources["TextPrimary"] = new SolidColorBrush(Color.FromRgb(0xF4, 0xF6, 0xFA));
+                Resources["TextSecondary"] = new SolidColorBrush(Color.FromRgb(0x9B, 0xA1, 0xAD));
+                Resources["ButtonHoverBg"] = new SolidColorBrush(Color.FromRgb(0x22, 0x26, 0x2E));
                 Resources["ButtonHoverText"] = new SolidColorBrush(Colors.White);
-                Resources["OverlayBg"] = new SolidColorBrush(Color.FromArgb(180, 0, 0, 0));
             }
             else
             {
-                Resources["BgPrimary"] = new SolidColorBrush(Color.FromRgb(235, 237, 240));
+                Resources["BgPrimary"] = new SolidColorBrush(Color.FromRgb(229, 231, 235));
                 Resources["BgToolbar"] = new SolidColorBrush(Colors.White);
-                Resources["BgPanel"] = new SolidColorBrush(Color.FromRgb(248, 249, 250));
-                Resources["BorderToolbar"] = new SolidColorBrush(Color.FromRgb(215, 220, 225));
+                Resources["BgPanel"] = new SolidColorBrush(Color.FromRgb(243, 244, 246));
+                Resources["BorderToolbar"] = new SolidColorBrush(Color.FromRgb(209, 213, 219));
                 Resources["TextPrimary"] = new SolidColorBrush(Colors.Black);
-                Resources["TextSecondary"] = new SolidColorBrush(Color.FromRgb(100, 110, 125));
-                Resources["ButtonHoverBg"] = new SolidColorBrush(Color.FromRgb(240, 242, 245));
+                Resources["TextSecondary"] = new SolidColorBrush(Color.FromRgb(75, 85, 99));
+                Resources["ButtonHoverBg"] = new SolidColorBrush(Color.FromRgb(229, 231, 235));
                 Resources["ButtonHoverText"] = new SolidColorBrush(Colors.Black);
-                Resources["OverlayBg"] = new SolidColorBrush(Color.FromArgb(120, 0, 0, 0));
             }
             UpdateGridBackground();
         }
@@ -1229,8 +685,8 @@ namespace TeachingAnnotator
             if (_activePage != null && _activePage.Kind != "Pdf")
             {
                 double lum = (_customBgColor.R * 0.299 + _customBgColor.G * 0.587 + _customBgColor.B * 0.114);
-                Color major = lum > 130 ? Color.FromArgb(25, 0, 0, 0) : Color.FromArgb(30, 255, 255, 255);
-                Color minor = lum > 130 ? Color.FromArgb(12, 0, 0, 0) : Color.FromArgb(12, 255, 255, 255);
+                Color major = lum > 130 ? Color.FromArgb(32, 0, 0, 0) : Color.FromArgb(35, 255, 255, 255);
+                Color minor = lum > 130 ? Color.FromArgb(14, 0, 0, 0) : Color.FromArgb(15, 255, 255, 255);
                 PageHost.Background = CreateGridBrush(_customBgColor, major, minor, _zoom);
             }
         }
@@ -1239,15 +695,15 @@ namespace TeachingAnnotator
         {
             var group = new DrawingGroup();
             double gap = _activePage != null && _activePage.GridGap > 1 ? _activePage.GridGap : 40.0;
-            
+
             if (_activePage != null && !string.IsNullOrWhiteSpace(_activePage.MajorGridColor)) majorLine = SafeColor(_activePage.MajorGridColor, majorLine);
             if (_activePage != null && !string.IsNullOrWhiteSpace(_activePage.MinorGridColor)) minorLine = SafeColor(_activePage.MinorGridColor, minorLine);
 
             group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(bg), Geometry = new RectangleGeometry(new Rect(0, 0, gap, gap)) });
-            
-            double t = 0.6 / zoom; 
-            
-            if (_gridPattern == 1) // Standard Grid
+
+            double t = 0.6 / zoom;
+
+            if (_gridPattern == 1)
             {
                 var minorPen = new Pen(new SolidColorBrush(minorLine), t * 0.5);
                 var majorPen = new Pen(new SolidColorBrush(majorLine), t * 1.2);
@@ -1260,19 +716,19 @@ namespace TeachingAnnotator
                 majorGrp.Children.Add(new LineGeometry(new Point(0, gap), new Point(gap, gap)));
                 group.Children.Add(new GeometryDrawing { Pen = majorPen, Geometry = majorGrp });
             }
-            else if (_gridPattern == 2) // Dot Grid (Bullet Journal)
+            else if (_gridPattern == 2)
             {
                 double r = 1.35 / zoom;
                 group.Children.Add(new GeometryDrawing { Brush = new SolidColorBrush(majorLine), Geometry = new EllipseGeometry(new Point(gap/2, gap/2), r, r) });
             }
-            else if (_gridPattern == 3) // College Ruled
+            else if (_gridPattern == 3)
             {
                 var pen = new Pen(new SolidColorBrush(majorLine), t);
                 var gg = new GeometryGroup();
                 gg.Children.Add(new LineGeometry(new Point(0, gap), new Point(gap, gap)));
                 group.Children.Add(new GeometryDrawing { Pen = pen, Geometry = gg });
             }
-            else if (_gridPattern == 4) // Graph Paper
+            else if (_gridPattern == 4)
             {
                 var majorPen = new Pen(new SolidColorBrush(majorLine), t * 0.8);
                 var majorGrp = new GeometryGroup();
@@ -1280,7 +736,7 @@ namespace TeachingAnnotator
                 majorGrp.Children.Add(new LineGeometry(new Point(0, gap), new Point(gap, gap)));
                 group.Children.Add(new GeometryDrawing { Pen = majorPen, Geometry = majorGrp });
             }
-            
+
             return new DrawingBrush { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, gap, gap), ViewportUnits = BrushMappingMode.Absolute, Drawing = group };
         }
 
@@ -1332,7 +788,7 @@ namespace TeachingAnnotator
                 LaserInkCanvas.IsHitTestVisible = true;
                 LaserInkCanvas.EditingMode = InkCanvasEditingMode.Ink;
                 LaserInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = _laserCoreColor, Width = size, Height = size, FitToCurve = true, IgnorePressure = true, StylusTip = StylusTip.Ellipse };
-                LaserInkCanvas.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = active, BlurRadius = _settings.LaserGlow * 1.5, ShadowDepth = 0, Opacity = 0.8, RenderingBias = System.Windows.Media.Effects.RenderingBias.Performance };
+                LaserInkCanvas.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = active, BlurRadius = _settings.LaserGlow * 1.5, ShadowDepth = 0, Opacity = 0.75, RenderingBias = System.Windows.Media.Effects.RenderingBias.Performance };
                 CancelLaserFade();
             }
             else
@@ -1363,15 +819,15 @@ namespace TeachingAnnotator
             catch { }
         }
 
-        private void BgColorBtn_Click(object sender, RoutedEventArgs e) { 
-            if (_activePage == null) return; 
+        private void BgColorBtn_Click(object sender, RoutedEventArgs e) {
+            if (_activePage == null) return;
             _isUpdatingUI = true;
             BgHexInput.Text = _activePage.BgColor;
             GridGapInput.Text = _activePage.GridGap.ToString();
             MajorGridColorInput.Text = _activePage.MajorGridColor;
             MinorGridColorInput.Text = _activePage.MinorGridColor;
             _isUpdatingUI = false;
-            BgColorPopup.IsOpen = true; 
+            BgColorPopup.IsOpen = true;
         }
 
         private void BgHexInput_TextChanged(object sender, TextChangedEventArgs e)
@@ -1500,12 +956,12 @@ namespace TeachingAnnotator
                 _clonedStrokesBeforeMove = _liveStrokesBeforeMove.Clone();
             }
         }
-        
+
         private void MainInkCanvas_SelectionTransformed(object sender, EventArgs e)
         {
             if (_liveStrokesBeforeMove == null) return;
             var currentLiveStrokes = MainInkCanvas.GetSelectedStrokes();
-            
+
             // Treat transformation as a replacement: Removing original clones, adding the current live ones
             var a = new UndoAction { Added = currentLiveStrokes, Removed = _clonedStrokesBeforeMove };
             _undo.Push(a);
@@ -1549,7 +1005,7 @@ namespace TeachingAnnotator
             if (CustomDotCursor == null) return;
             if (SelectBtn.IsChecked == true || PointerBtn.IsChecked == true) { CustomDotCursor.Visibility = Visibility.Hidden; return; }
             double size = SizeSlider.Value; Color c = ((SolidColorBrush)ActiveColorIndicator.Fill).Color;
-            if (HighlightBtn.IsChecked == true) { size *= 4; c = Color.FromArgb(80, c.R, c.G, c.B); }
+            if (HighlightBtn.IsChecked == true) { size = 4; c = Color.FromArgb(80, c.R, c.G, c.B); }
             if (EraserBtn.IsChecked == true) { size = _settings.StrokeEraserEnabled ? 20 : size * 4; CustomDotCursor.StrokeThickness = 1; CustomDotCursor.Stroke = new SolidColorBrush(Colors.Gray); CustomDotCursor.Fill = new SolidColorBrush(Color.FromArgb(90, 255, 255, 255)); CursorGlow.Opacity = 0; }
             else { CustomDotCursor.StrokeThickness = 0; CustomDotCursor.Fill = new SolidColorBrush(Color.FromArgb(160, c.R, c.G, c.B)); CursorGlow.Color = Colors.Black; CursorGlow.Opacity = 0.4; CursorGlow.BlurRadius = 4; CursorGlow.ShadowDepth = 1; }
             CustomDotCursor.Width = size; CustomDotCursor.Height = size;
@@ -1574,7 +1030,7 @@ namespace TeachingAnnotator
             double oldZoom = _zoom;
             double newZoom = Math.Max(0.25, Math.Min(_zoom + delta, 10.0));
             if (newZoom == oldZoom) return;
-            
+
             Point target = mousePos ?? new Point(MainScroll.ViewportWidth / 2.0, MainScroll.ViewportHeight / 2.0);
             double ux = (MainScroll.HorizontalOffset + target.X) / oldZoom;
             double uy = (MainScroll.VerticalOffset + target.Y) / oldZoom;
@@ -1586,7 +1042,7 @@ namespace TeachingAnnotator
             MainScroll.ScrollToHorizontalOffset(ux * newZoom - target.X);
             MainScroll.ScrollToVerticalOffset(uy * newZoom - target.Y);
             UpdateCanvasCentering();
-            
+
             if (_activePage != null && _activePage.Kind == "Pdf") { _pdfQualityTimer.Stop(); _pdfQualityTimer.Start(); }
         }
 
@@ -1654,15 +1110,15 @@ namespace TeachingAnnotator
             }
             else
             {
-                MainToolbar.HorizontalAlignment = HorizontalAlignment.Center; MainToolbar.VerticalAlignment = VerticalAlignment.Bottom; MainToolbar.Margin = new Thickness(0, 0, 0, 32);
+                MainToolbar.HorizontalAlignment = HorizontalAlignment.Center; MainToolbar.VerticalAlignment = VerticalAlignment.Bottom; MainToolbar.Margin = new Thickness(0, 0, 0, 24);
                 ToolbarWrapPanel.Orientation = Orientation.Horizontal;
             }
             foreach (var child in ToolbarWrapPanel.Children)
             {
                 if (child is Rectangle r)
                 {
-                    if (_isToolbarVertical) { r.Width = double.NaN; r.Height = 1; r.Margin = new Thickness(6, 12, 6, 12); r.HorizontalAlignment = HorizontalAlignment.Stretch; }
-                    else { r.Width = 1; r.Height = double.NaN; r.Margin = new Thickness(10, 4, 10, 4); r.VerticalAlignment = VerticalAlignment.Stretch; }
+                    if (_isToolbarVertical) { r.Width = double.NaN; r.Height = 1; r.Margin = new Thickness(4, 10, 4, 10); r.HorizontalAlignment = HorizontalAlignment.Stretch; }
+                    else { r.Width = 1; r.Height = double.NaN; r.Margin = new Thickness(8, 4, 8, 4); r.VerticalAlignment = VerticalAlignment.Stretch; }
                 }
             }
         }
@@ -1709,11 +1165,7 @@ namespace TeachingAnnotator
             catch (Exception ex) { MessageBox.Show("Import failed: " + ex.Message); }
         }
 
-        private void Export_Click(object sender, RoutedEventArgs e) { 
-            ExportOverlay.Visibility = Visibility.Visible;
-            ExportOverlay.Opacity = 0;
-            ExportOverlay.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150)));
-        }
+        private void Export_Click(object sender, RoutedEventArgs e) { ExportOverlay.Visibility = Visibility.Visible; }
         private void ExportCancel_Click(object sender, RoutedEventArgs e) { ExportOverlay.Visibility = Visibility.Collapsed; }
 
         private void ExportConfirm_Click(object sender, RoutedEventArgs e)
@@ -1724,8 +1176,8 @@ namespace TeachingAnnotator
             SaveActivePageStrokes();
             var dlg = new SaveFileDialog { Filter = "PDF (*.pdf)|*.pdf", FileName = Sanitize(_activeNotebook.Title) + " - " + Sanitize(_activeSection.Title) + ".pdf" };
             if (dlg.ShowDialog() != true) return;
-            try { ExportSection(_activeSection, dlg.FileName, ink, bg); MessageBox.Show("Exported successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information); }
-            catch (Exception ex) { MessageBox.Show("Export failed: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error); }
+            try { ExportSection(_activeSection, dlg.FileName, ink, bg); MessageBox.Show("Exported successfully!"); }
+            catch (Exception ex) { MessageBox.Show("Export failed: " + ex.Message); }
         }
 
         private string Sanitize(string s) { foreach (var c in System.IO.Path.GetInvalidFileNameChars()) s = s.Replace(c, '_'); return s; }
@@ -1771,17 +1223,17 @@ namespace TeachingAnnotator
         {
             Color bgc = SafeColor(page.BgColor, Colors.White);
             gfx.DrawRectangle(new XSolidBrush(XColor.FromArgb(255, bgc.R, bgc.G, bgc.B)), 0, 0, w, h);
-            
+
             double lum = (bgc.R * 0.299 + bgc.G * 0.587 + bgc.B * 0.114);
-            XColor majorLine = lum > 130 ? XColor.FromArgb(25, 0, 0, 0) : XColor.FromArgb(30, 255, 255, 255);
-            XColor minorLine = lum > 130 ? XColor.FromArgb(12, 0, 0, 0) : XColor.FromArgb(12, 255, 255, 255);
-            
+            XColor majorLine = lum > 130 ? XColor.FromArgb(32, 0, 0, 0) : XColor.FromArgb(35, 255, 255, 255);
+            XColor minorLine = lum > 130 ? XColor.FromArgb(14, 0, 0, 0) : XColor.FromArgb(15, 255, 255, 255);
+
             if (!string.IsNullOrWhiteSpace(page.MajorGridColor)) { var mc = SafeColor(page.MajorGridColor, Colors.Gray); majorLine = XColor.FromArgb(mc.A, mc.R, mc.G, mc.B); }
             if (!string.IsNullOrWhiteSpace(page.MinorGridColor)) { var mc = SafeColor(page.MinorGridColor, Colors.LightGray); minorLine = XColor.FromArgb(mc.A, mc.R, mc.G, mc.B); }
-            
+
             double gap = page.GridGap > 1 ? page.GridGap : 40.0;
             double q = gap / 4.0;
-            
+
             if (page.GridPattern == 1)
             {
                 var minorPen = new XPen(minorLine, 0.25);
@@ -1815,12 +1267,12 @@ namespace TeachingAnnotator
                 double thick = stroke.DrawingAttributes.Width * sx;
                 var pts = stroke.StylusPoints;
                 if (pts.Count <= 1) continue;
-                
+
                 if (stroke.DrawingAttributes.IsHighlighter || stroke.DrawingAttributes.IgnorePressure)
                 {
                     int alpha = stroke.DrawingAttributes.IsHighlighter ? Math.Max(20, col.A / 3) : col.A;
                     XColor color = XColor.FromArgb(alpha, col.R, col.G, col.B);
-                    
+
                     XGraphicsPath path = new XGraphicsPath();
                     path.StartFigure();
                     path.AddLine(pts[0].X * sx, pts[0].Y * sy, pts[1].X * sx, pts[1].Y * sy);
@@ -1859,8 +1311,6 @@ namespace TeachingAnnotator
             RenameTitle.Text = title;
             RenameInput.Text = current;
             RenameOverlay.Visibility = Visibility.Visible;
-            RenameOverlay.Opacity = 0;
-            RenameOverlay.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150)));
             RenameInput.Focus(); RenameInput.SelectAll();
         }
         private void RenameOk_Click(object sender, RoutedEventArgs e) { RenameOverlay.Visibility = Visibility.Collapsed; _renameCallback?.Invoke(RenameInput.Text); }
@@ -1885,12 +1335,12 @@ namespace TeachingAnnotator
             }
             if (e.Key == Key.Delete) { var s = MainInkCanvas.GetSelectedStrokes(); if (s.Count > 0) MainInkCanvas.Strokes.Remove(s); return; }
             if (HexInput.IsFocused || BgHexInput.IsFocused || SizeInput.IsFocused || LaserHoldInput.IsFocused || LaserFadeInput.IsFocused || RenameInput.IsFocused || LibrarySearchBox.IsFocused) return;
-            
+
             if (e.Key == Key.Left) { MainScroll.ScrollToHorizontalOffset(MainScroll.HorizontalOffset - 60); return; }
             if (e.Key == Key.Right) { MainScroll.ScrollToHorizontalOffset(MainScroll.HorizontalOffset + 60); return; }
             if (e.Key == Key.Up) { MainScroll.ScrollToVerticalOffset(MainScroll.VerticalOffset - 60); return; }
             if (e.Key == Key.Down) { MainScroll.ScrollToVerticalOffset(MainScroll.VerticalOffset + 60); return; }
-            
+
             if (e.Key == Key.P) PenBtn.IsChecked = true;
             else if (e.Key == Key.M) HighlightBtn.IsChecked = true;
             else if (e.Key == Key.E) EraserBtn.IsChecked = true;
