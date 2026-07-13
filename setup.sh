@@ -101,6 +101,12 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         <Track.Thumb><Thumb Style="{StaticResource ScrollThumb}"/></Track.Thumb>
                     </Track>
                 </Border>
+                <ControlTemplate.Triggers>
+                    <!-- Fix for the bottom scrollbar being accidentally reversed -->
+                    <Trigger Property="Orientation" Value="Horizontal">
+                        <Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False"/>
+                    </Trigger>
+                </ControlTemplate.Triggers>
             </ControlTemplate>
         </Setter.Value>
     </Setter>
@@ -424,6 +430,11 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <TextBlock Grid.Column="0" Text="Neon Glow Spread" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontSize="12"/>
 <Slider x:Name="LaserGlowSlider" Grid.Column="1" Minimum="1" Maximum="50" Value="24" Width="90" ValueChanged="LaserGlow_Changed" IsMoveToPointEnabled="True"/>
 </Grid>
+
+<TextBlock Text="CORE COLOR (HEX)" Foreground="{DynamicResource TextSecondary}" FontSize="10" FontWeight="Bold" Margin="0,10,0,6"/>
+<TextBox x:Name="LaserCoreHexInput" Text="#FFFFFF" Width="100" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource TextPrimary}" BorderBrush="{DynamicResource BorderToolbar}" Padding="6" Margin="0,0,0,8" TextChanged="LaserCoreHexInput_TextChanged" HorizontalAlignment="Left"/>
+<WrapPanel Width="180" x:Name="LaserCorePaletteGrid" Margin="0,0,0,10"/>
+
 </StackPanel>
 </Border>
 </Popup>
@@ -470,7 +481,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 </Popup>
 
 <Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="10,4"/>
-<Button Style="{StaticResource TailwindButton}" Click="ClearInk_Click" ToolTip="Clear Page Annotations">
+<Button Style="{StaticResource TailwindButton}" Click="ClearInk_Click" ToolTip="Clear Page Annotations (Ctrl+Shift+C)">
 <TextBlock Text="Clear" Foreground="{DynamicResource Rose500}" FontWeight="Bold" FontSize="13"/>
 </Button>
 </WrapPanel>
@@ -481,11 +492,14 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Border.Effect><DropShadowEffect Color="Black" BlurRadius="20" Opacity="0.5" ShadowDepth="6"/></Border.Effect>
 <StackPanel Orientation="Horizontal">
     <!-- Page Selector Controls -->
-    <Button Style="{StaticResource TailwindButton}" Click="PrevPage_Click" ToolTip="Previous Page (PageUp)" Padding="8,6">
+    <Button Style="{StaticResource TailwindButton}" Click="PrevPage_Click" ToolTip="Previous Page (Ctrl+Left)" Padding="8,6">
         <Path Data="M 6 10 L 2 6 L 6 2" Stroke="{DynamicResource TextPrimary}" StrokeThickness="2" Fill="Transparent" Stretch="Uniform" Width="6" Height="10"/>
     </Button>
     <TextBox x:Name="PageNumberInput" Text="1" Width="34" Background="{DynamicResource BgPanel}" Foreground="{DynamicResource Sky400}" BorderBrush="{DynamicResource BorderToolbar}" BorderThickness="1" TextAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="13" KeyDown="PageNumberInput_KeyDown" LostFocus="PageNumberInput_LostFocus" Margin="4,0"/>
     <TextBlock x:Name="TotalPagesText" Text="/ 1" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontSize="13" Margin="2,0,8,0" FontWeight="SemiBold"/>
+    <Button Style="{StaticResource TailwindButton}" Click="NextPage_Click" ToolTip="Next Page (Ctrl+Right)" Padding="8,6">
+        <Path Data="M 2 10 L 6 6 L 2 2" Stroke="{DynamicResource TextPrimary}" StrokeThickness="2" Fill="Transparent" Stretch="Uniform" Width="6" Height="10"/>
+    </Button>
     
     <Rectangle Width="1" Fill="{DynamicResource BorderToolbar}" Margin="4,2,8,2" VerticalAlignment="Stretch"/>
     
@@ -670,7 +684,6 @@ namespace TeachingAnnotator
         private readonly Random _rng = new Random();
         private readonly string[] _covers = { "#1E3A8A", "#7C3AED", "#0F766E", "#B91C1C", "#B45309", "#0369A1", "#4D7C0F", "#9D174D" };
 
-        // State machine variables tracking thumbnail drag positioning metrics
         private Point _dragStartPoint;
 
         public MainWindow()
@@ -748,6 +761,7 @@ namespace TeachingAnnotator
                 r.MouseLeftButtonDown += (s, e) => { HexInput.Text = h; ColorPopup.IsOpen = false; };
                 PaletteGrid.Children.Add(r);
             }
+            
             string[] premiumPaper = { "#FFFFFF", "#F4F4F9", "#FDF6E3", "#EFE9D9", "#282A36", "#1E1E1E", "#000000" };
             foreach (string hex in premiumPaper)
             {
@@ -755,6 +769,18 @@ namespace TeachingAnnotator
                 string h = hex;
                 r.MouseLeftButtonDown += (s, e) => { BgHexInput.Text = h; BgColorPopup.IsOpen = false; };
                 BgPaletteGrid.Children.Add(r);
+            }
+            
+            string[] laserCoreColors = { "#FFFFFF", "#FF3B30", "#34C759", "#007AFF", "#FF9500", "#FFFF00", "#AF52DE", "#000000" };
+            if (LaserCorePaletteGrid != null)
+            {
+                foreach (string hex in laserCoreColors)
+                {
+                    var r = new Rectangle { Width = 22, Height = 22, Margin = new Thickness(2), RadiusX = 11, RadiusY = 11, Fill = new SolidColorBrush(SafeColor(hex, Colors.White)), Cursor = Cursors.Hand, Stroke = new SolidColorBrush(Colors.Gray), StrokeThickness = 1 };
+                    string h = hex;
+                    r.MouseLeftButtonDown += (s, e) => { LaserCoreHexInput.Text = h; };
+                    LaserCorePaletteGrid.Children.Add(r);
+                }
             }
         }
 
@@ -779,6 +805,7 @@ namespace TeachingAnnotator
             LaserHoldInput.Text = _settings.LaserHoldDelay.ToString("F1");
             LaserFadeInput.Text = _settings.LaserFadeDuration.ToString("F1");
             LaserGlowSlider.Value = _settings.LaserGlow;
+            if (LaserCoreHexInput != null) LaserCoreHexInput.Text = _settings.LaserCoreColor;
             SizeSlider.Value = _penSize;
             ActiveColorIndicator.Fill = new SolidColorBrush(_penColor);
             HexInput.Text = _penColor.ToString();
@@ -1045,7 +1072,6 @@ namespace TeachingAnnotator
                 }
                 card.Child = g;
 
-                // Native Hardware-Accelerated Draggable Page Sorting Engine
                 var targetPage = page;
                 card.PreviewMouseLeftButtonDown += (s, e) => { _dragStartPoint = e.GetPosition(null); };
                 card.MouseMove += (s, e) => {
@@ -1150,7 +1176,6 @@ namespace TeachingAnnotator
             _customBgColor = SafeColor(page.BgColor, Colors.White);
             _gridPattern = page.GridPattern;
             
-            // ZOOM STABILITY RESOLUTION: Retain global zoom tier seamlessly during tab changes
             ZoomTransform.ScaleX = _zoom; 
             ZoomTransform.ScaleY = _zoom; 
             UpdateZoomUI();
@@ -1597,6 +1622,17 @@ namespace TeachingAnnotator
         private void LaserHold_TextChanged(object sender, TextChangedEventArgs e) { if (!_appLoaded) return; if (double.TryParse(LaserHoldInput.Text, out double v)) { _settings.LaserHoldDelay = v; ScheduleSave(); } }
         private void LaserFade_TextChanged(object sender, TextChangedEventArgs e) { if (!_appLoaded) return; if (double.TryParse(LaserFadeInput.Text, out double v)) { _settings.LaserFadeDuration = v; ScheduleSave(); } }
         private void LaserGlow_Changed(object sender, RoutedPropertyChangedEventArgs<double> e) { if (!_appLoaded) return; _settings.LaserGlow = LaserGlowSlider.Value; if (LaserBtn.IsChecked == true) ApplyPenAttributes(); ScheduleSave(); }
+        
+        private void LaserCoreHexInput_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!_appLoaded || _isUpdatingUI) return;
+            try { 
+                _laserCoreColor = (Color)ColorConverter.ConvertFromString(LaserCoreHexInput.Text); 
+                _settings.LaserCoreColor = LaserCoreHexInput.Text;
+                ApplyPenAttributes(); 
+                ScheduleSave(); 
+            } catch { }
+        }
 
         // ================= UNDO / STROKES =================
         private void EnforceStrokeZOrder()
@@ -2110,8 +2146,17 @@ namespace TeachingAnnotator
         {
             if (NotebookView.Visibility != Visibility.Visible) return;
             if (RenameOverlay.Visibility == Visibility.Visible) { if (e.Key == Key.Enter) RenameOk_Click(null, null); else if (e.Key == Key.Escape) RenameCancel_Click(null, null); return; }
+            
+            if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+            {
+                if (e.Key == Key.C) { ClearInk_Click(null, null); e.Handled = true; return; }
+            }
+
             if (Keyboard.Modifiers == ModifierKeys.Control)
             {
+                if (e.Key == Key.Right) { ShiftActivePageSelection(1); e.Handled = true; return; }
+                if (e.Key == Key.Left) { ShiftActivePageSelection(-1); e.Handled = true; return; }
+                
                 if (e.Key == Key.Z) { PerformUndo(); return; }
                 if (e.Key == Key.Y) { PerformRedo(); return; }
                 if (e.Key == Key.C) { var s = MainInkCanvas.GetSelectedStrokes(); if (s.Count > 0) _copied = s.Clone(); return; }
@@ -2124,7 +2169,7 @@ namespace TeachingAnnotator
             if (e.Key == Key.Delete) { var s = MainInkCanvas.GetSelectedStrokes(); if (s.Count > 0) MainInkCanvas.Strokes.Remove(s); return; }
             
             // STRICT SHORTCUT BLOCKING EXCLUSIONS FOR ACTIVE CONTROLS
-            if (HexInput.IsFocused || BgHexInput.IsFocused || SizeInput.IsFocused || LaserHoldInput.IsFocused || LaserFadeInput.IsFocused || RenameInput.IsFocused || LibrarySearchBox.IsFocused || PageNumberInput.IsFocused || ZoomPercentInput.IsFocused) return;
+            if (HexInput.IsFocused || BgHexInput.IsFocused || SizeInput.IsFocused || LaserHoldInput.IsFocused || LaserFadeInput.IsFocused || LaserCoreHexInput.IsFocused || RenameInput.IsFocused || LibrarySearchBox.IsFocused || PageNumberInput.IsFocused || ZoomPercentInput.IsFocused) return;
             
             // UNIVERSAL UI HUD master toggle shortcut configuration
             if (e.Key == Key.H)
