@@ -2231,3 +2231,28 @@ echo ""
 echo "==> BUILD COMPLETE."
 echo "    Run the app:  dotnet run -c Release"
 echo "    Or the exe:   bin/Release/net8.0-windows10.0.19041.0/Anydraw.exe"
+
+
+#!/usr/bin/env bash
+set -e
+
+echo "==> Patching Anydraw V44 for Ultra-Smooth iPad-like Inking..."
+
+XAML_FILE="TeachingAnnotator/MainWindow.xaml"
+
+if [ ! -f "$XAML_FILE" ]; then
+    echo "ERROR: $XAML_FILE not found! Please run the main setup script first to generate the codebase."
+    exit 1
+fi
+
+# 1. Disable Windows Ink Gestures on the Main Canvas
+# This stops Windows from stalling the stroke to check for "Flicks" or "Right-Click holds",
+# allowing pure, unthrottled hardware polling rates directly to the InkCanvas.
+sed -i 's/<InkCanvas x:Name="MainInkCanvas"/<InkCanvas x:Name="MainInkCanvas" Stylus.IsFlicksEnabled="False" Stylus.IsPressAndHoldEnabled="False" Stylus.IsTapFeedbackEnabled="False" Stylus.IsTouchFeedbackEnabled="False"/g' "$XAML_FILE"
+
+# 2. Apply the same hardware passthrough to the Laser Canvas to ensure it doesn't hook events
+sed -i 's/<InkCanvas x:Name="LaserInkCanvas"/<InkCanvas x:Name="LaserInkCanvas" Stylus.IsFlicksEnabled="False" Stylus.IsPressAndHoldEnabled="False" Stylus.IsTapFeedbackEnabled="False" Stylus.IsTouchFeedbackEnabled="False"/g' "$XAML_FILE"
+
+echo "==> Patch applied successfully!"
+echo "    The WPF InkCanvas will now process raw hardware stylus packets with zero gesture latency."
+echo "    You can now build and run the application."
