@@ -2233,13 +2233,11 @@ echo "    Run the app:  dotnet run -c Release"
 echo "    Or the exe:   bin/Release/net8.0-windows10.0.19041.0/Anydraw.exe"
 
 
-#!/usr/bin/env bash
-set -e
-
 echo "==> Applying Ultimate iPad-Grade Ink Engine Patch..."
 
-XAML_FILE="TeachingAnnotator/MainWindow.xaml"
-CS_FILE="TeachingAnnotator/MainWindow.xaml.cs"
+# FIX: We are already inside the TeachingAnnotator directory here!
+XAML_FILE="MainWindow.xaml"
+CS_FILE="MainWindow.xaml.cs"
 
 if [ ! -f "$XAML_FILE" ] || [ ! -f "$CS_FILE" ]; then
     echo "ERROR: Codebase not found. Please run your main setup script first."
@@ -2261,15 +2259,10 @@ sed -i 's/<InkCanvas x:Name="LaserInkCanvas"/<InkCanvas x:Name="LaserInkCanvas" 
 # ==============================================================================
 echo " -> Injecting predictive velocity tapering and low-pass filters..."
 
-# Backup the original C# file just in case
 cp "$CS_FILE" "${CS_FILE}.bak"
 
-# Replace the existing MainInkCanvas_StrokesChanged method with the smoothing interceptor
 perl -0777 -pi -e 's/private void MainInkCanvas_StrokesChanged\(object sender, StrokeCollectionChangedEventArgs e\).*?ScheduleSave\(\);\s*\}/private bool _isSmoothing = false;\n        private void MainInkCanvas_StrokesChanged(object sender, StrokeCollectionChangedEventArgs e)\n        {\n            if (_isUndoRedoActive || _isUpdatingUI || _isSmoothing) return;\n            \n            StrokeCollection finalAdded = new StrokeCollection(e.Added);\n            \n            if (e.Added.Count > 0 && PenBtn.IsChecked == true)\n            {\n                _isSmoothing = true;\n                finalAdded.Clear();\n                foreach (var stroke in e.Added)\n                {\n                    var newPoints = SmoothAndTaperPoints(stroke.StylusPoints);\n                    var newStroke = new System.Windows.Ink.Stroke(newPoints, stroke.DrawingAttributes.Clone());\n                    finalAdded.Add(newStroke);\n                }\n                MainInkCanvas.Strokes.Remove(e.Added);\n                MainInkCanvas.Strokes.Add(finalAdded);\n                _isSmoothing = false;\n            }\n\n            var a = new UndoAction { Added = finalAdded, Removed = new StrokeCollection(e.Removed) };\n            if (a.Added.Count > 0 || a.Removed.Count > 0) { _undo.Push(a); _redo.Clear(); }\n            EnforceStrokeZOrder();\n            ScheduleSave();\n        }/s' "$CS_FILE"
 
-# Inject the SmoothAndTaperPoints helper method right before the final closing braces of the file
-perl -0777 -pi -e 's/    }\n}\n$/\n        private System.Windows.Input.StylusPointCollection SmoothAndTaperPoints(System.Windows.Input.StylusPointCollection points)\n        {\n            if (points == null || points.Count < 3) return points;\n            var smoothed = new System.Windows.Input.StylusPointCollection();\n            smoothed.Add(points[0]);\n\n            for (int i = 1; i < points.Count - 1; i++)\n            {\n                var prev = points[i - 1];\n                var curr = points[i];\n                var next = points[i + 1];\n\n                \/\/ Low-pass moving average to remove hardware micro-tremors\n                double smX = 0.25 * prev.X + 0.50 * curr.X + 0.25 * next.X;\n                double smY = 0.25 * prev.Y + 0.50 * curr.Y + 0.25 * next.Y;\n\n                \/\/ Calculate stroke velocity for natural physics tapering\n                double dx = curr.X - prev.X;\n                double dy = curr.Y - prev.Y;\n                double dist = Math.Sqrt(dx * dx + dy * dy);\n                \n                \/\/ Faster strokes = lighter pressure (tapering at the ends)\n                float velocityFactor = (float)Math.Max(0.15, Math.Min(1.0, 1.0 - (dist \/ 50.0)));\n                float adjustedPressure = curr.PressureFactor * velocityFactor;\n\n                smoothed.Add(new System.Windows.Input.StylusPoint(smX, smY, adjustedPressure));\n            }\n\n            smoothed.Add(points[points.Count - 1]);\n            return smoothed;\n        }\n    }\n}\n/s' "$CS_FILE"
+perl -0777 -pi -e 's/    }\n}\n$/\n        private System.Windows.Input.StylusPointCollection SmoothAndTaperPoints(System.Windows.Input.StylusPointCollection points)\n        {\n            if (points == null || points.Count < 3) return points;\n            var smoothed = new System.Windows.Input.StylusPointCollection();\n            smoothed.Add(points[0]);\n\n            for (int i = 1; i < points.Count - 1; i++)\n            {\n                var prev = points[i - 1];\n                var curr = points[i];\n                var next = points[i + 1];\n\n                double smX = 0.25 * prev.X + 0.50 * curr.X + 0.25 * next.X;\n                double smY = 0.25 * prev.Y + 0.50 * curr.Y + 0.25 * next.Y;\n\n                double dx = curr.X - prev.X;\n                double dy = curr.Y - prev.Y;\n                double dist = Math.Sqrt(dx * dx + dy * dy);\n                \n                float velocityFactor = (float)Math.Max(0.15, Math.Min(1.0, 1.0 - (dist \/ 50.0)));\n                float adjustedPressure = curr.PressureFactor * velocityFactor;\n\n                smoothed.Add(new System.Windows.Input.StylusPoint(smX, smY, adjustedPressure));\n            }\n\n            smoothed.Add(points[points.Count - 1]);\n            return smoothed;\n        }\n    }\n}\n/s' "$CS_FILE"
 
 echo "==> Patch completed successfully!"
-echo "    Your app is now equipped with zero-latency hardware polling and dynamic velocity tapering."
-echo "    Run 'dotnet build -c Release' to compile."
