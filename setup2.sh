@@ -47,13 +47,13 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <!-- Ultra Premium Apex Palette -->
 <SolidColorBrush x:Key="BgApp" Color="#09090B"/>
 <SolidColorBrush x:Key="BgPanel" Color="#121214"/>
-<SolidColorBrush x:Key="BgGlass" Color="#D9121214"/> <!-- 85% opacity for glassmorphism -->
-<SolidColorBrush x:Key="BorderGlass" Color="#2AFFFFFF"/> <!-- 16% white border for crisp edges -->
+<SolidColorBrush x:Key="BgGlass" Color="#D9121214"/>
+<SolidColorBrush x:Key="BorderGlass" Color="#2AFFFFFF"/>
 <SolidColorBrush x:Key="TextPrimary" Color="#F8FAFC"/>
 <SolidColorBrush x:Key="TextSecondary" Color="#94A3B8"/>
 <SolidColorBrush x:Key="ButtonHoverBg" Color="#33FFFFFF"/>
 <SolidColorBrush x:Key="ButtonHoverText" Color="#FFFFFF"/>
-<SolidColorBrush x:Key="Accent" Color="#9E8C78"/> <!-- Warm Sand -->
+<SolidColorBrush x:Key="Accent" Color="#9E8C78"/>
 <SolidColorBrush x:Key="OverlayBg" Color="#B2000000"/>
 
 <!-- Premium Tooltips -->
@@ -344,7 +344,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                 <CheckBox x:Name="ExportBgCheck" Content="Include canvas background (Dark Mode colors)" IsChecked="True" Foreground="White" FontSize="14" Margin="0,8"/>
                 <TextBlock Text="Solid colors and strokes will be perfectly preserved. Vector scaling applied." Foreground="{DynamicResource TextSecondary}" FontSize="13" TextWrapping="Wrap" Margin="0,16,0,32"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Background="Transparent" Foreground="White" BorderBrush="{DynamicResource BorderGlass}" BorderThickness="1" Cursor="Hand" Click="ExportCancel_Click" Content="Cancel" Margin="0,0,16,0" Padding="20,10" Template="{StaticResource DropdownItem.Template}"/>
+                    <Button Style="{StaticResource DropdownItem}" Click="ExportCancel_Click" Content="Cancel" Margin="0,0,16,0" Padding="20,10"/>
                     <Button Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Cursor="Hand" Click="ExportConfirm_Click" Content="Export Document" Padding="20,10">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
@@ -359,9 +359,9 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
         </Border>
     </Grid>
 
-</Grid> <!-- Closes Grid Row 1 -->
-</Grid> <!-- Closes NotebookView Grid -->
-</Grid> <!-- Closes RootGrid -->
+</Grid> <!-- Row 1 Grid -->
+</Grid> <!-- NotebookView Grid -->
+</Grid> <!-- RootGrid -->
 </Window>
 ANYDRAW_EOF
 
@@ -703,10 +703,9 @@ namespace TeachingAnnotator
         {
             if (_activePage != null && _activePage.Kind == "Blank")
             {
-                // Fixed Absolute DrawingBrush mapping for perfectly scaled grids without rotation bugs
                 Color major = Color.FromArgb(12, 255, 255, 255);
                 Color minor = Color.FromArgb(6, 255, 255, 255);
-                PageHost.Background = CreateGridBrush(_customBgColor, major, minor, 1.0); // Pass 1.0 to let LayoutTransform handle zoom natively
+                PageHost.Background = CreateGridBrush(_customBgColor, major, minor, 1.0);
             }
         }
 
@@ -1242,8 +1241,23 @@ namespace TeachingAnnotator
 ANYDRAW_EOF
 
 cat > App.xaml.cs << 'ANYDRAW_EOF'
+using System;
 using System.Windows;
-namespace TeachingAnnotator { public partial class App : Application { } }
+
+namespace TeachingAnnotator
+{
+    public partial class App : Application
+    {
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+            AppDomain.CurrentDomain.UnhandledException += (s, args) =>
+            {
+                MessageBox.Show($"Unhandled Exception: {args.ExceptionObject}", "Anydraw Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            };
+        }
+    }
+}
 ANYDRAW_EOF
 
 echo "==> Source written. Restoring + building (Release)..."
