@@ -359,8 +359,9 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
         </Border>
     </Grid>
 
-</Grid>
-</Grid>
+</Grid> <!-- Closes Grid Row 1 -->
+</Grid> <!-- Closes NotebookView Grid -->
+</Grid> <!-- Closes RootGrid -->
 </Window>
 ANYDRAW_EOF
 
