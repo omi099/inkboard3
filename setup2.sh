@@ -79,7 +79,11 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                 <Path Data="M12 2 L2 22 L6 22 L12 10 L18 22 L22 22 Z" Fill="#9E8C78" Height="20" Stretch="Uniform" Margin="0,0,10,0"/>
                 <TextBlock Text="Apex Library" FontSize="18" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
             </StackPanel>
-            <TextBox x:Name="LibrarySearchBox" Grid.Column="1" Width="300" Padding="12,8" VerticalContentAlignment="Center" Background="#09090B" Foreground="White" BorderBrush="#2AFFFFFF" BorderThickness="1" TextChanged="LibrarySearch_TextChanged" ToolTip="Search notebooks" Margin="0,0,24,0" WindowChrome.IsHitTestVisibleInChrome="True" CornerRadius="8"/>
+            
+            <Border Grid.Column="1" Width="300" Margin="0,0,24,0" Background="#09090B" BorderBrush="#2AFFFFFF" BorderThickness="1" CornerRadius="8">
+                <TextBox x:Name="LibrarySearchBox" Padding="12,8" VerticalContentAlignment="Center" Background="Transparent" Foreground="White" BorderThickness="0" TextChanged="LibrarySearch_TextChanged" ToolTip="Search notebooks" WindowChrome.IsHitTestVisibleInChrome="True"/>
+            </Border>
+
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
                 <Button Style="{StaticResource CaptionButton}" Click="Min_Click"><Path Data="M 1 5 L 9 5" Stroke="#94A3B8" StrokeThickness="1"/></Button>
                 <Button Style="{StaticResource CaptionButton}" x:Name="LibMaxBtn" Click="Max_Click"><Path x:Name="LibMaxIcon" Data="M 1 1 L 9 1 L 9 9 L 1 9 Z" Stroke="#94A3B8" StrokeThickness="1"/></Button>
@@ -286,7 +290,9 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                     <Border.Effect><DropShadowEffect Color="Black" BlurRadius="60" Opacity="0.8" ShadowDepth="20"/></Border.Effect>
                     <StackPanel>
                         <TextBlock x:Name="RenameTitle" Text="Rename" Foreground="White" FontSize="22" FontWeight="Bold" Margin="0,0,0,24"/>
-                        <TextBox x:Name="RenameInput" Background="#09090B" Foreground="White" BorderBrush="#2AFFFFFF" BorderThickness="1" Padding="12" FontSize="16" CornerRadius="8" Margin="0,0,0,32"/>
+                        <Border Background="#09090B" BorderBrush="#2AFFFFFF" BorderThickness="1" CornerRadius="8" Margin="0,0,0,32">
+                            <TextBox x:Name="RenameInput" Background="Transparent" Foreground="White" BorderThickness="0" Padding="12" FontSize="16"/>
+                        </Border>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Style="{StaticResource DropdownItem}" Click="RenameCancel_Click" Content="Cancel" Margin="0,0,16,0" Padding="20,10"/>
                             <Button Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Cursor="Hand" Click="RenameOk_Click" Content="Save Changes" Padding="20,10">
