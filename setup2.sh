@@ -229,7 +229,6 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
             </Border>
             
             <AdornerDecorator>
-                <!-- Hardware polling optimized InkCanvas -->
                 <InkCanvas x:Name="MainInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" Focusable="True"
                   Stylus.IsFlicksEnabled="False" Stylus.IsPressAndHoldEnabled="False" Stylus.IsTapFeedbackEnabled="False" Stylus.IsTouchFeedbackEnabled="False"
                   MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter"/>
@@ -359,9 +358,8 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
         </Border>
     </Grid>
 
-</Grid> <!-- Row 1 Grid -->
-</Grid> <!-- NotebookView Grid -->
-</Grid> <!-- RootGrid -->
+</Grid>
+</Grid>
 </Window>
 ANYDRAW_EOF
 
@@ -415,6 +413,7 @@ namespace TeachingAnnotator
         private NotePage _activePage;
         private readonly string _root;
         private double _zoom = 1.0; 
+        private bool _appLoaded = false;
         private bool _isUpdatingUI = false;
         private bool _isSmoothing = false;
         
@@ -481,6 +480,8 @@ namespace TeachingAnnotator
             BuildPalettes();
             
             _activePage = new NotePage { BgColor = theCanvases[0] };
+            
+            _appLoaded = true; // Prevents NullReference Exceptions on startup parsing
             SwitchPage(_activePage);
         }
 
@@ -735,10 +736,11 @@ namespace TeachingAnnotator
         }
 
         // ================= TOOLS =================
-        private void Tool_Checked(object sender, RoutedEventArgs e) { if (_isUpdatingUI || MainInkCanvas == null) return; SyncToolToUI(); }
+        private void Tool_Checked(object sender, RoutedEventArgs e) { if (!_appLoaded || _isUpdatingUI || MainInkCanvas == null) return; SyncToolToUI(); }
 
         private void SyncToolToUI()
         {
+            if (SizeSlider == null || ActiveColorIndicator == null) return;
             _isUpdatingUI = true;
             if (PenBtn.IsChecked == true) { SizeSlider.Value = _penSize; ActiveColorIndicator.Fill = new SolidColorBrush(_penColor); }
             else if (HighlightBtn.IsChecked == true) { SizeSlider.Value = _highlightSize; ActiveColorIndicator.Fill = new SolidColorBrush(_highlightColor); }
@@ -749,7 +751,7 @@ namespace TeachingAnnotator
 
         private void Size_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (_isUpdatingUI) return;
+            if (!_appLoaded || _isUpdatingUI) return;
             double s = SizeSlider.Value;
             if (PenBtn.IsChecked == true) _penSize = s; else if (HighlightBtn.IsChecked == true) _highlightSize = s; else if (LaserBtn.IsChecked == true) _laserSize = s;
             ApplyPenAttributes();
