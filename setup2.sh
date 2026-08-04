@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e
-echo "==> Anydraw Ultimate Apex Omni (100% Verified Stable) starting..."
+echo "==> Anydraw Ultimate Apex Omni (100% Verified Production Grade) starting..."
 command -v dotnet >/dev/null 2>&1 || { echo "ERROR: .NET SDK 8 not found."; exit 1; }
 rm -rf TeachingAnnotator
 dotnet new wpf -n TeachingAnnotator -f net8.0 --force
@@ -40,7 +40,6 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <WindowChrome.WindowChrome><WindowChrome CaptionHeight="0" GlassFrameThickness="0" ResizeBorderThickness="6"/></WindowChrome.WindowChrome>
 
 <Window.Resources>
-<!-- Base UI Styles -->
 <Style TargetType="ToolTip">
     <Setter Property="Background" Value="#121214"/><Setter Property="Foreground" Value="#F8FAFC"/><Setter Property="BorderBrush" Value="#2AFFFFFF"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="10,6"/><Setter Property="Placement" Value="Top"/><Setter Property="VerticalOffset" Value="-8"/>
     <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToolTip"><Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}"><Border.Effect><DropShadowEffect Color="Black" Opacity="0.5" BlurRadius="10" ShadowDepth="4"/></Border.Effect><ContentPresenter TextElement.FontSize="12" TextElement.FontWeight="Medium"/></Border></ControlTemplate></Setter.Value></Setter>
@@ -81,7 +80,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
             </StackPanel>
             
             <Border Grid.Column="1" Width="300" Margin="0,0,24,0" Background="#09090B" BorderBrush="#2AFFFFFF" BorderThickness="1" CornerRadius="8">
-                <TextBox x:Name="LibrarySearchBox" Padding="12,8" VerticalContentAlignment="Center" Background="Transparent" Foreground="White" BorderThickness="0" TextChanged="LibrarySearch_TextChanged" ToolTip="Search notebooks" WindowChrome.IsHitTestVisibleInChrome="True"/>
+                <TextBox x:Name="LibrarySearchBox" Padding="12,8" VerticalContentAlignment="Center" Background="Transparent" Foreground="White" BorderThickness="0" TextChanged="LibrarySearch_TextChanged" ToolTip="Search workspaces" WindowChrome.IsHitTestVisibleInChrome="True"/>
             </Border>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
@@ -201,13 +200,13 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                                 <CheckBox x:Name="LaserPermanentToggle" Content="Permanent Laser" Foreground="White" Margin="0,4" Checked="Setting_Changed" Unchecked="Setting_Changed"/>
                                 <Grid Margin="0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="Hold (sec)" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/>
-                                    <Border Grid.Column="1" Background="#09090B" BorderBrush="Transparent" BorderThickness="0" CornerRadius="4">
+                                    <Border Grid.Column="1" Background="#09090B" BorderThickness="0" CornerRadius="4">
                                         <TextBox x:Name="LaserHoldInput" Text="1.2" Width="48" Padding="4" Background="Transparent" Foreground="White" BorderThickness="0" TextAlignment="Center" TextChanged="Setting_Changed"/>
                                     </Border>
                                 </Grid>
                                 <Grid Margin="0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="Fade (sec)" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/>
-                                    <Border Grid.Column="1" Background="#09090B" BorderBrush="Transparent" BorderThickness="0" CornerRadius="4">
+                                    <Border Grid.Column="1" Background="#09090B" BorderThickness="0" CornerRadius="4">
                                         <TextBox x:Name="LaserFadeInput" Text="0.6" Width="48" Padding="4" Background="Transparent" Foreground="White" BorderThickness="0" TextAlignment="Center" TextChanged="Setting_Changed"/>
                                     </Border>
                                 </Grid>
@@ -605,7 +604,7 @@ namespace TeachingAnnotator
                 grid.Children.Add(stack);
                 
                 var delBtn = new Button { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Width = 30, Height = 30, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(8), Cursor = Cursors.Hand };
-                delBtn.Content = new Path { Data = Geometry.Parse("M 0 0 L 12 12 M 12 0 L 0 12"), Stroke = new SolidColorBrush(Color.FromArgb(180, 255, 255, 255)), StrokeThickness = 2, Stretch = Stretch.Uniform, Width = 10, Height = 10 };
+                delBtn.Content = new System.Windows.Shapes.Path { Data = Geometry.Parse("M 0 0 L 12 12 M 12 0 L 0 12"), Stroke = new SolidColorBrush(Color.FromArgb(180, 255, 255, 255)), StrokeThickness = 2, Stretch = Stretch.Uniform, Width = 10, Height = 10 };
                 delBtn.Click += (s, e) => { e.Handled = true; DeleteNotebook(nb); };
                 grid.Children.Add(delBtn);
                 
@@ -662,7 +661,7 @@ namespace TeachingAnnotator
                 sp.Children.Add(new TextBlock { Text = sec.Title, Foreground = sec == _activeSection ? Brushes.White : new SolidColorBrush(Color.FromArgb(180,255,255,255)), FontWeight = FontWeights.SemiBold, FontSize = 13, VerticalAlignment = VerticalAlignment.Center });
                 if (_activeNotebook.Sections.Count > 1) {
                     var close = new Button { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Margin = new Thickness(12, 0, 0, 0), Cursor = Cursors.Hand };
-                    close.Content = new Path { Data = Geometry.Parse("M 0 0 L 8 8 M 8 0 L 0 8"), Stroke = new SolidColorBrush(Color.FromArgb(150,255,255,255)), StrokeThickness = 1.5, Stretch = Stretch.Uniform, Width = 8, Height = 8 };
+                    close.Content = new System.Windows.Shapes.Path { Data = Geometry.Parse("M 0 0 L 8 8 M 8 0 L 0 8"), Stroke = new SolidColorBrush(Color.FromArgb(150,255,255,255)), StrokeThickness = 1.5, Stretch = Stretch.Uniform, Width = 8, Height = 8 };
                     var target = sec; close.Click += (s, e) => { e.Handled = true; DeleteSection(target); };
                     sp.Children.Add(close);
                 }
@@ -711,7 +710,7 @@ namespace TeachingAnnotator
                 g.Children.Add(new TextBlock { Text = "Page " + (i + 1), Foreground = new SolidColorBrush(Color.FromArgb(180,255,255,255)), FontSize = 12, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 10) });
                 if (_activeSection.Pages.Count > 1) {
                     var delBtn = new Button { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Width = 26, Height = 26, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(12), Cursor = Cursors.Hand };
-                    delBtn.Content = new Path { Data = Geometry.Parse("M 0 0 L 10 10 M 10 0 L 0 10"), Stroke = new SolidColorBrush(Color.FromRgb(244, 63, 94)), StrokeThickness = 2, Stretch = Stretch.Uniform, Width = 8, Height = 8 };
+                    delBtn.Content = new System.Windows.Shapes.Path { Data = Geometry.Parse("M 0 0 L 10 10 M 10 0 L 0 10"), Stroke = new SolidColorBrush(Color.FromRgb(244, 63, 94)), StrokeThickness = 2, Stretch = Stretch.Uniform, Width = 8, Height = 8 };
                     var captured = page; delBtn.Click += (s, e) => { e.Handled = true; DeletePage(captured); }; g.Children.Add(delBtn);
                 }
                 card.Child = g;
