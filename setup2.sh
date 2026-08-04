@@ -308,9 +308,9 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                 <Border Background="{DynamicResource BgPanel}" BorderBrush="{DynamicResource BorderGlass}" BorderThickness="1" CornerRadius="16" Padding="16">
                     <Border.Effect><DropShadowEffect Color="Black" BlurRadius="30" Opacity="0.7" ShadowDepth="10"/></Border.Effect>
                     <StackPanel>
-                        <TextBlock Text="SOLID 14 SPECTRUM" Foreground="{DynamicResource TextSecondary}" FontSize="11" FontWeight="Bold" Tracking="1" Margin="0,0,0,10"/>
+                        <TextBlock Text="SOLID 14 SPECTRUM" Foreground="{DynamicResource TextSecondary}" FontSize="11" FontWeight="Bold" Margin="0,0,0,10"/>
                         <WrapPanel Width="220" x:Name="PaletteGrid"/>
-                        <TextBlock Text="PREMIUM CANVASES" Foreground="{DynamicResource TextSecondary}" FontSize="11" FontWeight="Bold" Tracking="1" Margin="0,16,0,10"/>
+                        <TextBlock Text="PREMIUM CANVASES" Foreground="{DynamicResource TextSecondary}" FontSize="11" FontWeight="Bold" Margin="0,16,0,10"/>
                         <WrapPanel Width="220" x:Name="BgPaletteGrid"/>
                     </StackPanel>
                 </Border>
