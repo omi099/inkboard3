@@ -31,8 +31,8 @@ jobs:
       - name: Generate Codebase
         shell: bash
         run: |
-          chmod +x setup.sh
-          ./setup.sh
+          chmod +x setup2.sh
+          ./setup2.sh
 
       - name: Compile Application (Release)
         working-directory: ./TeachingAnnotator
