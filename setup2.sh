@@ -112,7 +112,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                 <StackPanel x:Name="SectionTabsPanel" Orientation="Horizontal" VerticalAlignment="Bottom"/>
             </ScrollViewer>
             <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,16,0" WindowChrome.IsHitTestVisibleInChrome="True">
-                <Button Style="{StaticResource IconButton}" Click="ToggleSidebar_Click" ToolTip="Toggle Sidebar (H)" Padding="12,8" Margin="4,0"><Path Data="M 2 4 L 14 4 M 2 8 L 14 8 M 2 12 L 14 12" Stroke="White" StrokeThickness="1.5" Stretch="Uniform" Height="14"/></Button>
+                <Button Style="{StaticResource IconButton}" Click="ToggleSidebar_Click" ToolTip="Toggle Sidebar (Ctrl+B)" Padding="12,8" Margin="4,0"><Path Data="M 2 4 L 14 4 M 2 8 L 14 8 M 2 12 L 14 12" Stroke="White" StrokeThickness="1.5" Stretch="Uniform" Height="14"/></Button>
                 <Button Style="{StaticResource IconButton}" Click="AddSection_Click" ToolTip="Add Section" Padding="12,8" Margin="4,0"><TextBlock Text="+ Section" FontWeight="SemiBold" Foreground="White"/></Button>
             </StackPanel>
             <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
@@ -168,7 +168,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         <Path Data="M 2 4 A 1 1 0 1 1 2 6 A 1 1 0 1 1 2 4 Z M 2 11 A 1 1 0 1 1 2 13 A 1 1 0 1 1 2 11 Z M 2 18 A 1 1 0 1 1 2 20 A 1 1 0 1 1 2 18 Z M 8 4 A 1 1 0 1 1 8 6 A 1 1 0 1 1 8 4 Z M 8 11 A 1 1 0 1 1 8 13 A 1 1 0 1 1 8 11 Z M 8 18 A 1 1 0 1 1 8 20 A 1 1 0 1 1 8 18 Z" Fill="#94A3B8" Stretch="Uniform" Width="8"/>
                     </Border>
 
-                    <ToggleButton x:Name="FileMenuToggle" Style="{StaticResource MenuToggle}" ToolTip="File &amp; Export">
+                    <ToggleButton x:Name="FileMenuToggle" Style="{StaticResource MenuToggle}" ToolTip="File &amp; Export (Ctrl+E)">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="File" FontWeight="Bold" FontSize="14"/><TextBlock Text="&#9662;" FontSize="10" Margin="6,2,0,0"/></StackPanel>
                     </ToggleButton>
                     <Popup PlacementTarget="{Binding ElementName=FileMenuToggle}" IsOpen="{Binding IsChecked, ElementName=FileMenuToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" Placement="Top" VerticalOffset="-16">
@@ -331,7 +331,9 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         <TextBlock Text="Vector scaling applied. Output matches exact section resolution." Foreground="#94A3B8" FontSize="12" TextWrapping="Wrap" Margin="0,20,0,32"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Style="{StaticResource DropdownItem}" Click="ExportCancel_Click" Content="Cancel" Margin="0,0,16,0" Padding="20,10"/>
-                            <Button Style="{StaticResource DropdownItem}" Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Click="ExportConfirm_Click" Content="Export Document" Padding="20,10"/>
+                            <Button Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Cursor="Hand" Click="ExportConfirm_Click" Content="Export Document" Padding="20,10">
+                                <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
+                            </Button>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -348,7 +350,9 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         </Border>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Style="{StaticResource DropdownItem}" Click="RenameCancel_Click" Content="Cancel" Margin="0,0,16,0" Padding="20,10"/>
-                            <Button Style="{StaticResource DropdownItem}" Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Click="RenameOk_Click" Content="Save Changes" Padding="20,10"/>
+                            <Button Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Cursor="Hand" Click="RenameOk_Click" Content="Save Changes" Padding="20,10">
+                                <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
+                            </Button>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -793,7 +797,7 @@ namespace TeachingAnnotator
                 if (_activeSection.Pages.Count > 1) {
                     var delBtn = new Button { Style = (Style)FindResource("IconButton"), Width = 26, Height = 26, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(12) };
                     delBtn.Content = new System.Windows.Shapes.Path { Data = Geometry.Parse("M 0 0 L 10 10 M 10 0 L 0 10"), Stroke = new SolidColorBrush(Color.FromRgb(244, 63, 94)), StrokeThickness = 2, Stretch = Stretch.Uniform, Width = 8, Height = 8 };
-                    var captured = page; delBtn.Click += (s, e) => { e.Handled = true; DeletePage(captured); }; g.Children.Add(delBtn);
+                    var captured = page; delBtn.Click += (s, e) => { e.Handled = true; DeletePageFast(captured); }; g.Children.Add(delBtn);
                 }
                 card.Child = g;
 
@@ -829,12 +833,6 @@ namespace TeachingAnnotator
         }
         private void AddPage_Click(object sender, RoutedEventArgs e) { var p = AddPageTo(_activeSection); TouchModified(); RenderThumbs(); SwitchPage(p); }
         
-        private void DeletePage(NotePage page) {
-            if (_activeSection.Pages.Count <= 1) return;
-            if (MessageBox.Show("Delete this page?", "Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
-            DeletePageFast(page);
-        }
-
         private void DeletePageFast(NotePage page) {
             if (_activeSection == null || _activeSection.Pages.Count <= 1 || page == null) return;
             int idx = _activeSection.Pages.IndexOf(page); 
@@ -1017,31 +1015,12 @@ namespace TeachingAnnotator
             if (PenBtn.IsChecked == true) _penSize = s; else if (HighlightBtn.IsChecked == true) _highlightSize = s; else if (LaserBtn.IsChecked == true) _laserSize = s;
             ApplyPenAttributes();
         }
-
         private void InkCanvas_PreviewStylusDown(object sender, StylusDownEventArgs e) { if (_settings.PenOnly && e.StylusDevice.TabletDevice.Type == TabletDeviceType.Touch) e.Handled = true; }
 
         private void MainInkCanvas_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton != MouseButtonState.Pressed) return;
             
-            // Eyedropper (Ctrl)
-            if (Keyboard.Modifiers == ModifierKeys.Control)
-            {
-                Point pt = e.GetPosition(MainInkCanvas);
-                StrokeCollection hits = MainInkCanvas.Strokes.HitTest(pt, 5.0);
-                if (hits.Count > 0)
-                {
-                    Stroke targetStroke = hits[hits.Count - 1];
-                    Color strokeColor = targetStroke.DrawingAttributes.Color;
-                    if (targetStroke.DrawingAttributes.IsHighlighter)
-                        strokeColor = Color.FromArgb(255, strokeColor.R, strokeColor.G, strokeColor.B);
-                    SetInkColor(string.Format("#{0:X2}{1:X2}{2:X2}{3:X2}", strokeColor.A, strokeColor.R, strokeColor.G, strokeColor.B));
-                    e.Handled = true;
-                }
-                return;
-            }
-            
-            // Clone Active Selection (Alt + Drag)
             if (Keyboard.Modifiers == ModifierKeys.Alt)
             {
                 if (MainInkCanvas.EditingMode == InkCanvasEditingMode.Select && MainInkCanvas.GetSelectedStrokes().Count > 0)
@@ -1109,11 +1088,10 @@ namespace TeachingAnnotator
             StrokeCollection finalAdded = new StrokeCollection(e.Added);
             StrokeCollection finalRemoved = new StrokeCollection(e.Removed);
 
-            if (e.Added.Count > 0 && PenBtn.IsChecked == true) {
+            if (e.Added.Count > 0 && PenBtn.IsChecked == true && Keyboard.Modifiers != ModifierKeys.Control) {
                 _isSmoothing = true; finalAdded.Clear();
                 foreach (var stroke in e.Added) { 
                     
-                    // Shape Detection via Shift
                     if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) {
                         Stroke recognized = RecognizeShape(stroke);
                         finalAdded.Add(recognized);
@@ -1215,13 +1193,15 @@ namespace TeachingAnnotator
         }
         
         private void MainInkCanvas_PreviewMouseMove(object sender, MouseEventArgs e) {
-            if (Keyboard.Modifiers == ModifierKeys.Control && e.LeftButton == MouseButtonState.Pressed) {
-                Point pt = e.GetPosition(MainInkCanvas);
-                StrokeCollection hits = MainInkCanvas.Strokes.HitTest(pt, 5.0);
-                if (hits.Count > 0) {
-                    Stroke targetStroke = hits[hits.Count - 1]; Color strokeColor = targetStroke.DrawingAttributes.Color;
-                    if (targetStroke.DrawingAttributes.IsHighlighter) strokeColor = Color.FromArgb(255, strokeColor.R, strokeColor.G, strokeColor.B);
-                    SetInkColor(string.Format("#{0:X2}{1:X2}{2:X2}{3:X2}", strokeColor.A, strokeColor.R, strokeColor.G, strokeColor.B));
+            if (Keyboard.Modifiers == ModifierKeys.Control) {
+                if (e.LeftButton == MouseButtonState.Pressed) {
+                    Point pt = e.GetPosition(MainInkCanvas);
+                    StrokeCollection hits = MainInkCanvas.Strokes.HitTest(pt, 5.0);
+                    if (hits.Count > 0) {
+                        Stroke targetStroke = hits[hits.Count - 1]; Color strokeColor = targetStroke.DrawingAttributes.Color;
+                        if (targetStroke.DrawingAttributes.IsHighlighter) strokeColor = Color.FromArgb(255, strokeColor.R, strokeColor.G, strokeColor.B);
+                        SetInkColor(string.Format("#{0:X2}{1:X2}{2:X2}{3:X2}", strokeColor.A, strokeColor.R, strokeColor.G, strokeColor.B));
+                    }
                 }
                 e.Handled = true;
             }
@@ -1342,23 +1322,22 @@ namespace TeachingAnnotator
             
             if (e.Key == Key.OemBackslash || e.Key == Key.Oem5) { DeletePageFast(_activePage); e.Handled = true; return; }
 
-            if (e.Key == Key.D1) { SetInkColor(theSolid14[0]); e.Handled = true; return; }
-            if (e.Key == Key.D2) { SetInkColor(theSolid14[1]); e.Handled = true; return; }
-            if (e.Key == Key.D3) { SetInkColor(theSolid14[2]); e.Handled = true; return; }
-            if (e.Key == Key.D4) { SetInkColor(theSolid14[3]); e.Handled = true; return; }
-            if (e.Key == Key.D5) { SetInkColor(theSolid14[4]); e.Handled = true; return; }
-            if (e.Key == Key.D6) { SetInkColor(theSolid14[5]); e.Handled = true; return; }
-            if (e.Key == Key.D7) { SetInkColor(theSolid14[6]); e.Handled = true; return; }
-            if (e.Key == Key.D8) { SetInkColor(theSolid14[7]); e.Handled = true; return; }
-            if (e.Key == Key.D9) { SetInkColor(theSolid14[8]); e.Handled = true; return; }
-            if (e.Key == Key.D0) { SetInkColor(theSolid14[9]); e.Handled = true; return; }
-            if (e.Key == Key.OemMinus) { SetInkColor(theSolid14[10]); e.Handled = true; return; }
-            if (e.Key == Key.OemPlus) { SetInkColor(theSolid14[11]); e.Handled = true; return; }
-            if (e.Key == Key.OemOpenBrackets) { SetInkColor(theSolid14[12]); e.Handled = true; return; }
-            if (e.Key == Key.OemCloseBrackets) { SetInkColor(theSolid14[13]); e.Handled = true; return; }
-
-            if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift)) { if (e.Key == Key.C) { ClearInk_Click(null, null); e.Handled = true; return; } }
             if (Keyboard.Modifiers == ModifierKeys.Control) {
+                if (e.Key == Key.D1) { SetInkColor(theSolid14[0]); e.Handled = true; return; }
+                if (e.Key == Key.D2) { SetInkColor(theSolid14[1]); e.Handled = true; return; }
+                if (e.Key == Key.D3) { SetInkColor(theSolid14[2]); e.Handled = true; return; }
+                if (e.Key == Key.D4) { SetInkColor(theSolid14[3]); e.Handled = true; return; }
+                if (e.Key == Key.D5) { SetInkColor(theSolid14[4]); e.Handled = true; return; }
+                if (e.Key == Key.D6) { SetInkColor(theSolid14[5]); e.Handled = true; return; }
+                if (e.Key == Key.D7) { SetInkColor(theSolid14[6]); e.Handled = true; return; }
+                if (e.Key == Key.D8) { SetInkColor(theSolid14[7]); e.Handled = true; return; }
+                if (e.Key == Key.D9) { SetInkColor(theSolid14[8]); e.Handled = true; return; }
+                if (e.Key == Key.D0) { SetInkColor(theSolid14[9]); e.Handled = true; return; }
+                if (e.Key == Key.OemMinus) { SetInkColor(theSolid14[10]); e.Handled = true; return; }
+                if (e.Key == Key.OemPlus) { SetInkColor(theSolid14[11]); e.Handled = true; return; }
+                if (e.Key == Key.OemOpenBrackets) { SetInkColor(theSolid14[12]); e.Handled = true; return; }
+                if (e.Key == Key.OemCloseBrackets) { SetInkColor(theSolid14[13]); e.Handled = true; return; }
+
                 if (e.Key == Key.I) { ImportPdf_Click(null, null); e.Handled = true; return; }
                 if (e.Key == Key.E) { Export_Click(null, null); e.Handled = true; return; }
                 if (e.Key == Key.Z) { PerformUndo(); return; } if (e.Key == Key.Y) { PerformRedo(); return; }
@@ -1367,8 +1346,11 @@ namespace TeachingAnnotator
                 if (e.Key == Key.V) { PasteStrokes(); return; }
                 if (e.Key == Key.Right) { ShiftActivePageSelection(1); e.Handled = true; return; }
                 if (e.Key == Key.Left) { ShiftActivePageSelection(-1); e.Handled = true; return; }
-                if (e.Key == Key.OemPlus || e.Key == Key.Add) { PerformZoom(0.25); return; } if (e.Key == Key.OemMinus || e.Key == Key.Subtract) { PerformZoom(-0.25); return; } return;
+                if (e.Key == Key.Add) { PerformZoom(0.25); return; } if (e.Key == Key.Subtract) { PerformZoom(-0.25); return; } return;
             }
+
+            if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift)) { if (e.Key == Key.C) { ClearInk_Click(null, null); e.Handled = true; return; } }
+            
             if (e.Key == Key.Delete) { var s = MainInkCanvas.GetSelectedStrokes(); if (s.Count > 0) MainInkCanvas.Strokes.Remove(s); return; }
             if (LibrarySearchBox.IsFocused || PageNumberInput.IsFocused || ZoomPercentInput.IsFocused || LaserHoldInput.IsFocused || LaserFadeInput.IsFocused || LaserCoreHexInput.IsFocused || LaserGlowHexInput.IsFocused || GridGapInput.IsFocused || RenameInput.IsFocused) return;
             
