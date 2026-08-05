@@ -70,7 +70,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 <Style TargetType="ScrollBar"><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Width" Value="10"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ScrollBar"><Border Background="{TemplateBinding Background}"><Track Name="PART_Track" IsDirectionReversed="True"><Track.Thumb><Thumb Style="{StaticResource ScrollThumb}"/></Track.Thumb></Track></Border><ControlTemplate.Triggers><Trigger Property="Orientation" Value="Horizontal"><Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter><Style.Triggers><Trigger Property="Orientation" Value="Horizontal"><Setter Property="Width" Value="Auto"/><Setter Property="Height" Value="10"/></Trigger></Style.Triggers></Style>
 <Style TargetType="Thumb" x:Key="ResizeThumbStyle">
     <Setter Property="Background" Value="#38BDF8"/>
-    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Thumb"><Ellipse Fill="{TemplateBinding Background}" Width="16" Height="16"><Ellipse.Effect><DropShadowEffect Color="Black" BlurRadius="5" ShadowDepth="2"/></Ellipse.Effect></Ellipse></ControlTemplate></Setter.Value></Setter>
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Thumb"><Ellipse Fill="{TemplateBinding Background}" Width="20" Height="20"><Ellipse.Effect><DropShadowEffect Color="Black" BlurRadius="5" ShadowDepth="2"/></Ellipse.Effect></Ellipse></ControlTemplate></Setter.Value></Setter>
 </Style>
 </Window.Resources>
 
@@ -116,7 +116,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                 <StackPanel x:Name="SectionTabsPanel" Orientation="Horizontal" VerticalAlignment="Bottom"/>
             </ScrollViewer>
             <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,16,0" WindowChrome.IsHitTestVisibleInChrome="True">
-                <Button Style="{StaticResource IconButton}" Click="ToggleSidebar_Click" ToolTip="Toggle Sidebar" Padding="12,8" Margin="4,0"><Path Data="M 2 4 L 14 4 M 2 8 L 14 8 M 2 12 L 14 12" Stroke="White" StrokeThickness="1.5" Stretch="Uniform" Height="14"/></Button>
+                <Button Style="{StaticResource IconButton}" Click="ToggleSidebar_Click" ToolTip="Toggle Sidebar (H)" Padding="12,8" Margin="4,0"><Path Data="M 2 4 L 14 4 M 2 8 L 14 8 M 2 12 L 14 12" Stroke="White" StrokeThickness="1.5" Stretch="Uniform" Height="14"/></Button>
                 <Button Style="{StaticResource IconButton}" Click="AddSection_Click" ToolTip="Add Section" Padding="12,8" Margin="4,0"><TextBlock Text="+ Section" FontWeight="SemiBold" Foreground="White"/></Button>
             </StackPanel>
             <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
@@ -155,19 +155,14 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                             </Grid>
                         </Border>
                         
-                        <!-- VISIO-STYLE GRAPH ENGINE LAYER -->
-                        <Canvas x:Name="ShapeDiagramCanvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Panel.ZIndex="5" ClipToBounds="True"/>
-                        
                         <AdornerDecorator>
                             <InkCanvas x:Name="MainInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" Focusable="True" Stylus.IsFlicksEnabled="False" Stylus.IsPressAndHoldEnabled="False" Stylus.IsTapFeedbackEnabled="False" Stylus.IsTouchFeedbackEnabled="False" PreviewMouseDown="MainInkCanvas_PreviewMouseDown" PreviewMouseMove="MainInkCanvas_PreviewMouseMove" MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter" Panel.ZIndex="10"/>
                         </AdornerDecorator>
                         
                         <InkCanvas x:Name="LaserInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" IsHitTestVisible="False" Panel.ZIndex="15" Stylus.IsFlicksEnabled="False" Stylus.IsPressAndHoldEnabled="False" Stylus.IsTapFeedbackEnabled="False" Stylus.IsTouchFeedbackEnabled="False"/>
                         
-                        <!-- CUSTOM CANVAS RESIZERS -->
-                        <Thumb x:Name="RightResizer" Style="{StaticResource ResizeThumbStyle}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,-8,0" Cursor="SizeWE" DragDelta="RightResizer_DragDelta" Panel.ZIndex="20"/>
-                        <Thumb x:Name="BottomResizer" Style="{StaticResource ResizeThumbStyle}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,-8" Cursor="SizeNS" DragDelta="BottomResizer_DragDelta" Panel.ZIndex="20"/>
-                        <Thumb x:Name="CornerResizer" Style="{StaticResource ResizeThumbStyle}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-8,-8" Cursor="SizeNWSE" DragDelta="CornerResizer_DragDelta" Panel.ZIndex="20"/>
+                        <!-- SINGLE CORNER CANVAS RESIZER -->
+                        <Thumb x:Name="CornerResizer" Style="{StaticResource ResizeThumbStyle}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-10,-10" Cursor="SizeNWSE" DragDelta="CornerResizer_DragDelta" Panel.ZIndex="20" ToolTip="Drag to expand canvas"/>
                     </Grid>
                     
                     <Canvas x:Name="CursorCanvas" IsHitTestVisible="False" Panel.ZIndex="999">
@@ -201,15 +196,15 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         </Border>
                     </Popup>
 
-                    <ToggleButton x:Name="CanvasMenuToggle" Style="{StaticResource MenuToggle}" ToolTip="Page Size, Grids &amp; Shapes">
+                    <ToggleButton x:Name="CanvasMenuToggle" Style="{StaticResource MenuToggle}" ToolTip="Page Size &amp; Grids">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="Canvas" FontWeight="Bold" FontSize="14"/><TextBlock Text="&#9662;" FontSize="10" Margin="6,2,0,0"/></StackPanel>
                     </ToggleButton>
                     <Popup PlacementTarget="{Binding ElementName=CanvasMenuToggle}" IsOpen="{Binding IsChecked, ElementName=CanvasMenuToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" Placement="Top" VerticalOffset="-16">
-                        <Border Background="#121214" BorderBrush="#2AFFFFFF" BorderThickness="1" CornerRadius="12" Padding="16" MinWidth="540">
+                        <Border Background="#121214" BorderBrush="#2AFFFFFF" BorderThickness="1" CornerRadius="12" Padding="16" MinWidth="340">
                             <Border.Effect><DropShadowEffect Color="Black" BlurRadius="20" Opacity="0.6" ShadowDepth="8"/></Border.Effect>
                             <StackPanel>
                                 <Grid Margin="0,0,0,12">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0" Margin="0,0,8,0">
                                         <TextBlock Text="10 PAGE SIZES" Foreground="#94A3B8" FontSize="10" FontWeight="Bold" Margin="0,0,0,8"/>
                                         <Button Style="{StaticResource DropdownItem}" Click="PageSize_Click" Tag="0" Content="Infinite Workspace"/>
@@ -223,7 +218,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                                         <Button Style="{StaticResource DropdownItem}" Click="PageSize_Click" Tag="8" Content="iPad Pro"/>
                                         <Button Style="{StaticResource DropdownItem}" Click="PageSize_Click" Tag="9" Content="1:1 Square"/>
                                     </StackPanel>
-                                    <StackPanel Grid.Column="1" Margin="8,0,8,0">
+                                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                         <TextBlock Text="10 GRID PATTERNS" Foreground="#94A3B8" FontSize="10" FontWeight="Bold" Margin="0,0,0,8"/>
                                         <Button Style="{StaticResource DropdownItem}" Click="GridPattern_Click" Tag="0" Content="Blank Canvas"/>
                                         <Button Style="{StaticResource DropdownItem}" Click="GridPattern_Click" Tag="1" Content="Ruled Lines"/>
@@ -235,19 +230,6 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                                         <Button Style="{StaticResource DropdownItem}" Click="GridPattern_Click" Tag="7" Content="Isometric"/>
                                         <Button Style="{StaticResource DropdownItem}" Click="GridPattern_Click" Tag="8" Content="Hexagonal"/>
                                         <Button Style="{StaticResource DropdownItem}" Click="GridPattern_Click" Tag="9" Content="Engineering"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="2" Margin="8,0,0,0">
-                                        <TextBlock Text="SHAPES (CTRL+SHIFT+1-0)" Foreground="#94A3B8" FontSize="10" FontWeight="Bold" Margin="0,0,0,8"/>
-                                        <Button Style="{StaticResource DropdownItem}" Click="ShapeInsert_Click" Tag="0" Content="Rectangle"/>
-                                        <Button Style="{StaticResource DropdownItem}" Click="ShapeInsert_Click" Tag="1" Content="Ellipse"/>
-                                        <Button Style="{StaticResource DropdownItem}" Click="ShapeInsert_Click" Tag="2" Content="Triangle"/>
-                                        <Button Style="{StaticResource DropdownItem}" Click="ShapeInsert_Click" Tag="3" Content="Diamond"/>
-                                        <Button Style="{StaticResource DropdownItem}" Click="ShapeInsert_Click" Tag="4" Content="Parallelogram"/>
-                                        <Button Style="{StaticResource DropdownItem}" Click="ShapeInsert_Click" Tag="5" Content="Hexagon"/>
-                                        <Button Style="{StaticResource DropdownItem}" Click="ShapeInsert_Click" Tag="6" Content="Star"/>
-                                        <Button Style="{StaticResource DropdownItem}" Click="ShapeInsert_Click" Tag="7" Content="Cross"/>
-                                        <Button Style="{StaticResource DropdownItem}" Click="ShapeInsert_Click" Tag="8" Content="Database"/>
-                                        <Button Style="{StaticResource DropdownItem}" Click="ShapeInsert_Click" Tag="9" Content="Document"/>
                                     </StackPanel>
                                 </Grid>
                                 <Rectangle Height="1" Fill="#2AFFFFFF" Margin="0,4,0,12"/>
@@ -303,8 +285,6 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 
                     <RadioButton Style="{StaticResource GlassTool}" x:Name="PointerBtn" Checked="Tool_Checked" ToolTip="Pan / Pointer (Esc)"><Path Data="M 6 4 L 14 24 L 17 17 L 24 14 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2.5" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/></RadioButton>
                     <RadioButton Style="{StaticResource GlassTool}" x:Name="SelectBtn" Checked="Tool_Checked" ToolTip="Smart Lasso (S)"><Path Data="M 4 10 C 6 4, 12 6, 18 8 C 22 10, 16 20, 10 18 C 4 16, 2 16, 4 10 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2.5" StrokeDashArray="3,2" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/></RadioButton>
-                    <RadioButton Style="{StaticResource GlassTool}" x:Name="GraphLineBtn" Checked="Tool_Checked" ToolTip="Graph Connection Line"><Path Data="M 2 2 L 22 22" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2.5" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/></RadioButton>
-                    <RadioButton Style="{StaticResource GlassTool}" x:Name="GraphArrowBtn" Checked="Tool_Checked" ToolTip="Graph Connection Arrow"><Path Data="M 2 2 L 22 22 M 14 22 L 22 22 L 22 14" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2.5" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/></RadioButton>
                     <RadioButton Style="{StaticResource GlassTool}" x:Name="PenBtn" IsChecked="True" Checked="Tool_Checked" ToolTip="Pro Pen (P)"><Path Data="M 18 4 L 20 6 L 9 17 L 4 18 L 5 13 Z M 16 6 L 18 8" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/></RadioButton>
                     <RadioButton Style="{StaticResource GlassTool}" x:Name="HighlightBtn" Checked="Tool_Checked" ToolTip="Highlighter (M)"><Path Data="M 16 4 L 20 8 L 8 20 L 2 20 L 2 14 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2.5" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/></RadioButton>
                     <RadioButton Style="{StaticResource GlassTool}" x:Name="LaserBtn" Checked="Tool_Checked" ToolTip="Neon Laser (L)"><Path Data="M 7 17 L 15 9 A 2 2 0 0 1 18 12 L 10 20 A 2 2 0 0 1 7 17 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2.5" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/></RadioButton>
@@ -364,9 +344,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         <TextBlock Text="Vector scaling applied. Output matches exact section resolution." Foreground="#94A3B8" FontSize="12" TextWrapping="Wrap" Margin="0,20,0,32"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Style="{StaticResource DropdownItem}" Click="ExportCancel_Click" Content="Cancel" Margin="0,0,16,0" Padding="20,10"/>
-                            <Button Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Cursor="Hand" Click="ExportConfirm_Click" Content="Export Document" Padding="20,10">
-                                <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
-                            </Button>
+                            <Button Style="{StaticResource DropdownItem}" Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Click="ExportConfirm_Click" Content="Export Document" Padding="20,10"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -383,9 +361,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         </Border>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Style="{StaticResource DropdownItem}" Click="RenameCancel_Click" Content="Cancel" Margin="0,0,16,0" Padding="20,10"/>
-                            <Button Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Cursor="Hand" Click="RenameOk_Click" Content="Save Changes" Padding="20,10">
-                                <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
-                            </Button>
+                            <Button Style="{StaticResource DropdownItem}" Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Click="RenameOk_Click" Content="Save Changes" Padding="20,10"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -422,26 +398,6 @@ using PdfSharp.Drawing;
 
 namespace TeachingAnnotator
 {
-    // ================= GRAPH MODELS =================
-    public class DiagramNode {
-        public string Id { get; set; } = Guid.NewGuid().ToString("N");
-        public int TypeIndex { get; set; } 
-        public double X { get; set; }
-        public double Y { get; set; }
-        public double W { get; set; } = 120;
-        public double H { get; set; } = 80;
-        public string ColorHex { get; set; } = "#FFFFFF";
-    }
-    public class DiagramLink {
-        public string Id { get; set; } = Guid.NewGuid().ToString("N");
-        public string FromNode { get; set; }
-        public int FromPort { get; set; } // 0=Top, 1=Right, 2=Bottom, 3=Left
-        public string ToNode { get; set; }
-        public int ToPort { get; set; }
-        public bool IsArrow { get; set; }
-        public string ColorHex { get; set; } = "#FFFFFF";
-    }
-
     public class NotePage {
         public string Id { get; set; } = Guid.NewGuid().ToString("N");
         public string Kind { get; set; } = "Blank"; 
@@ -452,17 +408,12 @@ namespace TeachingAnnotator
         public string ImageFileName { get; set; } = null;
         public double ImageWidth { get; set; } = 0;
         public double ImageHeight { get; set; } = 0;
-        
-        public double CustomPageWidth { get; set; } = 0;
-        public double CustomPageHeight { get; set; } = 0;
-        
         public string BgColor { get; set; } = "#121214"; 
         public int GridPattern { get; set; } = 0; 
         public double GridGap { get; set; } = 40.0;
         public int PageSizePreset { get; set; } = 0; 
-
-        public List<DiagramNode> Nodes { get; set; } = new List<DiagramNode>();
-        public List<DiagramLink> Links { get; set; } = new List<DiagramLink>();
+        public double CustomPageWidth { get; set; } = 0;
+        public double CustomPageHeight { get; set; } = 0;
     }
     public class Section {
         public string Id { get; set; } = Guid.NewGuid().ToString("N");
@@ -533,11 +484,6 @@ namespace TeachingAnnotator
         private Point _dragStartPoint;
         private bool _isAltCloning = false;
 
-        // Graph State
-        private DiagramNode _linkingFromNode;
-        private int _linkingFromPort;
-        private System.Windows.Shapes.Path _linkingTempLine;
-
         private Dictionary<string, Windows.Data.Pdf.PdfDocument> _pdfCache = new Dictionary<string, Windows.Data.Pdf.PdfDocument>();
         private Dictionary<string, BitmapImage> _thumbCache = new Dictionary<string, BitmapImage>();
 
@@ -545,7 +491,8 @@ namespace TeachingAnnotator
         private readonly Random _rng = new Random();
         private readonly string[] _covers = { "#1E3A8A", "#7C3AED", "#0F766E", "#B91C1C", "#B45309", "#0369A1", "#4D7C0F", "#9D174D" };
         private readonly string[] theSolid14 = { "#A86C6D", "#B37D5C", "#B5915F", "#B0A06B", "#7A8C70", "#60827D", "#668A91", "#6A809E", "#5F6882", "#877296", "#A1738D", "#9E8C78", "#73737A", "#A1A1A8" };
-        private readonly string[] theCanvases = { "#121214", "#1C1C1E", "#0D1117", "#161412", "#050505" };
+        private readonly string[] theDarkCanvases = { "#121214", "#1C1C1E", "#0D1117", "#161412", "#050505" };
+        private readonly string[] theLightCanvases = { "#FFFFFF", "#F9FAFB", "#F3F4F6", "#FEF3C7", "#FEFCE8" };
 
         public MainWindow()
         {
@@ -558,7 +505,7 @@ namespace TeachingAnnotator
             _penColor = SafeColor(theSolid14[11], Colors.White);
             _highlightColor = SafeColor(theSolid14[3], Colors.Yellow);
             _laserColor = SafeColor(theSolid14[0], Colors.Red);
-            _customBgColor = SafeColor(theCanvases[0], Color.FromRgb(18, 18, 20));
+            _customBgColor = SafeColor(theDarkCanvases[0], Color.FromRgb(18, 18, 20));
 
             MainInkCanvas.Strokes.StrokesChanged += MainInkCanvas_StrokesChanged;
             LaserInkCanvas.Strokes.StrokesChanged += LaserInkCanvas_StrokesChanged;
@@ -576,8 +523,8 @@ namespace TeachingAnnotator
             _pdfQualityTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
             _pdfQualityTimer.Tick += async (s, e) => { _pdfQualityTimer.Stop(); await ReRenderPdfQuality(); };
 
-            BuildPalettes();
             LoadSettingsAndLibrary();
+            BuildPalettes();
             ApplySettingsToUI();
             
             Loaded += (s, e) => { _appLoaded = true; ShowLibrary(); };
@@ -658,6 +605,7 @@ namespace TeachingAnnotator
         private void Setting_Changed(object sender, RoutedEventArgs e)
         {
             if (!_appLoaded || _isUpdatingUI) return;
+            bool oldLightMode = _settings.LightMode;
             _settings.LightMode = LightModeToggle.IsChecked == true;
             _settings.PressureEnabled = PressureToggle.IsChecked == true;
             _settings.StrokeEraserEnabled = StrokeEraserToggle.IsChecked == true;
@@ -677,6 +625,14 @@ namespace TeachingAnnotator
                 _activePage.GridGap = gap;
             }
 
+            if (oldLightMode != _settings.LightMode) {
+                BuildPalettes();
+                if (_activePage != null && _activePage.Kind == "Blank") {
+                    _activePage.BgColor = _settings.LightMode ? "#FFFFFF" : "#121214";
+                    _customBgColor = SafeColor(_activePage.BgColor, Colors.Black);
+                }
+            }
+
             UpdateGridBackground();
             ApplyPenAttributes();
             ScheduleSave();
@@ -684,13 +640,18 @@ namespace TeachingAnnotator
 
         private void BuildPalettes()
         {
+            PaletteGrid.Children.Clear();
+            BgPaletteGrid.Children.Clear();
+
             foreach (string hex in theSolid14) {
                 var border = new Border { Width = 28, Height = 28, Margin = new Thickness(4), CornerRadius = new CornerRadius(14), Background = new SolidColorBrush(SafeColor(hex, Colors.White)), Cursor = Cursors.Hand };
                 string h = hex; border.MouseLeftButtonDown += (s, e) => { SetInkColor(h); ColorPopup.IsOpen = false; };
                 PaletteGrid.Children.Add(border);
             }
-            foreach (string hex in theCanvases) {
-                var border = new Border { Width = 36, Height = 28, Margin = new Thickness(4), CornerRadius = new CornerRadius(6), Background = new SolidColorBrush(SafeColor(hex, Colors.Black)), BorderBrush = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)), BorderThickness = new Thickness(1), Cursor = Cursors.Hand };
+            
+            string[] activeCanvasSet = _settings.LightMode ? theLightCanvases : theDarkCanvases;
+            foreach (string hex in activeCanvasSet) {
+                var border = new Border { Width = 36, Height = 28, Margin = new Thickness(4), CornerRadius = new CornerRadius(6), Background = new SolidColorBrush(SafeColor(hex, Colors.Black)), BorderBrush = new SolidColorBrush(Color.FromArgb(80, 128, 128, 128)), BorderThickness = new Thickness(1), Cursor = Cursors.Hand };
                 string h = hex; border.MouseLeftButtonDown += (s, e) => { SetCanvasColor(h); ColorPopup.IsOpen = false; };
                 BgPaletteGrid.Children.Add(border);
             }
@@ -765,7 +726,10 @@ namespace TeachingAnnotator
         private void NewNotebook()
         {
             var nb = new Notebook { Title = "Workspace " + (_library.Notebooks.Count + 1), CoverColor = _covers[_rng.Next(_covers.Length)] };
-            var sec = new Section { Title = "Section 1" }; sec.Pages.Add(new NotePage()); nb.Sections.Add(sec);
+            var sec = new Section { Title = "Section 1" }; 
+            var initialPage = new NotePage { BgColor = _settings.LightMode ? "#FFFFFF" : "#121214" };
+            sec.Pages.Add(initialPage); 
+            nb.Sections.Add(sec);
             _library.Notebooks.Add(nb); PersistAll(); OpenNotebook(nb);
         }
 
@@ -819,7 +783,7 @@ namespace TeachingAnnotator
                 SectionTabsPanel.Children.Add(b);
             }
         }
-        private Section AddSectionTo(Notebook nb) { var s = new Section { Title = "Section " + (nb.Sections.Count + 1), Color = _covers[_rng.Next(_covers.Length)] }; s.Pages.Add(new NotePage()); nb.Sections.Add(s); return s; }
+        private Section AddSectionTo(Notebook nb) { var s = new Section { Title = "Section " + (nb.Sections.Count + 1), Color = _covers[_rng.Next(_covers.Length)] }; s.Pages.Add(new NotePage { BgColor = _settings.LightMode ? "#FFFFFF" : "#121214" }); nb.Sections.Add(s); return s; }
         
         private void ToggleSidebar_Click(object sender, RoutedEventArgs e) { 
             SidebarColumn.Width = SidebarColumn.Width.Value > 0 ? new GridLength(0) : new GridLength(220); 
@@ -840,8 +804,15 @@ namespace TeachingAnnotator
         // ================= PAGES / THUMBNAILS =================
         private NotePage AddPageTo(Section sec)
         {
-            var p = new NotePage();
-            if (_activePage != null) { p.BgColor = _activePage.BgColor; p.GridPattern = _activePage.GridPattern; p.PageSizePreset = _activePage.PageSizePreset; p.GridGap = _activePage.GridGap; p.Kind = _activePage.Kind; p.PdfFileName = _activePage.PdfFileName; p.PdfPageIndex = _activePage.PdfPageIndex; p.PdfWidth = _activePage.PdfWidth; p.PdfHeight = _activePage.PdfHeight; p.ImageFileName = _activePage.ImageFileName; p.ImageWidth = _activePage.ImageWidth; p.ImageHeight = _activePage.ImageHeight; }
+            var p = new NotePage { Kind = "Blank" };
+            if (_activePage != null) { 
+                p.BgColor = _activePage.BgColor; 
+                p.GridPattern = _activePage.GridPattern; 
+                p.PageSizePreset = _activePage.PageSizePreset; 
+                p.GridGap = _activePage.GridGap; 
+            } else {
+                p.BgColor = _settings.LightMode ? "#FFFFFF" : "#121214";
+            }
             sec.Pages.Add(p); return p;
         }
         private void RenderThumbs()
@@ -922,7 +893,7 @@ namespace TeachingAnnotator
             ZoomTransform.ScaleX = _zoom; ZoomTransform.ScaleY = _zoom; UpdateZoomUI(); UpdatePageUI();
             Workspace.Opacity = 0; await RenderPageContent();
             _isUpdatingUI = true; MainInkCanvas.Strokes.Clear(); MainInkCanvas.Strokes.Add(LoadStrokes(_activeNotebook, page)); MainInkCanvas.Visibility = Visibility.Visible; _isUpdatingUI = false;
-            RefreshBounds(); UpdateGridBackground(); RenderThumbs(); SyncToolToUI(); RenderDiagrams();
+            RefreshBounds(); UpdateGridBackground(); RenderThumbs(); SyncToolToUI();
             MainScroll.ScrollToHorizontalOffset(0); MainScroll.ScrollToVerticalOffset(0); UpdateCanvasCentering();
             Workspace.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200)));
         }
@@ -1008,7 +979,6 @@ namespace TeachingAnnotator
             }
             
             PageHost.Width = w; PageHost.Height = h; 
-            ShapeDiagramCanvas.Width = w; ShapeDiagramCanvas.Height = h;
             MainInkCanvas.Width = w; MainInkCanvas.Height = h; 
             LaserInkCanvas.Width = w; LaserInkCanvas.Height = h; 
             CursorCanvas.Width = w; CursorCanvas.Height = h; 
@@ -1016,16 +986,6 @@ namespace TeachingAnnotator
             Workspace.UpdateLayout(); UpdateCanvasCentering();
         }
 
-        private void RightResizer_DragDelta(object sender, DragDeltaEventArgs e) {
-            if (_activePage == null || _activePage.Kind != "Blank") return;
-            double w = Math.Max(100, PageHost.Width + e.HorizontalChange);
-            _activePage.CustomPageWidth = w; RefreshBounds(); TouchModified();
-        }
-        private void BottomResizer_DragDelta(object sender, DragDeltaEventArgs e) {
-            if (_activePage == null || _activePage.Kind != "Blank") return;
-            double h = Math.Max(100, PageHost.Height + e.VerticalChange);
-            _activePage.CustomPageHeight = h; RefreshBounds(); TouchModified();
-        }
         private void CornerResizer_DragDelta(object sender, DragDeltaEventArgs e) {
             if (_activePage == null || _activePage.Kind != "Blank") return;
             double w = Math.Max(100, PageHost.Width + e.HorizontalChange);
@@ -1033,6 +993,7 @@ namespace TeachingAnnotator
             _activePage.CustomPageWidth = w; _activePage.CustomPageHeight = h; RefreshBounds(); TouchModified();
         }
 
+        // 10 MATHEMATICAL GRIDS
         private void UpdateGridBackground() {
             if (_activePage != null && _activePage.Kind == "Blank") {
                 Color cBg = _settings.LightMode ? Colors.White : _customBgColor;
@@ -1099,159 +1060,6 @@ namespace TeachingAnnotator
             }
         }
 
-        // ================= GRAPH ENGINE =================
-        private void RenderDiagrams() {
-            ShapeDiagramCanvas.Children.Clear();
-            if (_activePage == null) return;
-            foreach (var n in _activePage.Nodes) DrawNode(n);
-            foreach (var l in _activePage.Links) DrawLink(l);
-            if (_linkingTempLine != null) ShapeDiagramCanvas.Children.Add(_linkingTempLine);
-        }
-
-        private string GetGeometryData(int type) {
-            switch(type) {
-                case 1: return "M0.5,0 A0.5,0.5 0 1,1 0.5,1 A0.5,0.5 0 1,1 0.5,0 Z"; // Ellipse
-                case 2: return "M0.5,0 L1,1 L0,1 Z"; // Triangle
-                case 3: return "M0.5,0 L1,0.5 L0.5,1 L0,0.5 Z"; // Diamond
-                case 4: return "M0.2,0 L1,0 L0.8,1 L0,1 Z"; // Parallelogram
-                case 5: return "M0.25,0 L0.75,0 L1,0.5 L0.75,1 L0.25,1 L0,0.5 Z"; // Hexagon
-                case 6: return "M0.5,0 L0.62,0.38 L1,0.38 L0.69,0.61 L0.81,1 L0.5,0.77 L0.19,1 L0.31,0.61 L0,0.38 L0.38,0.38 Z"; // Star
-                case 7: return "M0.35,0 L0.65,0 L0.65,0.35 L1,0.35 L1,0.65 L0.65,0.65 L0.65,1 L0.35,1 L0.35,0.65 L0,0.65 L0,0.35 L0.35,0.35 Z"; // Cross
-                case 8: return "M0,0.2 C0,-0.1 1,-0.1 1,0.2 L1,0.8 C1,1.1 0,1.1 0,0.8 Z M0,0.2 C0,0.5 1,0.5 1,0.2"; // Database
-                case 9: return "M0,0 L1,0 L1,0.8 Q0.75,1.1 0.5,0.9 T0,1 Z"; // Document
-                default: return "M0,0 L1,0 L1,1 L0,1 Z"; // Rectangle
-            }
-        }
-
-        private void DrawNode(DiagramNode n) {
-            var b = new Border { Width = n.W, Height = n.H, Background = Brushes.Transparent, Tag = n };
-            Canvas.SetLeft(b, n.X); Canvas.SetTop(b, n.Y);
-            
-            var path = new System.Windows.Shapes.Path { Data = Geometry.Parse(GetGeometryData(n.TypeIndex)), Stroke = new SolidColorBrush(SafeColor(n.ColorHex, Colors.White)), StrokeThickness = 3, Stretch = Stretch.Fill, Fill = Brushes.Transparent };
-            if (_settings.LightMode && n.ColorHex == "#FFFFFF") path.Stroke = Brushes.Black;
-            
-            var grid = new Grid(); grid.Children.Add(path);
-            
-            // Interaction Overlay
-            var hitRect = new Border { Background = Brushes.Transparent, Cursor = Cursors.SizeAll };
-            hitRect.PreviewMouseLeftButtonDown += (s, e) => {
-                if (PointerBtn.IsChecked == true) {
-                    _dragStartPoint = e.GetPosition(ShapeDiagramCanvas);
-                    hitRect.CaptureMouse(); e.Handled = true;
-                }
-            };
-            hitRect.PreviewMouseMove += (s, e) => {
-                if (hitRect.IsMouseCaptured) {
-                    Point cur = e.GetPosition(ShapeDiagramCanvas);
-                    n.X += (cur.X - _dragStartPoint.X); n.Y += (cur.Y - _dragStartPoint.Y);
-                    _dragStartPoint = cur;
-                    Canvas.SetLeft(b, n.X); Canvas.SetTop(b, n.Y);
-                    UpdateLinksForNode(n.Id);
-                }
-            };
-            hitRect.PreviewMouseLeftButtonUp += (s, e) => { hitRect.ReleaseMouseCapture(); TouchModified(); };
-            grid.Children.Add(hitRect);
-
-            // Ports
-            for(int i=0; i<4; i++) {
-                var p = new System.Windows.Shapes.Ellipse { Width=12, Height=12, Fill=Brushes.DarkGray, Opacity=0.01, Cursor=Cursors.Cross, Tag=i };
-                if (i==0) { p.HorizontalAlignment=HorizontalAlignment.Center; p.VerticalAlignment=VerticalAlignment.Top; p.Margin = new Thickness(0,-6,0,0); }
-                if (i==1) { p.HorizontalAlignment=HorizontalAlignment.Right; p.VerticalAlignment=VerticalAlignment.Center; p.Margin = new Thickness(0,0,-6,0); }
-                if (i==2) { p.HorizontalAlignment=HorizontalAlignment.Center; p.VerticalAlignment=VerticalAlignment.Bottom; p.Margin = new Thickness(0,0,0,-6); }
-                if (i==3) { p.HorizontalAlignment=HorizontalAlignment.Left; p.VerticalAlignment=VerticalAlignment.Center; p.Margin = new Thickness(-6,0,0,0); }
-                
-                p.MouseEnter += (s,e) => { p.Opacity=0.8; };
-                p.MouseLeave += (s,e) => { p.Opacity=0.01; };
-                
-                int portIdx = i;
-                p.PreviewMouseLeftButtonDown += (s, e) => {
-                    if (GraphLineBtn.IsChecked == true || GraphArrowBtn.IsChecked == true) {
-                        _linkingFromNode = n; _linkingFromPort = portIdx;
-                        _linkingTempLine = new System.Windows.Shapes.Path { Stroke = new SolidColorBrush(SafeColor(_penColor.ToString(), Colors.White)), StrokeThickness = 3 };
-                        ShapeDiagramCanvas.Children.Add(_linkingTempLine);
-                        p.CaptureMouse(); e.Handled=true;
-                    }
-                };
-                p.PreviewMouseMove += (s, e) => {
-                    if (p.IsMouseCaptured && _linkingTempLine != null) {
-                        Point start = GetPortLocation(n, portIdx); Point cur = e.GetPosition(ShapeDiagramCanvas);
-                        _linkingTempLine.Data = new LineGeometry(start, cur);
-                    }
-                };
-                p.PreviewMouseLeftButtonUp += (s, e) => {
-                    if (p.IsMouseCaptured) {
-                        p.ReleaseMouseCapture();
-                        ShapeDiagramCanvas.Children.Remove(_linkingTempLine); _linkingTempLine = null;
-                        Point upPt = e.GetPosition(ShapeDiagramCanvas);
-                        var targetInfo = FindPortAt(upPt, n.Id);
-                        if (targetInfo != null) {
-                            var link = new DiagramLink { FromNode = n.Id, FromPort = portIdx, ToNode = targetInfo.Item1.Id, ToPort = targetInfo.Item2, IsArrow = GraphArrowBtn.IsChecked == true, ColorHex = _penColor.ToString() };
-                            _activePage.Links.Add(link); TouchModified(); RenderDiagrams();
-                        }
-                    }
-                };
-                grid.Children.Add(p);
-            }
-
-            // Resizer
-            var resizeThumb = new Thumb { Width=10, Height=10, Background=Brushes.DarkGray, Opacity=0.01, Cursor=Cursors.SizeNWSE, HorizontalAlignment=HorizontalAlignment.Right, VerticalAlignment=VerticalAlignment.Bottom };
-            resizeThumb.MouseEnter += (s,e) => { resizeThumb.Opacity=0.8; }; resizeThumb.MouseLeave += (s,e) => { resizeThumb.Opacity=0.01; };
-            resizeThumb.DragDelta += (s, e) => {
-                n.W = Math.Max(20, n.W + e.HorizontalChange); n.H = Math.Max(20, n.H + e.VerticalChange);
-                b.Width = n.W; b.Height = n.H; UpdateLinksForNode(n.Id); TouchModified();
-            };
-            grid.Children.Add(resizeThumb);
-
-            b.Child = grid; ShapeDiagramCanvas.Children.Add(b);
-        }
-
-        private void DrawLink(DiagramLink l) {
-            var fn = _activePage.Nodes.FirstOrDefault(x => x.Id == l.FromNode); var tn = _activePage.Nodes.FirstOrDefault(x => x.Id == l.ToNode);
-            if (fn == null || tn == null) return;
-            Point p1 = GetPortLocation(fn, l.FromPort); Point p2 = GetPortLocation(tn, l.ToPort);
-            
-            var gg = new GeometryGroup(); gg.Children.Add(new LineGeometry(p1, p2));
-            if (l.IsArrow) {
-                double angle = Math.Atan2(p2.Y - p1.Y, p2.X - p1.X); double headLen = 15;
-                gg.Children.Add(new LineGeometry(p2, new Point(p2.X - headLen * Math.Cos(angle - Math.PI/6), p2.Y - headLen * Math.Sin(angle - Math.PI/6))));
-                gg.Children.Add(new LineGeometry(p2, new Point(p2.X - headLen * Math.Cos(angle + Math.PI/6), p2.Y - headLen * Math.Sin(angle + Math.PI/6))));
-            }
-            
-            var path = new System.Windows.Shapes.Path { Data = gg, Stroke = new SolidColorBrush(SafeColor(l.ColorHex, Colors.White)), StrokeThickness = 3, StrokeLineJoin = PenLineJoin.Round, StrokeEndLineCap = PenLineCap.Round, Tag = l };
-            if (_settings.LightMode && l.ColorHex == "#FFFFFF") path.Stroke = Brushes.Black;
-            ShapeDiagramCanvas.Children.Add(path);
-        }
-
-        private Point GetPortLocation(DiagramNode n, int port) {
-            if (port==0) return new Point(n.X + n.W/2, n.Y);
-            if (port==1) return new Point(n.X + n.W, n.Y + n.H/2);
-            if (port==2) return new Point(n.X + n.W/2, n.Y + n.H);
-            return new Point(n.X, n.Y + n.H/2);
-        }
-
-        private void UpdateLinksForNode(string nodeId) {
-            RenderDiagrams(); // For memory safety and exact binding, pure re-render of canvas is perfectly fast for < 500 nodes.
-        }
-
-        private Tuple<DiagramNode, int> FindPortAt(Point pt, string excludeNodeId) {
-            foreach(var n in _activePage.Nodes) {
-                if (n.Id == excludeNodeId) continue;
-                for(int i=0; i<4; i++) {
-                    Point pp = GetPortLocation(n, i);
-                    if (Math.Abs(pp.X - pt.X) < 20 && Math.Abs(pp.Y - pt.Y) < 20) return new Tuple<DiagramNode, int>(n, i);
-                }
-            }
-            return null;
-        }
-
-        private void ShapeInsert_Click(object sender, RoutedEventArgs e) {
-            if (_activePage == null) return;
-            if (int.TryParse(((Button)sender).Tag.ToString(), out int type)) {
-                var n = new DiagramNode { TypeIndex = type, ColorHex = _penColor.ToString(), X = MainScroll.HorizontalOffset + 100, Y = MainScroll.VerticalOffset + 100 };
-                _activePage.Nodes.Add(n); PointerBtn.IsChecked = true; ApplyPenAttributes(); TouchModified(); RenderDiagrams(); CanvasMenuToggle.IsChecked = false;
-            }
-        }
-
         // ================= TOOLS =================
         private void Tool_Checked(object sender, RoutedEventArgs e) { if (!_appLoaded || _isUpdatingUI || MainInkCanvas == null) return; SyncToolToUI(); }
         private void SyncToolToUI() {
@@ -1272,7 +1080,7 @@ namespace TeachingAnnotator
         {
             if (e.LeftButton != MouseButtonState.Pressed) return;
             
-            // Eyedropper (Ctrl)
+            // Eyedropper (Ctrl ONLY)
             if (Keyboard.Modifiers == ModifierKeys.Control)
             {
                 Point pt = e.GetPosition(MainInkCanvas);
@@ -1309,8 +1117,6 @@ namespace TeachingAnnotator
         private void ApplyPenAttributes() {
             if (!_appLoaded || MainInkCanvas == null || LaserInkCanvas == null || ActiveColorIndicator == null || SizeSlider == null) return;
             Color active = ((SolidColorBrush)ActiveColorIndicator.Fill).Color; double size = SizeSlider.Value; bool ignore = !_settings.PressureEnabled;
-            
-            ShapeDiagramCanvas.IsHitTestVisible = (PointerBtn.IsChecked == true || GraphLineBtn.IsChecked == true || GraphArrowBtn.IsChecked == true);
 
             if (LaserBtn.IsChecked == true) {
                 MainInkCanvas.IsHitTestVisible = false; LaserInkCanvas.IsHitTestVisible = true; LaserInkCanvas.EditingMode = InkCanvasEditingMode.Ink;
@@ -1319,7 +1125,7 @@ namespace TeachingAnnotator
                 CancelLaserFade();
             } else {
                 LaserInkCanvas.IsHitTestVisible = false; MainInkCanvas.IsHitTestVisible = true;
-                if (PointerBtn.IsChecked == true || GraphLineBtn.IsChecked == true || GraphArrowBtn.IsChecked == true) MainInkCanvas.EditingMode = InkCanvasEditingMode.None;
+                if (PointerBtn.IsChecked == true) MainInkCanvas.EditingMode = InkCanvasEditingMode.None;
                 else if (PenBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = active, Width = size, Height = size, FitToCurve = true, IgnorePressure = ignore, StylusTip = StylusTip.Ellipse }; }
                 else if (HighlightBtn.IsChecked == true) { 
                     MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; 
@@ -1360,7 +1166,8 @@ namespace TeachingAnnotator
             StrokeCollection finalAdded = new StrokeCollection(e.Added);
             StrokeCollection finalRemoved = new StrokeCollection(e.Removed);
 
-            if (e.Added.Count > 0 && PenBtn.IsChecked == true && Keyboard.Modifiers != ModifierKeys.Control) {
+            // Strict check: Only process ink if Ctrl is NOT pressed (Ctrl is for eyedropper)
+            if (e.Added.Count > 0 && PenBtn.IsChecked == true && !Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) {
                 _isSmoothing = true; finalAdded.Clear();
                 foreach (var stroke in e.Added) { 
                     
@@ -1404,10 +1211,23 @@ namespace TeachingAnnotator
                     for(int i=0; i<=360; i+=5) sp.Add(new StylusPoint(cx + (bounds.Width/2) * Math.Cos(i*Math.PI/180), cy + (bounds.Height/2) * Math.Sin(i*Math.PI/180)));
                     return new Stroke(sp, input.DrawingAttributes);
                 } else {
-                    var sp = new StylusPointCollection { new StylusPoint(bounds.Left, bounds.Top), new StylusPoint(bounds.Right, bounds.Top), new StylusPoint(bounds.Right, bounds.Bottom), new StylusPoint(bounds.Left, bounds.Bottom), new StylusPoint(bounds.Left, bounds.Top) };
+                    // Rounded Rectangle
+                    var sp = new StylusPointCollection();
+                    double l = bounds.Left, t = bounds.Top, r = bounds.Right, b = bounds.Bottom;
+                    double rad = Math.Min(15, Math.Min(bounds.Width/2, bounds.Height/2));
+                    for(double x = l+rad; x <= r-rad; x+=5) sp.Add(new StylusPoint(x, t));
+                    for(int a=270; a<=360; a+=5) sp.Add(new StylusPoint(r-rad + rad*Math.Cos(a*Math.PI/180), t+rad + rad*Math.Sin(a*Math.PI/180)));
+                    for(double y = t+rad; y <= b-rad; y+=5) sp.Add(new StylusPoint(r, y));
+                    for(int a=0; a<=90; a+=5) sp.Add(new StylusPoint(r-rad + rad*Math.Cos(a*Math.PI/180), b-rad + rad*Math.Sin(a*Math.PI/180)));
+                    for(double x = r-rad; x >= l+rad; x-=5) sp.Add(new StylusPoint(x, b));
+                    for(int a=90; a<=180; a+=5) sp.Add(new StylusPoint(l+rad + rad*Math.Cos(a*Math.PI/180), b-rad + rad*Math.Sin(a*Math.PI/180)));
+                    for(double y = b-rad; y >= t+rad; y-=5) sp.Add(new StylusPoint(l, y));
+                    for(int a=180; a<=270; a+=5) sp.Add(new StylusPoint(l+rad + rad*Math.Cos(a*Math.PI/180), t+rad + rad*Math.Sin(a*Math.PI/180)));
+                    sp.Add(new StylusPoint(l+rad, t));
                     return new Stroke(sp, input.DrawingAttributes);
                 }
             } else if (len < dEnd * 1.25) {
+                // Line or Arrow
                 Point pHook = (Point)pts[Math.Max(0, pts.Count - 10)];
                 if (Math.Sqrt(Math.Pow(end.X - pHook.X, 2) + Math.Pow(end.Y - pHook.Y, 2)) > 15) {
                     var sp = new StylusPointCollection { new StylusPoint(start.X, start.Y), new StylusPoint(end.X, end.Y) };
@@ -1457,7 +1277,7 @@ namespace TeachingAnnotator
 
         private void UpdateCursor() {
             if (CustomDotCursor == null) return;
-            if (SelectBtn.IsChecked == true || PointerBtn.IsChecked == true || GraphLineBtn.IsChecked == true || GraphArrowBtn.IsChecked == true) { CustomDotCursor.Visibility = Visibility.Hidden; return; }
+            if (SelectBtn.IsChecked == true || PointerBtn.IsChecked == true) { CustomDotCursor.Visibility = Visibility.Hidden; return; }
             double size = SizeSlider.Value; Color c = ((SolidColorBrush)ActiveColorIndicator.Fill).Color;
             if (HighlightBtn.IsChecked == true) { size *= 4; c = Color.FromArgb(80, c.R, c.G, c.B); }
             if (EraserBtn.IsChecked == true) { size = _settings.StrokeEraserEnabled ? 20 : size * 4; CustomDotCursor.StrokeThickness = 1; CustomDotCursor.Stroke = new SolidColorBrush(Colors.Gray); CustomDotCursor.Fill = new SolidColorBrush(Color.FromArgb(90, 255, 255, 255)); CursorGlow.Opacity = 0; }
@@ -1466,23 +1286,22 @@ namespace TeachingAnnotator
         }
         
         private void MainInkCanvas_PreviewMouseMove(object sender, MouseEventArgs e) {
-            if (Keyboard.Modifiers == ModifierKeys.Control) {
-                if (e.LeftButton == MouseButtonState.Pressed) {
-                    Point pt = e.GetPosition(MainInkCanvas);
-                    StrokeCollection hits = MainInkCanvas.Strokes.HitTest(pt, 5.0);
-                    if (hits.Count > 0) {
-                        Stroke targetStroke = hits[hits.Count - 1]; Color strokeColor = targetStroke.DrawingAttributes.Color;
-                        if (targetStroke.DrawingAttributes.IsHighlighter) strokeColor = Color.FromArgb(255, strokeColor.R, strokeColor.G, strokeColor.B);
-                        SetInkColor(string.Format("#{0:X2}{1:X2}{2:X2}{3:X2}", strokeColor.A, strokeColor.R, strokeColor.G, strokeColor.B));
-                    }
+            // Ctrl ONLY continuous eyedropper
+            if (Keyboard.Modifiers == ModifierKeys.Control && e.LeftButton == MouseButtonState.Pressed) {
+                Point pt = e.GetPosition(MainInkCanvas);
+                StrokeCollection hits = MainInkCanvas.Strokes.HitTest(pt, 5.0);
+                if (hits.Count > 0) {
+                    Stroke targetStroke = hits[hits.Count - 1]; Color strokeColor = targetStroke.DrawingAttributes.Color;
+                    if (targetStroke.DrawingAttributes.IsHighlighter) strokeColor = Color.FromArgb(255, strokeColor.R, strokeColor.G, strokeColor.B);
+                    SetInkColor(string.Format("#{0:X2}{1:X2}{2:X2}{3:X2}", strokeColor.A, strokeColor.R, strokeColor.G, strokeColor.B));
                 }
                 e.Handled = true;
             }
         }
         
-        private void MainInkCanvas_MouseMove(object sender, MouseEventArgs e) { if (SelectBtn.IsChecked == true || PointerBtn.IsChecked == true || GraphLineBtn.IsChecked == true || GraphArrowBtn.IsChecked == true) return; CustomDotCursor.Visibility = Visibility.Visible; Point p = e.GetPosition(CursorCanvas); Canvas.SetLeft(CustomDotCursor, p.X - CustomDotCursor.Width / 2); Canvas.SetTop(CustomDotCursor, p.Y - CustomDotCursor.Height / 2); }
+        private void MainInkCanvas_MouseMove(object sender, MouseEventArgs e) { if (SelectBtn.IsChecked == true || PointerBtn.IsChecked == true) return; CustomDotCursor.Visibility = Visibility.Visible; Point p = e.GetPosition(CursorCanvas); Canvas.SetLeft(CustomDotCursor, p.X - CustomDotCursor.Width / 2); Canvas.SetTop(CustomDotCursor, p.Y - CustomDotCursor.Height / 2); }
         private void MainInkCanvas_MouseLeave(object sender, MouseEventArgs e) { CustomDotCursor.Visibility = Visibility.Hidden; }
-        private void MainInkCanvas_MouseEnter(object sender, MouseEventArgs e) { if (SelectBtn.IsChecked != true && PointerBtn.IsChecked != true && GraphLineBtn.IsChecked != true && GraphArrowBtn.IsChecked != true) CustomDotCursor.Visibility = Visibility.Visible; }
+        private void MainInkCanvas_MouseEnter(object sender, MouseEventArgs e) { if (SelectBtn.IsChecked != true && PointerBtn.IsChecked != true) CustomDotCursor.Visibility = Visibility.Visible; }
 
         private void UpdateZoomUI() { if (ZoomPercentInput != null) ZoomPercentInput.Text = Math.Round(_zoom * 100) + "%"; }
         private void PerformZoom(double delta, Point? mousePos = null) {
@@ -1631,18 +1450,6 @@ namespace TeachingAnnotator
             if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift)) { 
                 if (e.Key == Key.C) { ClearInk_Click(null, null); e.Handled = true; return; } 
                 if (e.Key == Key.I) { MainInkCanvas.Visibility = MainInkCanvas.Visibility == Visibility.Visible ? Visibility.Hidden : Visibility.Visible; e.Handled = true; return; }
-                
-                // Shape Hotkeys
-                if (e.Key == Key.D1) { ShapeInsert_Click(new Button{Tag=0}, null); e.Handled = true; return; }
-                if (e.Key == Key.D2) { ShapeInsert_Click(new Button{Tag=1}, null); e.Handled = true; return; }
-                if (e.Key == Key.D3) { ShapeInsert_Click(new Button{Tag=2}, null); e.Handled = true; return; }
-                if (e.Key == Key.D4) { ShapeInsert_Click(new Button{Tag=3}, null); e.Handled = true; return; }
-                if (e.Key == Key.D5) { ShapeInsert_Click(new Button{Tag=4}, null); e.Handled = true; return; }
-                if (e.Key == Key.D6) { ShapeInsert_Click(new Button{Tag=5}, null); e.Handled = true; return; }
-                if (e.Key == Key.D7) { ShapeInsert_Click(new Button{Tag=6}, null); e.Handled = true; return; }
-                if (e.Key == Key.D8) { ShapeInsert_Click(new Button{Tag=7}, null); e.Handled = true; return; }
-                if (e.Key == Key.D9) { ShapeInsert_Click(new Button{Tag=8}, null); e.Handled = true; return; }
-                if (e.Key == Key.D0) { ShapeInsert_Click(new Button{Tag=9}, null); e.Handled = true; return; }
             }
             
             if (e.Key == Key.Delete) { var s = MainInkCanvas.GetSelectedStrokes(); if (s.Count > 0) MainInkCanvas.Strokes.Remove(s); return; }
