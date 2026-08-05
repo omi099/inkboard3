@@ -633,7 +633,6 @@ namespace TeachingAnnotator
                 BuildPalettes();
                 if (_activePage != null && _activePage.Kind == "Blank") {
                     _activePage.BgColor = _settings.LightMode ? "#FFFFFF" : "#121214";
-                    _customBgColor = SafeColor(_activePage.BgColor, Colors.Black);
                 }
             }
 
@@ -677,7 +676,6 @@ namespace TeachingAnnotator
 
         private void SetCanvasColor(string hex)
         {
-            _customBgColor = SafeColor(hex, Colors.Black);
             if (_activePage != null) { _activePage.BgColor = hex; TouchModified(); }
             UpdateGridBackground();
         }
@@ -895,9 +893,11 @@ namespace TeachingAnnotator
             if (page == null) return;
             SaveActivePageStrokes(); _activePage = page; _undo.Clear(); _redo.Clear();
             _isUpdatingUI = true; LaserInkCanvas.Strokes.Clear(); _isUpdatingUI = false; CancelLaserFade();
-            _customBgColor = SafeColor(page.BgColor, Colors.Black); _gridPattern = page.GridPattern;
+            
+            _gridPattern = page.GridPattern;
             ZoomTransform.ScaleX = _zoom; ZoomTransform.ScaleY = _zoom; UpdateZoomUI(); UpdatePageUI();
             Workspace.Opacity = 0; await RenderPageContent();
+            
             _isUpdatingUI = true; MainInkCanvas.Strokes.Clear(); MainInkCanvas.Strokes.Add(LoadStrokes(_activeNotebook, page)); MainInkCanvas.Visibility = Visibility.Visible; _isUpdatingUI = false;
             RefreshBounds(); UpdateGridBackground(); RenderThumbs(); SyncToolToUI();
             MainScroll.ScrollToHorizontalOffset(0); MainScroll.ScrollToVerticalOffset(0); UpdateCanvasCentering();
@@ -1002,7 +1002,7 @@ namespace TeachingAnnotator
         // 10 MATHEMATICAL GRIDS
         private void UpdateGridBackground() {
             if (_activePage != null && _activePage.Kind == "Blank") {
-                Color cBg = _settings.LightMode ? Colors.White : _customBgColor;
+                Color cBg = SafeColor(_activePage.BgColor, Colors.Black);
                 Color major = _settings.LightMode ? Color.FromArgb(255, 204, 204, 204) : Color.FromArgb(16, 255, 255, 255);
                 Color minor = _settings.LightMode ? Color.FromArgb(255, 229, 229, 229) : Color.FromArgb(8, 255, 255, 255);
                 
@@ -1381,7 +1381,7 @@ namespace TeachingAnnotator
                         
                         var outPage = output.AddPage(); outPage.Width = XUnit.FromPresentation(w); outPage.Height = XUnit.FromPresentation(h); var gfx = XGraphics.FromPdfPage(outPage); gfx.ScaleTransform(72.0 / 96.0, 72.0 / 96.0);
                         if (exportMode != 2) {
-                            Color bgc = _settings.LightMode ? Colors.White : SafeColor(page.BgColor, Colors.Black); 
+                            Color bgc = SafeColor(page.BgColor, Colors.Black); 
                             gfx.DrawRectangle(new XSolidBrush(XColor.FromArgb(255, bgc.R, bgc.G, bgc.B)), 0, 0, w, h);
                             double gap = page.GridGap > 1 ? page.GridGap : 40.0; double q = gap / 4.0; 
                             XColor mic = _settings.LightMode ? XColor.FromArgb(255, 229, 229, 229) : XColor.FromArgb(6, 255, 255, 255);
@@ -1474,8 +1474,6 @@ namespace TeachingAnnotator
                 if (e.Key == Key.B) { ToggleSidebar_Click(null, null); return; }
                 if (e.Key == Key.C) { var s = MainInkCanvas.GetSelectedStrokes(); if (s.Count > 0) _copied = s.Clone(); return; }
                 if (e.Key == Key.V) { PasteStrokes(); return; }
-                if (e.Key == Key.Right) { ShiftActivePageSelection(1); e.Handled = true; return; }
-                if (e.Key == Key.Left) { ShiftActivePageSelection(-1); e.Handled = true; return; }
             }
 
             if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift)) { 
