@@ -171,8 +171,6 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                 </Grid>
             </ScrollViewer>
 
-            <InkCanvas x:Name="LaserInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" IsHitTestVisible="False" Panel.ZIndex="500" Stylus.IsFlicksEnabled="False" Stylus.IsPressAndHoldEnabled="False" Stylus.IsTapFeedbackEnabled="False" Stylus.IsTouchFeedbackEnabled="False" MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter"/>
-
             <!-- FLOATING TOOLBAR -->
             <Border x:Name="MainToolbar" Background="#D9121214" BorderBrush="#2AFFFFFF" BorderThickness="1" CornerRadius="24" Padding="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,40" Panel.ZIndex="600">
                 <Border.RenderTransform><TranslateTransform x:Name="ToolbarTransform" X="0" Y="0"/></Border.RenderTransform>
@@ -986,7 +984,12 @@ namespace TeachingAnnotator
                 if (w == 1920 && h == 1080 && _activePage.CustomPageWidth == 0) GetPageDimensions(_activePage.PageSizePreset, out w, out h); 
             }
             
-            PageHost.Width = w; PageHost.Height = h; MainInkCanvas.Width = w; MainInkCanvas.Height = h; LaserInkCanvas.Width = w; LaserInkCanvas.Height = h; CursorCanvas.Width = w; CursorCanvas.Height = h; Workspace.Width = w; Workspace.Height = h; Workspace.UpdateLayout(); UpdateCanvasCentering();
+            PageHost.Width = w; PageHost.Height = h; 
+            MainInkCanvas.Width = w; MainInkCanvas.Height = h; 
+            LaserInkCanvas.Width = w; LaserInkCanvas.Height = h; 
+            CursorCanvas.Width = w; CursorCanvas.Height = h; 
+            Workspace.Width = w; Workspace.Height = h; 
+            Workspace.UpdateLayout(); UpdateCanvasCentering();
         }
 
         private void CornerResizer_DragDelta(object sender, DragDeltaEventArgs e) {
