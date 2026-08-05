@@ -156,7 +156,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         </Border>
                         
                         <AdornerDecorator>
-                            <InkCanvas x:Name="MainInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" Focusable="True" Stylus.IsFlicksEnabled="False" Stylus.IsPressAndHoldEnabled="False" Stylus.IsTapFeedbackEnabled="False" Stylus.IsTouchFeedbackEnabled="False" PreviewMouseDown="MainInkCanvas_PreviewMouseDown" PreviewMouseMove="MainInkCanvas_PreviewMouseMove" MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter" Panel.ZIndex="10"/>
+                            <InkCanvas x:Name="MainInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" Focusable="True" Stylus.IsFlicksEnabled="False" Stylus.IsPressAndHoldEnabled="False" Stylus.IsTapFeedbackEnabled="False" Stylus.IsTouchFeedbackEnabled="False" PreviewStylusDown="InkCanvas_PreviewStylusDown" PreviewStylusMove="InkCanvas_PreviewStylusMove" PreviewMouseDown="MainInkCanvas_PreviewMouseDown" PreviewMouseMove="MainInkCanvas_PreviewMouseMove" MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter" Panel.ZIndex="10"/>
                         </AdornerDecorator>
                         
                         <InkCanvas x:Name="LaserInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" IsHitTestVisible="False" Panel.ZIndex="15" Stylus.IsFlicksEnabled="False" Stylus.IsPressAndHoldEnabled="False" Stylus.IsTapFeedbackEnabled="False" Stylus.IsTouchFeedbackEnabled="False"/>
@@ -513,8 +513,6 @@ namespace TeachingAnnotator
 
             MainInkCanvas.Strokes.StrokesChanged += MainInkCanvas_StrokesChanged;
             LaserInkCanvas.Strokes.StrokesChanged += LaserInkCanvas_StrokesChanged;
-            MainInkCanvas.PreviewStylusDown += InkCanvas_PreviewStylusDown;
-            LaserInkCanvas.PreviewStylusDown += InkCanvas_PreviewStylusDown;
             MainInkCanvas.SelectionMoving += MainInkCanvas_SelectionTransforming;
             MainInkCanvas.SelectionMoved += MainInkCanvas_SelectionTransformed;
             MainInkCanvas.SelectionResizing += MainInkCanvas_SelectionTransforming;
@@ -893,11 +891,9 @@ namespace TeachingAnnotator
             if (page == null) return;
             SaveActivePageStrokes(); _activePage = page; _undo.Clear(); _redo.Clear();
             _isUpdatingUI = true; LaserInkCanvas.Strokes.Clear(); _isUpdatingUI = false; CancelLaserFade();
-            
-            _gridPattern = page.GridPattern;
+            _customBgColor = SafeColor(page.BgColor, Colors.Black); _gridPattern = page.GridPattern;
             ZoomTransform.ScaleX = _zoom; ZoomTransform.ScaleY = _zoom; UpdateZoomUI(); UpdatePageUI();
             Workspace.Opacity = 0; await RenderPageContent();
-            
             _isUpdatingUI = true; MainInkCanvas.Strokes.Clear(); MainInkCanvas.Strokes.Add(LoadStrokes(_activeNotebook, page)); MainInkCanvas.Visibility = Visibility.Visible; _isUpdatingUI = false;
             RefreshBounds(); UpdateGridBackground(); RenderThumbs(); SyncToolToUI();
             MainScroll.ScrollToHorizontalOffset(0); MainScroll.ScrollToVerticalOffset(0); UpdateCanvasCentering();
@@ -1080,27 +1076,29 @@ namespace TeachingAnnotator
             ApplyPenAttributes();
         }
 
-        private void InkCanvas_PreviewStylusDown(object sender, StylusDownEventArgs e) { if (_settings.PenOnly && e.StylusDevice.TabletDevice.Type == TabletDeviceType.Touch) e.Handled = true; }
+        private void InkCanvas_PreviewStylusDown(object sender, StylusDownEventArgs e) { 
+            if (Keyboard.Modifiers == ModifierKeys.Control) {
+                ProcessEyedropper(e.GetPosition(MainInkCanvas));
+                e.Handled = true; return;
+            }
+            if (_settings.PenOnly && e.StylusDevice.TabletDevice.Type == TabletDeviceType.Touch) e.Handled = true; 
+        }
+        
+        private void InkCanvas_PreviewStylusMove(object sender, StylusEventArgs e) {
+            if (Keyboard.Modifiers == ModifierKeys.Control && !e.InAir) {
+                ProcessEyedropper(e.GetPosition(MainInkCanvas));
+                e.Handled = true;
+            }
+        }
 
         private void MainInkCanvas_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton != MouseButtonState.Pressed) return;
             
             // Eyedropper (Ctrl ONLY)
-            if (Keyboard.Modifiers == ModifierKeys.Control)
-            {
-                Point pt = e.GetPosition(MainInkCanvas);
-                StrokeCollection hits = MainInkCanvas.Strokes.HitTest(pt, 12.0);
-                if (hits.Count > 0)
-                {
-                    Stroke targetStroke = hits[hits.Count - 1];
-                    Color strokeColor = targetStroke.DrawingAttributes.Color;
-                    if (targetStroke.DrawingAttributes.IsHighlighter)
-                        strokeColor = Color.FromArgb(255, strokeColor.R, strokeColor.G, strokeColor.B);
-                    SetInkColor(string.Format("#{0:X2}{1:X2}{2:X2}{3:X2}", strokeColor.A, strokeColor.R, strokeColor.G, strokeColor.B));
-                    e.Handled = true;
-                }
-                return;
+            if (Keyboard.Modifiers == ModifierKeys.Control) {
+                ProcessEyedropper(e.GetPosition(MainInkCanvas));
+                e.Handled = true; return;
             }
             
             // Clone Active Selection (Alt + Drag)
@@ -1117,6 +1115,22 @@ namespace TeachingAnnotator
                         _isAltCloning = true;
                     }
                 }
+            }
+        }
+
+        private void MainInkCanvas_PreviewMouseMove(object sender, MouseEventArgs e) {
+            if (Keyboard.Modifiers == ModifierKeys.Control && e.LeftButton == MouseButtonState.Pressed) {
+                ProcessEyedropper(e.GetPosition(MainInkCanvas));
+                e.Handled = true;
+            }
+        }
+
+        private void ProcessEyedropper(Point pt) {
+            StrokeCollection hits = MainInkCanvas.Strokes.HitTest(pt, 5.0);
+            if (hits.Count > 0) {
+                Stroke targetStroke = hits[hits.Count - 1]; Color strokeColor = targetStroke.DrawingAttributes.Color;
+                if (targetStroke.DrawingAttributes.IsHighlighter) strokeColor = Color.FromArgb(255, strokeColor.R, strokeColor.G, strokeColor.B);
+                SetInkColor(string.Format("#{0:X2}{1:X2}{2:X2}{3:X2}", strokeColor.A, strokeColor.R, strokeColor.G, strokeColor.B));
             }
         }
 
@@ -1283,20 +1297,6 @@ namespace TeachingAnnotator
             CustomDotCursor.Width = size; CustomDotCursor.Height = size;
         }
         
-        private void MainInkCanvas_PreviewMouseMove(object sender, MouseEventArgs e) {
-            // Ctrl ONLY continuous eyedropper
-            if (Keyboard.Modifiers == ModifierKeys.Control && e.LeftButton == MouseButtonState.Pressed) {
-                Point pt = e.GetPosition(MainInkCanvas);
-                StrokeCollection hits = MainInkCanvas.Strokes.HitTest(pt, 5.0);
-                if (hits.Count > 0) {
-                    Stroke targetStroke = hits[hits.Count - 1]; Color strokeColor = targetStroke.DrawingAttributes.Color;
-                    if (targetStroke.DrawingAttributes.IsHighlighter) strokeColor = Color.FromArgb(255, strokeColor.R, strokeColor.G, strokeColor.B);
-                    SetInkColor(string.Format("#{0:X2}{1:X2}{2:X2}{3:X2}", strokeColor.A, strokeColor.R, strokeColor.G, strokeColor.B));
-                }
-                e.Handled = true;
-            }
-        }
-        
         private void MainInkCanvas_MouseMove(object sender, MouseEventArgs e) { if (SelectBtn.IsChecked == true || PointerBtn.IsChecked == true) return; CustomDotCursor.Visibility = Visibility.Visible; Point p = e.GetPosition(CursorCanvas); Canvas.SetLeft(CustomDotCursor, p.X - CustomDotCursor.Width / 2); Canvas.SetTop(CustomDotCursor, p.Y - CustomDotCursor.Height / 2); }
         private void MainInkCanvas_MouseLeave(object sender, MouseEventArgs e) { CustomDotCursor.Visibility = Visibility.Hidden; }
         private void MainInkCanvas_MouseEnter(object sender, MouseEventArgs e) { if (SelectBtn.IsChecked != true && PointerBtn.IsChecked != true) CustomDotCursor.Visibility = Visibility.Visible; }
@@ -1381,7 +1381,7 @@ namespace TeachingAnnotator
                         
                         var outPage = output.AddPage(); outPage.Width = XUnit.FromPresentation(w); outPage.Height = XUnit.FromPresentation(h); var gfx = XGraphics.FromPdfPage(outPage); gfx.ScaleTransform(72.0 / 96.0, 72.0 / 96.0);
                         if (exportMode != 2) {
-                            Color bgc = SafeColor(page.BgColor, Colors.Black); 
+                            Color bgc = _settings.LightMode ? Colors.White : SafeColor(page.BgColor, Colors.Black); 
                             gfx.DrawRectangle(new XSolidBrush(XColor.FromArgb(255, bgc.R, bgc.G, bgc.B)), 0, 0, w, h);
                             double gap = page.GridGap > 1 ? page.GridGap : 40.0; double q = gap / 4.0; 
                             XColor mic = _settings.LightMode ? XColor.FromArgb(255, 229, 229, 229) : XColor.FromArgb(6, 255, 255, 255);
@@ -1474,6 +1474,8 @@ namespace TeachingAnnotator
                 if (e.Key == Key.B) { ToggleSidebar_Click(null, null); return; }
                 if (e.Key == Key.C) { var s = MainInkCanvas.GetSelectedStrokes(); if (s.Count > 0) _copied = s.Clone(); return; }
                 if (e.Key == Key.V) { PasteStrokes(); return; }
+                if (e.Key == Key.Right) { ShiftActivePageSelection(1); e.Handled = true; return; }
+                if (e.Key == Key.Left) { ShiftActivePageSelection(-1); e.Handled = true; return; }
             }
 
             if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift)) { 
