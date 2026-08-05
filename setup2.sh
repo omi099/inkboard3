@@ -113,7 +113,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
             </ScrollViewer>
             <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,16,0" WindowChrome.IsHitTestVisibleInChrome="True">
                 <Button Style="{StaticResource IconButton}" Click="ToggleSidebar_Click" ToolTip="Toggle Sidebar (Ctrl+B)" Padding="12,8" Margin="4,0"><Path Data="M 2 4 L 14 4 M 2 8 L 14 8 M 2 12 L 14 12" Stroke="White" StrokeThickness="1.5" Stretch="Uniform" Height="14"/></Button>
-                <Button Style="{StaticResource IconButton}" Click="AddSection_Click" ToolTip="Add Section" Padding="12,8" Margin="4,0"><TextBlock Text="+ Section" FontWeight="SemiBold"/></Button>
+                <Button Style="{StaticResource IconButton}" Click="AddSection_Click" ToolTip="Add Section" Padding="12,8" Margin="4,0"><TextBlock Text="+ Section" FontWeight="SemiBold" Foreground="White"/></Button>
             </StackPanel>
             <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
                 <Button Style="{StaticResource CaptionButton}" Click="Min_Click"><Path Data="M 1 5 L 9 5" Stroke="#94A3B8" StrokeThickness="1"/></Button>
@@ -150,7 +150,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         </Grid>
                     </Border>
                     <AdornerDecorator>
-                        <InkCanvas x:Name="MainInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" Focusable="True" Stylus.IsFlicksEnabled="False" Stylus.IsPressAndHoldEnabled="False" Stylus.IsTapFeedbackEnabled="False" Stylus.IsTouchFeedbackEnabled="False" PreviewMouseDown="MainInkCanvas_PreviewMouseDown" PreviewMouseMove="MainInkCanvas_PreviewMouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter" PreviewStylusDown="InkCanvas_PreviewStylusDown" PreviewStylusMove="MainInkCanvas_PreviewStylusMove"/>
+                        <InkCanvas x:Name="MainInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" Focusable="True" Stylus.IsFlicksEnabled="False" Stylus.IsPressAndHoldEnabled="False" Stylus.IsTapFeedbackEnabled="False" Stylus.IsTouchFeedbackEnabled="False" PreviewMouseDown="MainInkCanvas_PreviewMouseDown" PreviewMouseMove="MainInkCanvas_PreviewMouseMove" MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter"/>
                     </AdornerDecorator>
                     <Canvas x:Name="CursorCanvas" IsHitTestVisible="False" Panel.ZIndex="999">
                         <Ellipse x:Name="CustomDotCursor" Visibility="Hidden" IsHitTestVisible="False"><Ellipse.Effect><DropShadowEffect x:Name="CursorGlow" BlurRadius="4" ShadowDepth="1" Opacity="0.6"/></Ellipse.Effect></Ellipse>
@@ -158,7 +158,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                 </Grid>
             </ScrollViewer>
 
-            <InkCanvas x:Name="LaserInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" IsHitTestVisible="False" Panel.ZIndex="500" Stylus.IsFlicksEnabled="False" Stylus.IsPressAndHoldEnabled="False" Stylus.IsTapFeedbackEnabled="False" Stylus.IsTouchFeedbackEnabled="False" MouseMove="MainInkCanvas_PreviewMouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter"/>
+            <InkCanvas x:Name="LaserInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" IsHitTestVisible="False" Panel.ZIndex="500" Stylus.IsFlicksEnabled="False" Stylus.IsPressAndHoldEnabled="False" Stylus.IsTapFeedbackEnabled="False" Stylus.IsTouchFeedbackEnabled="False" MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter"/>
 
             <!-- FLOATING TOOLBAR -->
             <Border x:Name="MainToolbar" Background="#D9121214" BorderBrush="#2AFFFFFF" BorderThickness="1" CornerRadius="24" Padding="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,40" Panel.ZIndex="600">
@@ -290,7 +290,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         <Border Background="#121214" BorderBrush="#2AFFFFFF" BorderThickness="1" CornerRadius="16" Padding="16">
                             <Border.Effect><DropShadowEffect Color="Black" BlurRadius="30" Opacity="0.7" ShadowDepth="10"/></Border.Effect>
                             <StackPanel>
-                                <TextBlock Text="SOLID 14 SPECTRUM (1..0, -, =, [, ])" Foreground="#94A3B8" FontSize="11" FontWeight="Bold" Margin="0,0,0,10"/>
+                                <TextBlock Text="SOLID 14 SPECTRUM" Foreground="#94A3B8" FontSize="11" FontWeight="Bold" Margin="0,0,0,10"/>
                                 <WrapPanel Width="220" x:Name="PaletteGrid"/>
                                 <TextBlock Text="PREMIUM CANVASES" Foreground="#94A3B8" FontSize="11" FontWeight="Bold" Margin="0,16,0,10"/>
                                 <WrapPanel Width="220" x:Name="BgPaletteGrid"/>
@@ -632,6 +632,12 @@ namespace TeachingAnnotator
         {
             Color c = SafeColor(hex, Colors.White);
             ActiveColorIndicator.Fill = new SolidColorBrush(c);
+            
+            if (MainInkCanvas != null && MainInkCanvas.GetSelectedStrokes().Count > 0) {
+                foreach(var s in MainInkCanvas.GetSelectedStrokes()) s.DrawingAttributes.Color = c;
+                TouchModified();
+            }
+
             if (PenBtn.IsChecked == true) _penColor = c; else if (HighlightBtn.IsChecked == true) _highlightColor = c; else if (LaserBtn.IsChecked == true) _laserColor = c;
             ApplyPenAttributes();
         }
@@ -788,7 +794,13 @@ namespace TeachingAnnotator
                 }
                 g.Children.Add(preview);
                 g.Children.Add(new TextBlock { Text = "Page " + (i + 1), Foreground = new SolidColorBrush(Color.FromArgb(180,255,255,255)), FontSize = 12, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 10) });
-                
+                if (_activeSection.Pages.Count > 1) {
+                    var delBtn = new Button { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Width = 26, Height = 26, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(12), Cursor = Cursors.Hand };
+                    delBtn.Content = new System.Windows.Shapes.Path { Data = Geometry.Parse("M 0 0 L 10 10 M 10 0 L 0 10"), Stroke = new SolidColorBrush(Color.FromRgb(244, 63, 94)), StrokeThickness = 2, Stretch = Stretch.Uniform, Width = 8, Height = 8 };
+                    var captured = page; delBtn.Click += (s, e) => { e.Handled = true; DeletePage(captured); }; g.Children.Add(delBtn);
+                }
+                card.Child = g;
+
                 var tPage = page;
                 card.PreviewMouseLeftButtonDown += (s, e) => { _dragStartPoint = e.GetPosition(null); };
                 card.MouseMove += (s, e) => {
@@ -821,6 +833,12 @@ namespace TeachingAnnotator
         }
         private void AddPage_Click(object sender, RoutedEventArgs e) { var p = AddPageTo(_activeSection); TouchModified(); RenderThumbs(); SwitchPage(p); }
         
+        private void DeletePage(NotePage page) {
+            if (_activeSection.Pages.Count <= 1) return;
+            if (MessageBox.Show("Delete this page?", "Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+            DeletePageFast(page);
+        }
+
         private void DeletePageFast(NotePage page) {
             if (_activeSection == null || _activeSection.Pages.Count <= 1 || page == null) return;
             int idx = _activeSection.Pages.IndexOf(page); 
@@ -1004,44 +1022,43 @@ namespace TeachingAnnotator
             ApplyPenAttributes();
         }
 
-        // CONTINUOUS EYEDROPPER & ALT-CLONING
-        private void InkCanvas_PreviewStylusDown(object sender, StylusDownEventArgs e) { 
-            if (_settings.PenOnly && e.StylusDevice.TabletDevice.Type == TabletDeviceType.Touch) { e.Handled = true; return; } 
-            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control) { PerformContinuousEyedropper(e.GetPosition(MainInkCanvas)); e.Handled = true; return; }
-        }
-        
-        private void MainInkCanvas_PreviewStylusMove(object sender, StylusEventArgs e) {
-            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && !e.InAir) {
-                PerformContinuousEyedropper(e.GetPosition(MainInkCanvas)); e.Handled = true;
-            }
-        }
+        private void InkCanvas_PreviewStylusDown(object sender, StylusDownEventArgs e) { if (_settings.PenOnly && e.StylusDevice.TabletDevice.Type == TabletDeviceType.Touch) e.Handled = true; }
 
         private void MainInkCanvas_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton != MouseButtonState.Pressed) return;
-            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control) {
-                PerformContinuousEyedropper(e.GetPosition(MainInkCanvas)); e.Handled = true; return;
+            
+            // Eyedropper (Ctrl)
+            if (Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                Point pt = e.GetPosition(MainInkCanvas);
+                StrokeCollection hits = MainInkCanvas.Strokes.HitTest(pt, 12.0);
+                if (hits.Count > 0)
+                {
+                    Stroke targetStroke = hits[hits.Count - 1];
+                    Color strokeColor = targetStroke.DrawingAttributes.Color;
+                    if (targetStroke.DrawingAttributes.IsHighlighter)
+                        strokeColor = Color.FromArgb(255, strokeColor.R, strokeColor.G, strokeColor.B);
+                    SetInkColor(string.Format("#{0:X2}{1:X2}{2:X2}{3:X2}", strokeColor.A, strokeColor.R, strokeColor.G, strokeColor.B));
+                    e.Handled = true;
+                }
+                return;
             }
-            if ((Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt) {
-                _isAltCloning = true;
-                if (MainInkCanvas.EditingMode == InkCanvasEditingMode.Select && MainInkCanvas.GetSelectedStrokes().Count > 0) {
+            
+            // Clone Active Selection (Alt + Drag)
+            if (Keyboard.Modifiers == ModifierKeys.Alt)
+            {
+                if (MainInkCanvas.EditingMode == InkCanvasEditingMode.Select && MainInkCanvas.GetSelectedStrokes().Count > 0)
+                {
                     Point pt = e.GetPosition(MainInkCanvas);
-                    if (MainInkCanvas.HitTestSelection(pt) != InkCanvasSelectionHitResult.None) {
+                    if (MainInkCanvas.HitTestSelection(pt) != InkCanvasSelectionHitResult.None)
+                    {
                         var cloned = MainInkCanvas.GetSelectedStrokes().Clone();
-                        MainInkCanvas.Strokes.Add(cloned); MainInkCanvas.Select(cloned);
+                        MainInkCanvas.Strokes.Add(cloned);
+                        MainInkCanvas.Select(cloned);
+                        _isAltCloning = true;
                     }
                 }
-            }
-        }
-
-        private void PerformContinuousEyedropper(Point pt) {
-            StrokeCollection hits = MainInkCanvas.Strokes.HitTest(pt, 5.0);
-            if (hits.Count > 0) {
-                Stroke targetStroke = hits[hits.Count - 1];
-                Color c = targetStroke.DrawingAttributes.Color;
-                if (targetStroke.DrawingAttributes.IsHighlighter) c = Color.FromArgb(255, c.R, c.G, c.B);
-                string hex = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
-                SetInkColor(hex);
             }
         }
 
@@ -1057,7 +1074,10 @@ namespace TeachingAnnotator
                 LaserInkCanvas.IsHitTestVisible = false; MainInkCanvas.IsHitTestVisible = true;
                 if (PointerBtn.IsChecked == true) MainInkCanvas.EditingMode = InkCanvasEditingMode.None;
                 else if (PenBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = active, Width = size, Height = size, FitToCurve = true, IgnorePressure = ignore, StylusTip = StylusTip.Ellipse }; }
-                else if (HighlightBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = Color.FromArgb(100, active.R, active.G, active.B), Width = size * 3, Height = size * 3, IsHighlighter = true, FitToCurve = true, StylusTip = StylusTip.Ellipse, IgnorePressure = true }; }
+                else if (HighlightBtn.IsChecked == true) { 
+                    MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; 
+                    MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = Color.FromArgb(100, active.R, active.G, active.B), Width = size * 3, Height = size * 3, IsHighlighter = true, FitToCurve = true, StylusTip = StylusTip.Ellipse, IgnorePressure = true }; 
+                }
                 else if (EraserBtn.IsChecked == true) { MainInkCanvas.EditingMode = _settings.StrokeEraserEnabled ? InkCanvasEditingMode.EraseByStroke : InkCanvasEditingMode.EraseByPoint; if (!_settings.StrokeEraserEnabled) MainInkCanvas.EraserShape = new System.Windows.Ink.EllipseStylusShape(size * 4, size * 4); }
                 else if (SelectBtn.IsChecked == true) MainInkCanvas.EditingMode = InkCanvasEditingMode.Select;
             }
@@ -1087,15 +1107,23 @@ namespace TeachingAnnotator
             if (selected != null && selected.Count > 0) MainInkCanvas.Select(selected);
         }
 
-        // SMART SCRIBBLE TO ERASE & IPAD SMOOTHING
+        // SMART SCRIBBLE TO ERASE, SHAPE RECOGNITION & IPAD SMOOTHING
         private void MainInkCanvas_StrokesChanged(object sender, StrokeCollectionChangedEventArgs e) {
-            if (_isUndoRedoActive || _isUpdatingUI || _isSmoothing) return;
+            if (_isUndoRedoActive || _isUpdatingUI || _isSmoothing || _isAltCloning) return;
             StrokeCollection finalAdded = new StrokeCollection(e.Added);
             StrokeCollection finalRemoved = new StrokeCollection(e.Removed);
 
             if (e.Added.Count > 0 && PenBtn.IsChecked == true) {
                 _isSmoothing = true; finalAdded.Clear();
                 foreach (var stroke in e.Added) { 
+                    
+                    // Shape Detection via Shift
+                    if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) {
+                        Stroke recognized = RecognizeShape(stroke);
+                        finalAdded.Add(recognized);
+                        continue;
+                    }
+
                     var newPoints = SmoothAndTaperPoints(stroke.StylusPoints); 
                     var newStroke = new System.Windows.Ink.Stroke(newPoints, stroke.DrawingAttributes.Clone());
                     
@@ -1113,6 +1141,37 @@ namespace TeachingAnnotator
             var a = new UndoAction { Added = finalAdded, Removed = finalRemoved };
             if (a.Added.Count > 0 || a.Removed.Count > 0) { _undo.Push(a); _redo.Clear(); }
             EnforceStrokeZOrder(); TouchModified();
+        }
+
+        private Stroke RecognizeShape(Stroke input) {
+            var pts = input.StylusPoints; if (pts.Count < 10) return input;
+            Point start = (Point)pts[0]; Point end = (Point)pts[pts.Count - 1]; Rect bounds = input.GetBounds();
+            double dEnd = Math.Sqrt(Math.Pow(end.X - start.X, 2) + Math.Pow(end.Y - start.Y, 2));
+            double len = 0; for(int i=1; i<pts.Count; i++) len += Math.Sqrt(Math.Pow(pts[i].X - pts[i-1].X, 2) + Math.Pow(pts[i].Y - pts[i-1].Y, 2));
+            bool isClosed = dEnd < (bounds.Width + bounds.Height) * 0.15;
+
+            if (isClosed) {
+                double eCirc = Math.PI * Math.Sqrt((bounds.Width * bounds.Width + bounds.Height * bounds.Height) / 2.0);
+                if (Math.Abs(len - eCirc) < (bounds.Width + bounds.Height) * 0.3) {
+                    var sp = new StylusPointCollection(); double cx = bounds.Left + bounds.Width/2; double cy = bounds.Top + bounds.Height/2;
+                    for(int i=0; i<=360; i+=5) sp.Add(new StylusPoint(cx + (bounds.Width/2) * Math.Cos(i*Math.PI/180), cy + (bounds.Height/2) * Math.Sin(i*Math.PI/180)));
+                    return new Stroke(sp, input.DrawingAttributes);
+                } else {
+                    var sp = new StylusPointCollection { new StylusPoint(bounds.Left, bounds.Top), new StylusPoint(bounds.Right, bounds.Top), new StylusPoint(bounds.Right, bounds.Bottom), new StylusPoint(bounds.Left, bounds.Bottom), new StylusPoint(bounds.Left, bounds.Top) };
+                    return new Stroke(sp, input.DrawingAttributes);
+                }
+            } else if (len < dEnd * 1.25) {
+                Point pHook = (Point)pts[Math.Max(0, pts.Count - 10)];
+                if (Math.Sqrt(Math.Pow(end.X - pHook.X, 2) + Math.Pow(end.Y - pHook.Y, 2)) > 15) {
+                    var sp = new StylusPointCollection { new StylusPoint(start.X, start.Y), new StylusPoint(end.X, end.Y) };
+                    double angle = Math.Atan2(end.Y - start.Y, end.X - start.X); double hl = 20.0;
+                    sp.Add(new StylusPoint(end.X - hl * Math.Cos(angle - Math.PI/6), end.Y - hl * Math.Sin(angle - Math.PI/6))); sp.Add(new StylusPoint(end.X, end.Y));
+                    sp.Add(new StylusPoint(end.X - hl * Math.Cos(angle + Math.PI/6), end.Y - hl * Math.Sin(angle + Math.PI/6))); sp.Add(new StylusPoint(end.X, end.Y));
+                    return new Stroke(sp, input.DrawingAttributes);
+                }
+                return new Stroke(new StylusPointCollection { new StylusPoint(start.X, start.Y), new StylusPoint(end.X, end.Y) }, input.DrawingAttributes);
+            }
+            return input;
         }
 
         private bool IsScribble(Stroke s) {
@@ -1143,7 +1202,7 @@ namespace TeachingAnnotator
         private void MainInkCanvas_SelectionTransformed(object sender, EventArgs e) {
             if (_liveStrokesBeforeMove == null) return;
             _undo.Push(new UndoAction { Added = MainInkCanvas.GetSelectedStrokes(), Removed = _clonedStrokesBeforeMove }); _redo.Clear();
-            _liveStrokesBeforeMove = null; _clonedStrokesBeforeMove = null; TouchModified();
+            _liveStrokesBeforeMove = null; _clonedStrokesBeforeMove = null; TouchModified(); _isAltCloning = false;
         }
         private void PerformUndo() { if (_undo.Count == 0) return; _isUndoRedoActive = true; var a = _undo.Pop(); if (a.Added.Count > 0) MainInkCanvas.Strokes.Remove(a.Added); if (a.Removed.Count > 0) MainInkCanvas.Strokes.Add(a.Removed); _redo.Push(a); _isUndoRedoActive = false; EnforceStrokeZOrder(); TouchModified(); }
         private void PerformRedo() { if (_redo.Count == 0) return; _isUndoRedoActive = true; var a = _redo.Pop(); if (a.Removed.Count > 0) MainInkCanvas.Strokes.Remove(a.Removed); if (a.Added.Count > 0) MainInkCanvas.Strokes.Add(a.Added); _undo.Push(a); _isUndoRedoActive = false; EnforceStrokeZOrder(); TouchModified(); }
@@ -1153,18 +1212,26 @@ namespace TeachingAnnotator
             if (CustomDotCursor == null) return;
             if (SelectBtn.IsChecked == true || PointerBtn.IsChecked == true) { CustomDotCursor.Visibility = Visibility.Hidden; return; }
             double size = SizeSlider.Value; Color c = ((SolidColorBrush)ActiveColorIndicator.Fill).Color;
-            if (HighlightBtn.IsChecked == true) { size *= 3; c = Color.FromArgb(100, c.R, c.G, c.B); }
+            if (HighlightBtn.IsChecked == true) { size *= 4; c = Color.FromArgb(80, c.R, c.G, c.B); }
             if (EraserBtn.IsChecked == true) { size = _settings.StrokeEraserEnabled ? 20 : size * 4; CustomDotCursor.StrokeThickness = 1; CustomDotCursor.Stroke = new SolidColorBrush(Colors.Gray); CustomDotCursor.Fill = new SolidColorBrush(Color.FromArgb(90, 255, 255, 255)); CursorGlow.Opacity = 0; }
             else { CustomDotCursor.StrokeThickness = 0; CustomDotCursor.Fill = new SolidColorBrush(Color.FromArgb(160, c.R, c.G, c.B)); CursorGlow.Color = Colors.Black; CursorGlow.Opacity = 0.4; CursorGlow.BlurRadius = 4; CursorGlow.ShadowDepth = 1; }
             CustomDotCursor.Width = size; CustomDotCursor.Height = size;
         }
-        private void MainInkCanvas_MouseMove(object sender, MouseEventArgs e) { 
-            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.LeftButton == MouseButtonState.Pressed) {
-                PerformContinuousEyedropper(e.GetPosition(MainInkCanvas)); e.Handled = true; return;
+        
+        private void MainInkCanvas_PreviewMouseMove(object sender, MouseEventArgs e) {
+            if (Keyboard.Modifiers == ModifierKeys.Control && e.LeftButton == MouseButtonState.Pressed) {
+                Point pt = e.GetPosition(MainInkCanvas);
+                StrokeCollection hits = MainInkCanvas.Strokes.HitTest(pt, 5.0);
+                if (hits.Count > 0) {
+                    Stroke targetStroke = hits[hits.Count - 1]; Color strokeColor = targetStroke.DrawingAttributes.Color;
+                    if (targetStroke.DrawingAttributes.IsHighlighter) strokeColor = Color.FromArgb(255, strokeColor.R, strokeColor.G, strokeColor.B);
+                    SetInkColor(string.Format("#{0:X2}{1:X2}{2:X2}{3:X2}", strokeColor.A, strokeColor.R, strokeColor.G, strokeColor.B));
+                }
+                e.Handled = true;
             }
-            if (SelectBtn.IsChecked == true || PointerBtn.IsChecked == true) return; 
-            CustomDotCursor.Visibility = Visibility.Visible; Point p = e.GetPosition(CursorCanvas); Canvas.SetLeft(CustomDotCursor, p.X - CustomDotCursor.Width / 2); Canvas.SetTop(CustomDotCursor, p.Y - CustomDotCursor.Height / 2); 
         }
+        
+        private void MainInkCanvas_MouseMove(object sender, MouseEventArgs e) { if (SelectBtn.IsChecked == true || PointerBtn.IsChecked == true) return; CustomDotCursor.Visibility = Visibility.Visible; Point p = e.GetPosition(CursorCanvas); Canvas.SetLeft(CustomDotCursor, p.X - CustomDotCursor.Width / 2); Canvas.SetTop(CustomDotCursor, p.Y - CustomDotCursor.Height / 2); }
         private void MainInkCanvas_MouseLeave(object sender, MouseEventArgs e) { CustomDotCursor.Visibility = Visibility.Hidden; }
         private void MainInkCanvas_MouseEnter(object sender, MouseEventArgs e) { if (SelectBtn.IsChecked != true && PointerBtn.IsChecked != true) CustomDotCursor.Visibility = Visibility.Visible; }
 
@@ -1277,9 +1344,10 @@ namespace TeachingAnnotator
             if (NotebookView.Visibility != Visibility.Visible) return;
             if (RenameOverlay.Visibility == Visibility.Visible) { if (e.Key == Key.Enter) RenameOk_Click(null, null); else if (e.Key == Key.Escape) RenameCancel_Click(null, null); return; }
             
+            // Delete Page Rapid Shortcut (Backslash \)
             if (e.Key == Key.OemBackslash || e.Key == Key.Oem5) { DeletePageFast(_activePage); e.Handled = true; return; }
 
-            // Pen Color Hotkeys (1..0, -, =, [, ])
+            // 1-0 and specific keys mapped to the 14 colors
             if (e.Key == Key.D1) { SetInkColor(theSolid14[0]); e.Handled = true; return; }
             if (e.Key == Key.D2) { SetInkColor(theSolid14[1]); e.Handled = true; return; }
             if (e.Key == Key.D3) { SetInkColor(theSolid14[2]); e.Handled = true; return; }
@@ -1310,6 +1378,7 @@ namespace TeachingAnnotator
             if (e.Key == Key.Delete) { var s = MainInkCanvas.GetSelectedStrokes(); if (s.Count > 0) MainInkCanvas.Strokes.Remove(s); return; }
             if (LibrarySearchBox.IsFocused || PageNumberInput.IsFocused || ZoomPercentInput.IsFocused || LaserHoldInput.IsFocused || LaserFadeInput.IsFocused || LaserCoreHexInput.IsFocused || LaserGlowHexInput.IsFocused || GridGapInput.IsFocused || RenameInput.IsFocused) return;
             
+            // Hide Toolbars
             if (e.Key == Key.H) { 
                 var v = MainToolbar.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible; 
                 MainToolbar.Visibility = v; StatusControlPanel.Visibility = v; 
