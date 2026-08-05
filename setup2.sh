@@ -129,9 +129,8 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
         <!-- Sidebar -->
         <Border Grid.Column="0" Background="#121214" BorderBrush="#2AFFFFFF" BorderThickness="0,0,1,0">
             <DockPanel>
-                <Button DockPanel.Dock="Bottom" Background="#1EFFFFFF" BorderThickness="0" Foreground="White" Cursor="Hand" Click="AddPage_Click" Margin="16" Padding="12" ToolTip="Add Page to Section">
-                    <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center"/></Border></ControlTemplate></Button.Template>
-                    <StackPanel Orientation="Horizontal"><TextBlock Text="+" FontWeight="Bold" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Add Page" FontWeight="SemiBold" VerticalAlignment="Center"/></StackPanel>
+                <Button DockPanel.Dock="Bottom" Style="{StaticResource IconButton}" Click="AddPage_Click" Margin="16" Padding="12" ToolTip="Add Page to Section">
+                    <StackPanel Orientation="Horizontal"><TextBlock Text="+" Foreground="White" FontWeight="Bold" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Add Page" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center"/></StackPanel>
                 </Button>
                 <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel x:Name="PageThumbPanel" Margin="16"/></ScrollViewer>
             </DockPanel>
@@ -169,7 +168,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         <Path Data="M 2 4 A 1 1 0 1 1 2 6 A 1 1 0 1 1 2 4 Z M 2 11 A 1 1 0 1 1 2 13 A 1 1 0 1 1 2 11 Z M 2 18 A 1 1 0 1 1 2 20 A 1 1 0 1 1 2 18 Z M 8 4 A 1 1 0 1 1 8 6 A 1 1 0 1 1 8 4 Z M 8 11 A 1 1 0 1 1 8 13 A 1 1 0 1 1 8 11 Z M 8 18 A 1 1 0 1 1 8 20 A 1 1 0 1 1 8 18 Z" Fill="#94A3B8" Stretch="Uniform" Width="8"/>
                     </Border>
 
-                    <ToggleButton x:Name="FileMenuToggle" Style="{StaticResource MenuToggle}" ToolTip="File &amp; Export (Ctrl+E)">
+                    <ToggleButton x:Name="FileMenuToggle" Style="{StaticResource MenuToggle}" ToolTip="File &amp; Export">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="File" FontWeight="Bold" FontSize="14"/><TextBlock Text="&#9662;" FontSize="10" Margin="6,2,0,0"/></StackPanel>
                     </ToggleButton>
                     <Popup PlacementTarget="{Binding ElementName=FileMenuToggle}" IsOpen="{Binding IsChecked, ElementName=FileMenuToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" Placement="Top" VerticalOffset="-16">
@@ -332,9 +331,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         <TextBlock Text="Vector scaling applied. Output matches exact section resolution." Foreground="#94A3B8" FontSize="12" TextWrapping="Wrap" Margin="0,20,0,32"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Style="{StaticResource DropdownItem}" Click="ExportCancel_Click" Content="Cancel" Margin="0,0,16,0" Padding="20,10"/>
-                            <Button Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Cursor="Hand" Click="ExportConfirm_Click" Content="Export Document" Padding="20,10">
-                                <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
-                            </Button>
+                            <Button Style="{StaticResource DropdownItem}" Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Click="ExportConfirm_Click" Content="Export Document" Padding="20,10"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -351,9 +348,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         </Border>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Style="{StaticResource DropdownItem}" Click="RenameCancel_Click" Content="Cancel" Margin="0,0,16,0" Padding="20,10"/>
-                            <Button Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Cursor="Hand" Click="RenameOk_Click" Content="Save Changes" Padding="20,10">
-                                <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
-                            </Button>
+                            <Button Style="{StaticResource DropdownItem}" Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Click="RenameOk_Click" Content="Save Changes" Padding="20,10"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -685,7 +680,7 @@ namespace TeachingAnnotator
                 stack.Children.Add(new TextBlock { Text = $"{nb.Sections.Count} sections \u00B7 {pages} pages", Foreground = new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)), FontSize = 12, Margin = new Thickness(0, 6, 0, 0) });
                 grid.Children.Add(stack);
                 
-                var delBtn = new Button { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Width = 30, Height = 30, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(8), Cursor = Cursors.Hand };
+                var delBtn = new Button { Style = (Style)FindResource("IconButton"), Width = 30, Height = 30, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(8) };
                 delBtn.Content = new System.Windows.Shapes.Path { Data = Geometry.Parse("M 0 0 L 12 12 M 12 0 L 0 12"), Stroke = new SolidColorBrush(Color.FromArgb(180, 255, 255, 255)), StrokeThickness = 2, Stretch = Stretch.Uniform, Width = 10, Height = 10 };
                 delBtn.Click += (s, e) => { e.Handled = true; DeleteNotebook(nb); };
                 grid.Children.Add(delBtn);
@@ -742,7 +737,7 @@ namespace TeachingAnnotator
                 sp.Children.Add(new System.Windows.Shapes.Ellipse { Width = 10, Height = 10, Fill = new SolidColorBrush(SafeColor(sec.Color, Colors.SkyBlue)), Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center });
                 sp.Children.Add(new TextBlock { Text = sec.Title, Foreground = sec == _activeSection ? Brushes.White : new SolidColorBrush(Color.FromArgb(180,255,255,255)), FontWeight = FontWeights.SemiBold, FontSize = 13, VerticalAlignment = VerticalAlignment.Center });
                 if (_activeNotebook.Sections.Count > 1) {
-                    var close = new Button { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Margin = new Thickness(12, 0, 0, 0), Cursor = Cursors.Hand };
+                    var close = new Button { Style = (Style)FindResource("IconButton"), Margin = new Thickness(12, 0, 0, 0) };
                     close.Content = new System.Windows.Shapes.Path { Data = Geometry.Parse("M 0 0 L 8 8 M 8 0 L 0 8"), Stroke = new SolidColorBrush(Color.FromArgb(150,255,255,255)), StrokeThickness = 1.5, Stretch = Stretch.Uniform, Width = 8, Height = 8 };
                     var target = sec; close.Click += (s, e) => { e.Handled = true; DeleteSection(target); };
                     sp.Children.Add(close);
@@ -796,7 +791,7 @@ namespace TeachingAnnotator
                 g.Children.Add(preview);
                 g.Children.Add(new TextBlock { Text = "Page " + (i + 1), Foreground = new SolidColorBrush(Color.FromArgb(180,255,255,255)), FontSize = 12, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 10) });
                 if (_activeSection.Pages.Count > 1) {
-                    var delBtn = new Button { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Width = 26, Height = 26, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(12), Cursor = Cursors.Hand };
+                    var delBtn = new Button { Style = (Style)FindResource("IconButton"), Width = 26, Height = 26, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(12) };
                     delBtn.Content = new System.Windows.Shapes.Path { Data = Geometry.Parse("M 0 0 L 10 10 M 10 0 L 0 10"), Stroke = new SolidColorBrush(Color.FromRgb(244, 63, 94)), StrokeThickness = 2, Stretch = Stretch.Uniform, Width = 8, Height = 8 };
                     var captured = page; delBtn.Click += (s, e) => { e.Handled = true; DeletePage(captured); }; g.Children.Add(delBtn);
                 }
@@ -1033,7 +1028,7 @@ namespace TeachingAnnotator
             if (Keyboard.Modifiers == ModifierKeys.Control)
             {
                 Point pt = e.GetPosition(MainInkCanvas);
-                StrokeCollection hits = MainInkCanvas.Strokes.HitTest(pt, 12.0);
+                StrokeCollection hits = MainInkCanvas.Strokes.HitTest(pt, 5.0);
                 if (hits.Count > 0)
                 {
                     Stroke targetStroke = hits[hits.Count - 1];
@@ -1183,7 +1178,6 @@ namespace TeachingAnnotator
                 if (nr != right && Math.Abs(pts[i].X - pts[i-1].X) > 2) { xReversals++; right = nr; }
             }
             var b = s.GetBounds();
-            // A scribble reverses X frequently within a small vertical or dense bounding box
             return xReversals >= 5 && b.Width > 15 && b.Height < b.Width * 1.5; 
         }
 
@@ -1283,6 +1277,11 @@ namespace TeachingAnnotator
                 TouchModified(); RenderThumbs(); SwitchPage(np);
             } catch (Exception ex) { MessageBox.Show("Image import failed: " + ex.Message); }
         }
+        private void RemoveBackground_Click(object sender, RoutedEventArgs e) {
+            if (_activePage == null) return;
+            _activePage.Kind = "Blank"; _activePage.PdfFileName = null; _activePage.ImageFileName = null;
+            SwitchPage(_activePage); TouchModified(); RenderThumbs();
+        }
 
         private void Export_Click(object sender, RoutedEventArgs e) { ExportOverlay.Visibility = Visibility.Visible; ExportOverlay.Opacity = 0; ExportOverlay.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150))); }
         private void ExportCancel_Click(object sender, RoutedEventArgs e) { ExportOverlay.Visibility = Visibility.Collapsed; }
@@ -1341,10 +1340,8 @@ namespace TeachingAnnotator
             if (NotebookView.Visibility != Visibility.Visible) return;
             if (RenameOverlay.Visibility == Visibility.Visible) { if (e.Key == Key.Enter) RenameOk_Click(null, null); else if (e.Key == Key.Escape) RenameCancel_Click(null, null); return; }
             
-            // Delete Page Rapid Shortcut (Backslash \)
             if (e.Key == Key.OemBackslash || e.Key == Key.Oem5) { DeletePageFast(_activePage); e.Handled = true; return; }
 
-            // 1-0 and specific keys mapped to the 14 colors
             if (e.Key == Key.D1) { SetInkColor(theSolid14[0]); e.Handled = true; return; }
             if (e.Key == Key.D2) { SetInkColor(theSolid14[1]); e.Handled = true; return; }
             if (e.Key == Key.D3) { SetInkColor(theSolid14[2]); e.Handled = true; return; }
@@ -1375,7 +1372,6 @@ namespace TeachingAnnotator
             if (e.Key == Key.Delete) { var s = MainInkCanvas.GetSelectedStrokes(); if (s.Count > 0) MainInkCanvas.Strokes.Remove(s); return; }
             if (LibrarySearchBox.IsFocused || PageNumberInput.IsFocused || ZoomPercentInput.IsFocused || LaserHoldInput.IsFocused || LaserFadeInput.IsFocused || LaserCoreHexInput.IsFocused || LaserGlowHexInput.IsFocused || GridGapInput.IsFocused || RenameInput.IsFocused) return;
             
-            // Hide Toolbars
             if (e.Key == Key.H) { 
                 var v = MainToolbar.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible; 
                 MainToolbar.Visibility = v; StatusControlPanel.Visibility = v; 
