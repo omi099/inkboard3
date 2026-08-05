@@ -171,6 +171,8 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                 </Grid>
             </ScrollViewer>
 
+            <InkCanvas x:Name="LaserInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" IsHitTestVisible="False" Panel.ZIndex="500" Stylus.IsFlicksEnabled="False" Stylus.IsPressAndHoldEnabled="False" Stylus.IsTapFeedbackEnabled="False" Stylus.IsTouchFeedbackEnabled="False" MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter"/>
+
             <!-- FLOATING TOOLBAR -->
             <Border x:Name="MainToolbar" Background="#D9121214" BorderBrush="#2AFFFFFF" BorderThickness="1" CornerRadius="24" Padding="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,40" Panel.ZIndex="600">
                 <Border.RenderTransform><TranslateTransform x:Name="ToolbarTransform" X="0" Y="0"/></Border.RenderTransform>
@@ -180,7 +182,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         <Path Data="M 2 4 A 1 1 0 1 1 2 6 A 1 1 0 1 1 2 4 Z M 2 11 A 1 1 0 1 1 2 13 A 1 1 0 1 1 2 11 Z M 2 18 A 1 1 0 1 1 2 20 A 1 1 0 1 1 2 18 Z M 8 4 A 1 1 0 1 1 8 6 A 1 1 0 1 1 8 4 Z M 8 11 A 1 1 0 1 1 8 13 A 1 1 0 1 1 8 11 Z M 8 18 A 1 1 0 1 1 8 20 A 1 1 0 1 1 8 18 Z" Fill="#94A3B8" Stretch="Uniform" Width="8"/>
                     </Border>
 
-                    <ToggleButton x:Name="FileMenuToggle" Style="{StaticResource MenuToggle}" ToolTip="File &amp; Export">
+                    <ToggleButton x:Name="FileMenuToggle" Style="{StaticResource MenuToggle}" ToolTip="File &amp; Export (Ctrl+E)">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="File" FontWeight="Bold" FontSize="14"/><TextBlock Text="&#9662;" FontSize="10" Margin="6,2,0,0"/></StackPanel>
                     </ToggleButton>
                     <Popup PlacementTarget="{Binding ElementName=FileMenuToggle}" IsOpen="{Binding IsChecked, ElementName=FileMenuToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" Placement="Top" VerticalOffset="-16">
@@ -191,7 +193,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                                 <Button Style="{StaticResource DropdownItem}" Click="ImportImage_Click" Content="Import Background"/>
                                 <Button Style="{StaticResource DropdownItem}" Click="RemoveBackground_Click" Content="Remove Background"/>
                                 <Button Style="{StaticResource DropdownItem}" Click="Export_Click" Content="Export Section... (Ctrl+E)"/>
-                                <Button Style="{StaticResource DropdownItem}" Click="ClearInk_Click" Content="Clear Canvas" Foreground="#F43F5E"/>
+                                <Button Style="{StaticResource DropdownItem}" Click="ClearInk_Click" Content="Clear Canvas (Ctrl+Shift+C)" Foreground="#F43F5E"/>
                             </StackPanel>
                         </Border>
                     </Popup>
@@ -344,7 +346,9 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         <TextBlock Text="Vector scaling applied. Output matches exact section resolution." Foreground="#94A3B8" FontSize="12" TextWrapping="Wrap" Margin="0,20,0,32"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Style="{StaticResource DropdownItem}" Click="ExportCancel_Click" Content="Cancel" Margin="0,0,16,0" Padding="20,10"/>
-                            <Button Style="{StaticResource DropdownItem}" Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Click="ExportConfirm_Click" Content="Export Document" Padding="20,10"/>
+                            <Button Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Cursor="Hand" Click="ExportConfirm_Click" Content="Export Document" Padding="20,10">
+                                <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
+                            </Button>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -361,7 +365,9 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         </Border>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Style="{StaticResource DropdownItem}" Click="RenameCancel_Click" Content="Cancel" Margin="0,0,16,0" Padding="20,10"/>
-                            <Button Style="{StaticResource DropdownItem}" Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Click="RenameOk_Click" Content="Save Changes" Padding="20,10"/>
+                            <Button Background="#FFFFFF" Foreground="Black" FontWeight="Bold" Cursor="Hand" Click="RenameOk_Click" Content="Save Changes" Padding="20,10">
+                                <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
+                            </Button>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -810,6 +816,8 @@ namespace TeachingAnnotator
                 p.GridPattern = _activePage.GridPattern; 
                 p.PageSizePreset = _activePage.PageSizePreset; 
                 p.GridGap = _activePage.GridGap; 
+                p.CustomPageWidth = _activePage.CustomPageWidth;
+                p.CustomPageHeight = _activePage.CustomPageHeight;
             } else {
                 p.BgColor = _settings.LightMode ? "#FFFFFF" : "#121214";
             }
@@ -973,9 +981,8 @@ namespace TeachingAnnotator
             if (_activePage.Kind == "Pdf" && PdfImage.Visibility == Visibility.Visible) { w = _pdfDisplayW; h = _pdfDisplayH; } 
             else if (_activePage.Kind == "Image" && BgImage.Visibility == Visibility.Visible) { w = _activePage.ImageWidth > 0 ? _activePage.ImageWidth : 1920; h = _activePage.ImageHeight > 0 ? _activePage.ImageHeight : 1080; }
             else { 
-                if (_activePage.CustomPageWidth > 0) w = _activePage.CustomPageWidth;
-                if (_activePage.CustomPageHeight > 0) h = _activePage.CustomPageHeight;
-                if (w == 1920 && h == 1080 && _activePage.CustomPageWidth == 0) GetPageDimensions(_activePage.PageSizePreset, out w, out h); 
+                if (_activePage.CustomPageWidth > 0) { w = _activePage.CustomPageWidth; h = _activePage.CustomPageHeight; }
+                else { GetPageDimensions(_activePage.PageSizePreset, out w, out h); }
             }
             
             PageHost.Width = w; PageHost.Height = h; 
@@ -1388,7 +1395,39 @@ namespace TeachingAnnotator
                             XColor mic = _settings.LightMode ? XColor.FromArgb(255, 229, 229, 229) : XColor.FromArgb(6, 255, 255, 255);
                             XColor mac = _settings.LightMode ? XColor.FromArgb(255, 204, 204, 204) : XColor.FromArgb(12, 255, 255, 255);
                             var minorPen = new XPen(mic, 0.25); var majorPen = new XPen(mac, 0.6);
-                            if (page.GridPattern > 0) { for (double x = q; x < w; x += q) { bool isMaj = Math.Abs(x % gap) < 0.1 || Math.Abs((x % gap) - gap) < 0.1; gfx.DrawLine(isMaj ? majorPen : minorPen, x, 0, x, h); } for (double y = q; y < h; y += q) { bool isMaj = Math.Abs(y % gap) < 0.1 || Math.Abs((y % gap) - gap) < 0.1; gfx.DrawLine(isMaj ? majorPen : minorPen, 0, y, w, y); } }
+                            
+                            if (page.GridPattern == 1) { // Ruled
+                                for(double y = gap; y < h; y += gap) gfx.DrawLine(majorPen, 0, y, w, y);
+                            } else if (page.GridPattern == 2) { // Narrow
+                                for(double y = gap*0.6; y < h; y += gap*0.6) gfx.DrawLine(majorPen, 0, y, w, y);
+                            } else if (page.GridPattern == 3) { // Square
+                                for(double x = gap; x < w; x += gap) gfx.DrawLine(majorPen, x, 0, x, h);
+                                for(double y = gap; y < h; y += gap) gfx.DrawLine(majorPen, 0, y, w, y);
+                            } else if (page.GridPattern == 4) { // Fine
+                                for(double x = gap/2; x < w; x += gap/2) gfx.DrawLine(Math.Abs(x%gap)<0.1 ? majorPen : minorPen, x, 0, x, h);
+                                for(double y = gap/2; y < h; y += gap/2) gfx.DrawLine(Math.Abs(y%gap)<0.1 ? majorPen : minorPen, 0, y, w, y);
+                            } else if (page.GridPattern == 5) { // Dotted
+                                var dotBrush = new XSolidBrush(mac);
+                                for(double x = gap; x < w; x += gap) for(double y = gap; y < h; y += gap) gfx.DrawEllipse(dotBrush, x-1.5, y-1.5, 3, 3);
+                            } else if (page.GridPattern == 6) { // Cross
+                                for(double x = gap; x < w; x += gap) for(double y = gap; y < h; y += gap) { gfx.DrawLine(majorPen, x-3, y, x+3, y); gfx.DrawLine(majorPen, x, y-3, x, y+3); }
+                            } else if (page.GridPattern == 7) { // Iso
+                                double isoH = gap * 1.732;
+                                for(double x = gap; x < w; x += gap) gfx.DrawLine(majorPen, x, 0, x, h);
+                                for(double y = -w; y < h; y += isoH/2) { gfx.DrawLine(majorPen, 0, y, w, y + w*(isoH/(gap*2))); gfx.DrawLine(majorPen, 0, y + w*(isoH/(gap*2)), w, y); }
+                            } else if (page.GridPattern == 8) { // Hex
+                                double hexH = gap * 0.866;
+                                for(double y = 0; y < h+hexH; y += hexH*2) {
+                                    for(double x = 0; x < w+gap*3; x += gap*3) {
+                                        gfx.DrawLine(minorPen, x+gap*0.5, y, x+gap*1.5, y); gfx.DrawLine(minorPen, x+gap*1.5, y, x+gap*2, y+hexH);
+                                        gfx.DrawLine(minorPen, x+gap*2, y+hexH, x+gap*1.5, y+hexH*2); gfx.DrawLine(minorPen, x+gap*1.5, y+hexH*2, x+gap*0.5, y+hexH*2);
+                                        gfx.DrawLine(minorPen, x+gap*0.5, y+hexH*2, x, y+hexH); gfx.DrawLine(minorPen, x, y+hexH, x+gap*0.5, y);
+                                    }
+                                }
+                            } else if (page.GridPattern == 9) { // Eng
+                                for(double x = q; x < w; x += q) gfx.DrawLine(Math.Abs(x%gap)<0.1 ? majorPen : minorPen, x, 0, x, h);
+                                for(double y = q; y < h; y += q) gfx.DrawLine(Math.Abs(y%gap)<0.1 ? majorPen : minorPen, 0, y, w, y);
+                            }
                         }
                         if (exportMode != 1 && strokes.Count > 0) DrawStrokes(gfx, strokes, 1.0, 1.0); gfx.Dispose();
                     }
