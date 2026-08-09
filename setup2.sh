@@ -1366,7 +1366,7 @@ namespace TeachingAnnotator
                 LaserInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = _laserCoreColor, Width = size, Height = size, FitToCurve = true, StylusTip = StylusTip.Ellipse, IgnorePressure = true };
                 LaserInkCanvas.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = _laserGlowColor, BlurRadius = _settings.LaserGlow, ShadowDepth = 0, Opacity = 1.0, RenderingBias = System.Windows.Media.Effects.RenderingBias.Performance };
                 CancelLaserFade();
-                LaserInkCanvas.Cursor = inkCursor;
+                LaserInkCanvas.Cursor = Cursors.Arrow;
             } else {
                 LaserInkCanvas.IsHitTestVisible = false; MainInkCanvas.IsHitTestVisible = true;
                 if (PointerBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Select; MainInkCanvas.Cursor = Cursors.Arrow; }
