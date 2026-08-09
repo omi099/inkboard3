@@ -843,7 +843,18 @@ namespace TeachingAnnotator
         {
             PageThumbPanel.Children.Clear();
             if (_activeSection == null) return;
-            for (int i = 0; i < _activeSection.Pages.Count; i++)
+            
+            int currentIndex = _activePage != null ? _activeSection.Pages.IndexOf(_activePage) : 0;
+            if (currentIndex < 0) currentIndex = 0;
+            
+            int startIdx = Math.Max(0, currentIndex - 2);
+            int endIdx = Math.Min(_activeSection.Pages.Count - 1, currentIndex + 2);
+
+            if (startIdx > 0) {
+                PageThumbPanel.Children.Add(new TextBlock { Text = "↑ " + startIdx + " older pages", Foreground = Brushes.Gray, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0,0,0,16) });
+            }
+
+            for (int i = startIdx; i <= endIdx; i++)
             {
                 var page = _activeSection.Pages[i];
                 var card = new Border { Margin = new Thickness(0, 0, 0, 16), CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(2), BorderBrush = page == _activePage ? new SolidColorBrush(SafeColor(theSolid14[11], Colors.White)) : new SolidColorBrush(Color.FromArgb(20,255,255,255)), Background = new SolidColorBrush(Color.FromArgb(10,255,255,255)), Cursor = Cursors.Hand };
@@ -852,8 +863,7 @@ namespace TeachingAnnotator
                 var preview = new Border { Height = 120, CornerRadius = new CornerRadius(8), Margin = new Thickness(8, 8, 8, 32), Background = hasImg ? Brushes.White : new SolidColorBrush(SafeColor(page.BgColor, Colors.Black)), ClipToBounds = true };
                 if (hasImg) {
                     var img = new Image { Stretch = Stretch.Uniform, VerticalAlignment = VerticalAlignment.Top }; preview.Child = img;
-                    if (Math.Abs(i - _activeSection.Pages.IndexOf(_activePage)) <= 5) EnsureThumb(page, img);
-                    else preview.Child = new TextBlock { Text = page.Kind == "Pdf" ? "PDF" : "IMG", Foreground = Brushes.Gray, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
+                    EnsureThumb(page, img);
                 }
                 g.Children.Add(preview);
                 g.Children.Add(new TextBlock { Text = "Page " + (i + 1), Foreground = new SolidColorBrush(Color.FromArgb(180,255,255,255)), FontSize = 12, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 10) });
@@ -883,6 +893,10 @@ namespace TeachingAnnotator
                 };
                 card.MouseLeftButtonUp += (s, e) => { if (!e.Handled) SwitchPage(tPage); };
                 PageThumbPanel.Children.Add(card);
+            }
+
+            if (endIdx < _activeSection.Pages.Count - 1) {
+                PageThumbPanel.Children.Add(new TextBlock { Text = "↓ " + (_activeSection.Pages.Count - 1 - endIdx) + " more pages", Foreground = Brushes.Gray, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0,0,0,16) });
             }
         }
         private async void EnsureThumb(NotePage p, Image img)
