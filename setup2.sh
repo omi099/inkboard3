@@ -275,25 +275,9 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                                         <TextBox x:Name="LaserGlowHexInput" Text="#A86C6D" Width="68" Padding="4" Background="Transparent" Foreground="White" BorderThickness="0" TextAlignment="Center" TextChanged="Setting_Changed"/>
                                     </Border>
                                 </Grid>
-                                <Grid Margin="0,6">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Hold (sec)" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/>
-                                    <Border Grid.Column="1" Background="#09090B" CornerRadius="4">
-                                        <TextBox x:Name="LaserHoldInput" Text="1.2" Width="48" Padding="4" Background="Transparent" Foreground="White" BorderThickness="0" TextAlignment="Center" TextChanged="Setting_Changed"/>
-                                    </Border>
-                                </Grid>
-                                <Grid Margin="0,6">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Fade (sec)" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/>
-                                    <Border Grid.Column="1" Background="#09090B" CornerRadius="4">
-                                        <TextBox x:Name="LaserFadeInput" Text="0.6" Width="48" Padding="4" Background="Transparent" Foreground="White" BorderThickness="0" TextAlignment="Center" TextChanged="Setting_Changed"/>
-                                    </Border>
-                                </Grid>
-                                <Grid Margin="0,6">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Glow Radius" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/>
-                                    <Slider x:Name="LaserGlowSlider" Grid.Column="1" Minimum="1" Maximum="50" Value="24" Width="80" ValueChanged="Setting_Changed"/>
-                                </Grid>
+                                <Grid Margin="0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Grid.Column="0" Text="Hold (sec)" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/><Border Grid.Column="1" Background="#09090B" CornerRadius="4"><TextBox x:Name="LaserHoldInput" Text="1.2" Width="48" Padding="4" Background="Transparent" Foreground="White" BorderThickness="0" TextAlignment="Center" TextChanged="Setting_Changed"/></Border></Grid>
+                                <Grid Margin="0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Grid.Column="0" Text="Fade (sec)" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/><Border Grid.Column="1" Background="#09090B" CornerRadius="4"><TextBox x:Name="LaserFadeInput" Text="0.6" Width="48" Padding="4" Background="Transparent" Foreground="White" BorderThickness="0" TextAlignment="Center" TextChanged="Setting_Changed"/></Border></Grid>
+                                <Grid Margin="0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Grid.Column="0" Text="Glow Radius" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/><Slider x:Name="LaserGlowSlider" Grid.Column="1" Minimum="1" Maximum="50" Value="24" Width="80" ValueChanged="Setting_Changed"/></Grid>
                             </StackPanel>
                         </Border>
                     </Popup>
@@ -395,6 +379,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 
         </Grid>
     </Grid>
+</Grid>
 </Grid>
 </Window>
 ANYDRAW_EOF
@@ -1267,10 +1252,16 @@ namespace TeachingAnnotator
             bool isClosed = dEnd < (bounds.Width + bounds.Height) * 0.15;
 
             if (isClosed) {
-                double rectPerim = 2 * (bounds.Width + bounds.Height);
-                double ellipPerim = Math.PI * Math.Sqrt((bounds.Width * bounds.Width + bounds.Height * bounds.Height) / 2.0);
-                
-                if (Math.Abs(len - ellipPerim) < Math.Abs(len - rectPerim)) {
+                double distToBox = 0;
+                foreach (StylusPoint pt in pts) {
+                    double dx = Math.Min(Math.Abs(pt.X - bounds.Left), Math.Abs(pt.X - bounds.Right));
+                    double dy = Math.Min(Math.Abs(pt.Y - bounds.Top), Math.Abs(pt.Y - bounds.Bottom));
+                    distToBox += Math.Min(dx, dy);
+                }
+                distToBox /= pts.Count;
+                bool isRect = distToBox < Math.Max(bounds.Width, bounds.Height) * 0.12;
+
+                if (!isRect) {
                     var sp = new StylusPointCollection(); double cx = bounds.Left + bounds.Width/2; double cy = bounds.Top + bounds.Height/2;
                     for(int i=0; i<=360; i+=5) sp.Add(new StylusPoint(cx + (bounds.Width/2) * Math.Cos(i*Math.PI/180), cy + (bounds.Height/2) * Math.Sin(i*Math.PI/180)));
                     return new Stroke(sp, input.DrawingAttributes);
