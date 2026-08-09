@@ -275,9 +275,25 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                                         <TextBox x:Name="LaserGlowHexInput" Text="#A86C6D" Width="68" Padding="4" Background="Transparent" Foreground="White" BorderThickness="0" TextAlignment="Center" TextChanged="Setting_Changed"/>
                                     </Border>
                                 </Grid>
-                                <Grid Margin="0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Grid.Column="0" Text="Hold (sec)" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/><Border Grid.Column="1" Background="#09090B" CornerRadius="4"><TextBox x:Name="LaserHoldInput" Text="1.2" Width="48" Padding="4" Background="Transparent" Foreground="White" BorderThickness="0" TextAlignment="Center" TextChanged="Setting_Changed"/></Border></Grid>
-                                <Grid Margin="0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Grid.Column="0" Text="Fade (sec)" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/><Border Grid.Column="1" Background="#09090B" CornerRadius="4"><TextBox x:Name="LaserFadeInput" Text="0.6" Width="48" Padding="4" Background="Transparent" Foreground="White" BorderThickness="0" TextAlignment="Center" TextChanged="Setting_Changed"/></Border></Grid>
-                                <Grid Margin="0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Grid.Column="0" Text="Glow Radius" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/><Slider x:Name="LaserGlowSlider" Grid.Column="1" Minimum="1" Maximum="50" Value="24" Width="80" ValueChanged="Setting_Changed"/></Grid>
+                                <Grid Margin="0,6">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Hold (sec)" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/>
+                                    <Border Grid.Column="1" Background="#09090B" CornerRadius="4">
+                                        <TextBox x:Name="LaserHoldInput" Text="1.2" Width="48" Padding="4" Background="Transparent" Foreground="White" BorderThickness="0" TextAlignment="Center" TextChanged="Setting_Changed"/>
+                                    </Border>
+                                </Grid>
+                                <Grid Margin="0,6">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Fade (sec)" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/>
+                                    <Border Grid.Column="1" Background="#09090B" CornerRadius="4">
+                                        <TextBox x:Name="LaserFadeInput" Text="0.6" Width="48" Padding="4" Background="Transparent" Foreground="White" BorderThickness="0" TextAlignment="Center" TextChanged="Setting_Changed"/>
+                                    </Border>
+                                </Grid>
+                                <Grid Margin="0,6">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Glow Radius" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/>
+                                    <Slider x:Name="LaserGlowSlider" Grid.Column="1" Minimum="1" Maximum="50" Value="24" Width="80" ValueChanged="Setting_Changed"/>
+                                </Grid>
                             </StackPanel>
                         </Border>
                     </Popup>
