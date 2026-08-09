@@ -156,7 +156,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         </Border>
                         
                         <AdornerDecorator>
-                            <InkCanvas x:Name="MainInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" Focusable="True" Stylus.IsFlicksEnabled="False" Stylus.IsPressAndHoldEnabled="False" Stylus.IsTapFeedbackEnabled="False" Stylus.IsTouchFeedbackEnabled="False" PreviewStylusDown="InkCanvas_PreviewStylusDown" PreviewStylusMove="InkCanvas_PreviewStylusMove" PreviewMouseDown="MainInkCanvas_PreviewMouseDown" PreviewMouseMove="MainInkCanvas_PreviewMouseMove" MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter" Panel.ZIndex="10"/>
+                            <InkCanvas x:Name="MainInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" Focusable="True" Stylus.IsFlicksEnabled="False" Stylus.IsPressAndHoldEnabled="False" Stylus.IsTapFeedbackEnabled="False" Stylus.IsTouchFeedbackEnabled="False" PreviewStylusDown="InkCanvas_PreviewStylusDown" PreviewStylusMove="InkCanvas_PreviewStylusMove" PreviewMouseDown="MainInkCanvas_PreviewMouseDown" PreviewMouseMove="MainInkCanvas_PreviewMouseMove" MouseMove="MainInkCanvas_MouseMove" MouseLeave="MainInkCanvas_MouseLeave" MouseEnter="MainInkCanvas_MouseEnter" PreviewStylusButtonDown="MainInkCanvas_PreviewStylusButtonDown" PreviewStylusButtonUp="MainInkCanvas_PreviewStylusButtonUp" PreviewMouseRightButtonDown="MainInkCanvas_PreviewMouseRightButtonDown" PreviewMouseRightButtonUp="MainInkCanvas_PreviewMouseRightButtonUp" Panel.ZIndex="10"/>
                         </AdornerDecorator>
                         
                         <InkCanvas x:Name="LaserInkCanvas" Background="Transparent" UseCustomCursor="True" Cursor="Arrow" IsHitTestVisible="False" Panel.ZIndex="15" Stylus.IsFlicksEnabled="False" Stylus.IsPressAndHoldEnabled="False" Stylus.IsTapFeedbackEnabled="False" Stylus.IsTouchFeedbackEnabled="False"/>
@@ -379,7 +379,6 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 
         </Grid>
     </Grid>
-</Grid>
 </Grid>
 </Window>
 ANYDRAW_EOF
@@ -1188,6 +1187,35 @@ namespace TeachingAnnotator
             }
         }
 
+        private void MainInkCanvas_PreviewStylusButtonDown(object sender, StylusButtonEventArgs e)
+        {
+            if (e.StylusButton.Guid == System.Windows.Input.StylusPointProperties.BarrelButton.Id)
+            {
+                MainInkCanvas.EditingMode = _settings.StrokeEraserEnabled ? InkCanvasEditingMode.EraseByStroke : InkCanvasEditingMode.EraseByPoint;
+            }
+        }
+
+        private void MainInkCanvas_PreviewStylusButtonUp(object sender, StylusButtonEventArgs e)
+        {
+            if (e.StylusButton.Guid == System.Windows.Input.StylusPointProperties.BarrelButton.Id)
+            {
+                ApplyPenAttributes();
+            }
+        }
+
+        private void MainInkCanvas_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            bool isSelectOrPointer = (PointerBtn.IsChecked == true || SelectBtn.IsChecked == true);
+            if (!isSelectOrPointer) {
+                MainInkCanvas.EditingMode = _settings.StrokeEraserEnabled ? InkCanvasEditingMode.EraseByStroke : InkCanvasEditingMode.EraseByPoint;
+            }
+        }
+
+        private void MainInkCanvas_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            ApplyPenAttributes();
+        }
+
         private void StartPanning(MouseEventArgs e) {
             if (MainInkCanvas != null) MainInkCanvas.EditingMode = InkCanvasEditingMode.None;
             _isPanning = true; 
@@ -1211,7 +1239,6 @@ namespace TeachingAnnotator
             
             bool isSelectOrPointer = (PointerBtn.IsChecked == true || SelectBtn.IsChecked == true);
 
-            // Eyedropper (Ctrl ONLY - when NOT in Pointer/Select mode)
             if (Keyboard.Modifiers == ModifierKeys.Control && !isSelectOrPointer) {
                 ProcessEyedropper(e.GetPosition(MainInkCanvas));
                 e.Handled = true; return;
@@ -1223,7 +1250,6 @@ namespace TeachingAnnotator
                 var hitSelection = MainInkCanvas.HitTestSelection(pt);
                 var hitStrokes = MainInkCanvas.Strokes.HitTest(pt, 5.0);
 
-                // Ctrl + Click for Multi-Select
                 if (Keyboard.Modifiers == ModifierKeys.Control) {
                     if (hitStrokes.Count > 0) {
                         var selected = MainInkCanvas.GetSelectedStrokes();
@@ -1236,7 +1262,6 @@ namespace TeachingAnnotator
                     return;
                 }
 
-                // Alt + Drag (Clone)
                 if (Keyboard.Modifiers == ModifierKeys.Alt)
                 {
                     if (MainInkCanvas.GetSelectedStrokes().Count > 0 && hitSelection != InkCanvasSelectionHitResult.None)
@@ -1249,7 +1274,6 @@ namespace TeachingAnnotator
                     return;
                 }
 
-                // Pointer Mode: Pan on empty space
                 if (PointerBtn.IsChecked == true && hitSelection == InkCanvasSelectionHitResult.None && hitStrokes.Count == 0) {
                     MainInkCanvas.Select(new StrokeCollection()); 
                     StartPanning(e);
@@ -1281,6 +1305,8 @@ namespace TeachingAnnotator
             Color active = ((SolidColorBrush)ActiveColorIndicator.Fill).Color; double size = SizeSlider.Value; bool ignore = !_settings.PressureEnabled;
             
             Cursor inkCursor = _settings.HideSystemCursor ? Cursors.None : Cursors.Arrow;
+
+            MainInkCanvas.EditingModeInverted = _settings.StrokeEraserEnabled ? InkCanvasEditingMode.EraseByStroke : InkCanvasEditingMode.EraseByPoint;
             
             if (LaserBtn.IsChecked == true) {
                 MainInkCanvas.IsHitTestVisible = false; LaserInkCanvas.IsHitTestVisible = true; LaserInkCanvas.EditingMode = InkCanvasEditingMode.Ink;
