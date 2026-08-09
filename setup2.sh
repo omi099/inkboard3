@@ -284,7 +284,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 
                     <Rectangle Width="1" Fill="#2AFFFFFF" Margin="12,6"/>
 
-                    <RadioButton Style="{StaticResource GlassTool}" x:Name="PointerBtn" Checked="Tool_Checked" ToolTip="Pan / Pointer (Esc)"><Path Data="M 6 4 L 14 24 L 17 17 L 24 14 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2.5" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/></RadioButton>
+                    <RadioButton Style="{StaticResource GlassTool}" x:Name="PointerBtn" Checked="Tool_Checked" ToolTip="Pan / Point Select (Esc)"><Path Data="M 6 4 L 14 24 L 17 17 L 24 14 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2.5" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/></RadioButton>
                     <RadioButton Style="{StaticResource GlassTool}" x:Name="SelectBtn" Checked="Tool_Checked" ToolTip="Smart Lasso (S)"><Path Data="M 4 10 C 6 4, 12 6, 18 8 C 22 10, 16 20, 10 18 C 4 16, 2 16, 4 10 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2.5" StrokeDashArray="3,2" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/></RadioButton>
                     <RadioButton Style="{StaticResource GlassTool}" x:Name="PenBtn" IsChecked="True" Checked="Tool_Checked" ToolTip="Pro Pen (P)"><Path Data="M 18 4 L 20 6 L 9 17 L 4 18 L 5 13 Z M 16 6 L 18 8" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/></RadioButton>
                     <RadioButton Style="{StaticResource GlassTool}" x:Name="HighlightBtn" Checked="Tool_Checked" ToolTip="Highlighter (M)"><Path Data="M 16 4 L 20 8 L 8 20 L 2 20 L 2 14 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="2.5" StrokeLineJoin="Round" Fill="Transparent" Height="22" Stretch="Uniform"/></RadioButton>
@@ -329,7 +329,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                     <Button Style="{StaticResource IconButton}" Click="PrevPage_Click" Padding="12,6" ToolTip="Previous Page"><Path Data="M 6 10 L 2 6 L 6 2" Stroke="White" StrokeThickness="2" Fill="Transparent" Stretch="Uniform" Width="6" Height="10"/></Button>
                     <TextBox x:Name="PageNumberInput" Text="1" Width="30" Background="Transparent" Foreground="White" BorderThickness="0" TextAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="14" KeyDown="PageNumberInput_KeyDown" LostFocus="PageNumberInput_LostFocus"/>
                     <TextBlock x:Name="TotalPagesText" Text="/ 1" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="14" Margin="2,0,8,0" FontWeight="SemiBold"/>
-                    <Button Style="{StaticResource IconButton}" Click="NextPage_Click" Padding="12,6" ToolTip="Next Page / Create New"><Path Data="M 2 10 L 6 6 L 2 2" Stroke="White" StrokeThickness="2" Fill="Transparent" Stretch="Uniform" Width="6" Height="10"/></Button>
+                    <Button Style="{StaticResource IconButton}" Click="NextPage_Click" Padding="12,6" ToolTip="Next Page / Create New (Ctrl+Right)"><Path Data="M 2 10 L 6 6 L 2 2" Stroke="White" StrokeThickness="2" Fill="Transparent" Stretch="Uniform" Width="6" Height="10"/></Button>
                     <Rectangle Width="1" Fill="#2AFFFFFF" Margin="8,4" VerticalAlignment="Stretch"/>
                     <Button Style="{StaticResource IconButton}" Click="ZoomOut_Click" Padding="12,6" ToolTip="Zoom Out"><TextBlock Text="&#8722;" Foreground="White" FontWeight="Bold" FontSize="18" VerticalAlignment="Center"/></Button>
                     <TextBox x:Name="ZoomPercentInput" Text="100%" Background="Transparent" Foreground="White" BorderThickness="0" VerticalAlignment="Center" FontWeight="Bold" FontSize="14" Width="56" TextAlignment="Center" KeyDown="ZoomPercentInput_KeyDown" LostFocus="ZoomPercentInput_LostFocus"/>
@@ -379,7 +379,6 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 
         </Grid>
     </Grid>
-</Grid>
 </Grid>
 </Window>
 ANYDRAW_EOF
@@ -1100,7 +1099,8 @@ namespace TeachingAnnotator
         }
 
         private void InkCanvas_PreviewStylusDown(object sender, StylusDownEventArgs e) { 
-            if (Keyboard.Modifiers == ModifierKeys.Control) {
+            bool isSelectOrPointer = (PointerBtn.IsChecked == true || SelectBtn.IsChecked == true);
+            if (Keyboard.Modifiers == ModifierKeys.Control && !isSelectOrPointer) {
                 ProcessEyedropper(e.GetPosition(MainInkCanvas));
                 e.Handled = true; return;
             }
@@ -1108,41 +1108,87 @@ namespace TeachingAnnotator
         }
         
         private void InkCanvas_PreviewStylusMove(object sender, StylusEventArgs e) {
-            if (Keyboard.Modifiers == ModifierKeys.Control && !e.InAir) {
+            bool isSelectOrPointer = (PointerBtn.IsChecked == true || SelectBtn.IsChecked == true);
+            if (Keyboard.Modifiers == ModifierKeys.Control && !e.InAir && !isSelectOrPointer) {
                 ProcessEyedropper(e.GetPosition(MainInkCanvas));
                 e.Handled = true;
             }
+        }
+
+        private void StartPanning(MouseEventArgs e) {
+            if (MainInkCanvas != null) MainInkCanvas.EditingMode = InkCanvasEditingMode.None;
+            _isPanning = true; 
+            _panStart = e.GetPosition(this); 
+            _panScrollX = MainScroll.HorizontalOffset; 
+            _panScrollY = MainScroll.VerticalOffset; 
+            MainScroll.CaptureMouse(); 
+            MainScroll.Cursor = Cursors.ScrollAll; 
+        }
+        
+        private void StopPanning() {
+            _isPanning = false; 
+            MainScroll.ReleaseMouseCapture(); 
+            MainScroll.Cursor = Cursors.Arrow; 
+            ApplyPenAttributes(); 
         }
 
         private void MainInkCanvas_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton != MouseButtonState.Pressed) return;
             
-            // Eyedropper (Ctrl ONLY)
-            if (Keyboard.Modifiers == ModifierKeys.Control) {
+            bool isSelectOrPointer = (PointerBtn.IsChecked == true || SelectBtn.IsChecked == true);
+
+            // Eyedropper (Ctrl ONLY - when NOT in Pointer/Select mode)
+            if (Keyboard.Modifiers == ModifierKeys.Control && !isSelectOrPointer) {
                 ProcessEyedropper(e.GetPosition(MainInkCanvas));
                 e.Handled = true; return;
             }
             
-            // Clone Active Selection (Alt + Drag)
-            if (Keyboard.Modifiers == ModifierKeys.Alt)
+            if (isSelectOrPointer)
             {
-                if (MainInkCanvas.EditingMode == InkCanvasEditingMode.Select && MainInkCanvas.GetSelectedStrokes().Count > 0)
+                Point pt = e.GetPosition(MainInkCanvas);
+                var hitSelection = MainInkCanvas.HitTestSelection(pt);
+                var hitStrokes = MainInkCanvas.Strokes.HitTest(pt, 5.0);
+
+                // Ctrl + Click for Multi-Select
+                if (Keyboard.Modifiers == ModifierKeys.Control) {
+                    if (hitStrokes.Count > 0) {
+                        var selected = MainInkCanvas.GetSelectedStrokes();
+                        var target = hitStrokes[hitStrokes.Count - 1];
+                        if (selected.Contains(target)) selected.Remove(target);
+                        else selected.Add(target);
+                        MainInkCanvas.Select(selected);
+                    }
+                    e.Handled = true;
+                    return;
+                }
+
+                // Alt + Drag (Clone)
+                if (Keyboard.Modifiers == ModifierKeys.Alt)
                 {
-                    Point pt = e.GetPosition(MainInkCanvas);
-                    if (MainInkCanvas.HitTestSelection(pt) != InkCanvasSelectionHitResult.None)
+                    if (MainInkCanvas.GetSelectedStrokes().Count > 0 && hitSelection != InkCanvasSelectionHitResult.None)
                     {
                         var cloned = MainInkCanvas.GetSelectedStrokes().Clone();
                         MainInkCanvas.Strokes.Add(cloned);
                         MainInkCanvas.Select(cloned);
                         _isAltCloning = true;
                     }
+                    return;
+                }
+
+                // Pointer Mode: Pan on empty space
+                if (PointerBtn.IsChecked == true && hitSelection == InkCanvasSelectionHitResult.None && hitStrokes.Count == 0) {
+                    MainInkCanvas.Select(new StrokeCollection()); 
+                    StartPanning(e);
+                    e.Handled = true;
+                    return;
                 }
             }
         }
 
         private void MainInkCanvas_PreviewMouseMove(object sender, MouseEventArgs e) {
-            if (Keyboard.Modifiers == ModifierKeys.Control && e.LeftButton == MouseButtonState.Pressed) {
+            bool isSelectOrPointer = (PointerBtn.IsChecked == true || SelectBtn.IsChecked == true);
+            if (Keyboard.Modifiers == ModifierKeys.Control && e.LeftButton == MouseButtonState.Pressed && !isSelectOrPointer) {
                 ProcessEyedropper(e.GetPosition(MainInkCanvas));
                 e.Handled = true;
             }
@@ -1171,7 +1217,8 @@ namespace TeachingAnnotator
                 LaserInkCanvas.Cursor = inkCursor;
             } else {
                 LaserInkCanvas.IsHitTestVisible = false; MainInkCanvas.IsHitTestVisible = true;
-                if (PointerBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.None; MainInkCanvas.Cursor = Cursors.Arrow; }
+                if (PointerBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Select; MainInkCanvas.Cursor = Cursors.Arrow; }
+                else if (SelectBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Select; MainInkCanvas.Cursor = Cursors.Cross; }
                 else if (PenBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = active, Width = size, Height = size, FitToCurve = true, IgnorePressure = ignore, StylusTip = StylusTip.Ellipse }; MainInkCanvas.Cursor = inkCursor; }
                 else if (HighlightBtn.IsChecked == true) { 
                     MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; 
@@ -1179,7 +1226,6 @@ namespace TeachingAnnotator
                     MainInkCanvas.Cursor = inkCursor;
                 }
                 else if (EraserBtn.IsChecked == true) { MainInkCanvas.EditingMode = _settings.StrokeEraserEnabled ? InkCanvasEditingMode.EraseByStroke : InkCanvasEditingMode.EraseByPoint; if (!_settings.StrokeEraserEnabled) MainInkCanvas.EraserShape = new System.Windows.Ink.EllipseStylusShape(size * 4, size * 4); MainInkCanvas.Cursor = inkCursor; }
-                else if (SelectBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Select; MainInkCanvas.Cursor = Cursors.Cross; }
             }
             UpdateCursor();
         }
@@ -1358,9 +1404,24 @@ namespace TeachingAnnotator
         private void ZoomOut_Click(object sender, RoutedEventArgs e) { PerformZoom(-0.25); }
         private void ZoomIn_Click(object sender, RoutedEventArgs e) { PerformZoom(0.25); }
         private void MainScroll_PreviewMouseWheel(object sender, MouseWheelEventArgs e) { e.Handled = true; if (Keyboard.Modifiers == ModifierKeys.Control) PerformZoom(e.Delta > 0 ? 0.15 : -0.15, e.GetPosition(MainScroll)); else if (Keyboard.Modifiers == ModifierKeys.Shift) MainScroll.ScrollToHorizontalOffset(MainScroll.HorizontalOffset - e.Delta * 0.5); else MainScroll.ScrollToVerticalOffset(MainScroll.VerticalOffset - e.Delta * 0.5); }
-        private void MainScroll_PreviewMouseDown(object sender, MouseButtonEventArgs e) { if (e.MiddleButton == MouseButtonState.Pressed) { _isPanning = true; _panStart = e.GetPosition(this); _panScrollX = MainScroll.HorizontalOffset; _panScrollY = MainScroll.VerticalOffset; MainScroll.CaptureMouse(); MainScroll.Cursor = Cursors.ScrollAll; e.Handled = true; } }
-        private void MainScroll_PreviewMouseMove(object sender, MouseEventArgs e) { if (_isPanning) { Point cur = e.GetPosition(this); MainScroll.ScrollToHorizontalOffset(_panScrollX - (cur.X - _panStart.X)); MainScroll.ScrollToVerticalOffset(_panScrollY - (cur.Y - _panStart.Y)); e.Handled = true; } }
-        private void MainScroll_PreviewMouseUp(object sender, MouseButtonEventArgs e) { if (_isPanning && e.MiddleButton == MouseButtonState.Released) { _isPanning = false; MainScroll.ReleaseMouseCapture(); MainScroll.Cursor = Cursors.Arrow; e.Handled = true; } }
+        private void MainScroll_PreviewMouseDown(object sender, MouseButtonEventArgs e) { 
+            if (e.MiddleButton == MouseButtonState.Pressed) { 
+                StartPanning(e); e.Handled = true; 
+            } 
+        }
+        private void MainScroll_PreviewMouseMove(object sender, MouseEventArgs e) { 
+            if (_isPanning) { 
+                Point cur = e.GetPosition(this); 
+                MainScroll.ScrollToHorizontalOffset(_panScrollX - (cur.X - _panStart.X)); 
+                MainScroll.ScrollToVerticalOffset(_panScrollY - (cur.Y - _panStart.Y)); 
+                e.Handled = true; 
+            } 
+        }
+        private void MainScroll_PreviewMouseUp(object sender, MouseButtonEventArgs e) { 
+            if (_isPanning && (e.MiddleButton == MouseButtonState.Released || e.LeftButton == MouseButtonState.Released)) { 
+                StopPanning(); e.Handled = true; 
+            } 
+        }
 
         private void ToolbarDrag_MouseDown(object sender, MouseButtonEventArgs e) { _isDraggingToolbar = true; _toolbarDragStart = e.GetPosition(this); ((UIElement)sender).CaptureMouse(); }
         private void ToolbarDrag_MouseMove(object sender, MouseEventArgs e) { if (_isDraggingToolbar) { Point cur = e.GetPosition(this); ToolbarTransform.X += cur.X - _toolbarDragStart.X; ToolbarTransform.Y += cur.Y - _toolbarDragStart.Y; _toolbarDragStart = cur; } }
