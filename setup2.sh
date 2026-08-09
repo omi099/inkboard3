@@ -380,6 +380,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
         </Grid>
     </Grid>
 </Grid>
+</Grid>
 </Window>
 ANYDRAW_EOF
 
@@ -478,6 +479,7 @@ namespace TeachingAnnotator
         private DispatcherTimer _laserHoldTimer;
         private DispatcherTimer _pdfQualityTimer;
         private DispatcherTimer _saveDebounce;
+        private DispatcherTimer _thumbRenderTimer;
 
         private Stack<UndoAction> _undo = new Stack<UndoAction>();
         private Stack<UndoAction> _redo = new Stack<UndoAction>();
@@ -495,7 +497,7 @@ namespace TeachingAnnotator
         private bool _isAltCloning = false;
 
         private Dictionary<string, Windows.Data.Pdf.PdfDocument> _pdfCache = new Dictionary<string, Windows.Data.Pdf.PdfDocument>();
-        private Dictionary<string, BitmapImage> _thumbCache = new Dictionary<string, BitmapImage>();
+        private Dictionary<string, RenderTargetBitmap> _thumbCache = new Dictionary<string, RenderTargetBitmap>();
 
         private Action<string> _renameCallback;
         private readonly Random _rng = new Random();
@@ -530,6 +532,9 @@ namespace TeachingAnnotator
             _saveDebounce.Tick += (s, e) => { _saveDebounce.Stop(); PersistAll(); };
             _pdfQualityTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
             _pdfQualityTimer.Tick += async (s, e) => { _pdfQualityTimer.Stop(); await ReRenderPdfQuality(); };
+
+            _thumbRenderTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _thumbRenderTimer.Tick += (s, e) => { _thumbRenderTimer.Stop(); RenderThumbs(); };
 
             LoadSettingsAndLibrary();
             BuildPalettes();
@@ -590,7 +595,15 @@ namespace TeachingAnnotator
         }
 
         private void ScheduleSave() { _saveDebounce.Stop(); _saveDebounce.Start(); }
-        private void TouchModified() { if (_activeNotebook != null) _activeNotebook.Modified = DateTime.Now; ScheduleSave(); }
+        private void TouchModified() { 
+            if (_activeNotebook != null) _activeNotebook.Modified = DateTime.Now; 
+            ScheduleSave(); 
+            if (_activePage != null) {
+                _thumbCache.Remove(_activePage.Id);
+                _thumbRenderTimer.Stop();
+                _thumbRenderTimer.Start();
+            }
+        }
 
         private void ApplySettingsToUI()
         {
@@ -859,12 +872,11 @@ namespace TeachingAnnotator
                 var page = _activeSection.Pages[i];
                 var card = new Border { Margin = new Thickness(0, 0, 0, 16), CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(2), BorderBrush = page == _activePage ? new SolidColorBrush(SafeColor(theSolid14[11], Colors.White)) : new SolidColorBrush(Color.FromArgb(20,255,255,255)), Background = new SolidColorBrush(Color.FromArgb(10,255,255,255)), Cursor = Cursors.Hand };
                 var g = new Grid();
-                bool hasImg = page.Kind == "Pdf" || page.Kind == "Image";
-                var preview = new Border { Height = 120, CornerRadius = new CornerRadius(8), Margin = new Thickness(8, 8, 8, 32), Background = hasImg ? Brushes.White : new SolidColorBrush(SafeColor(page.BgColor, Colors.Black)), ClipToBounds = true };
-                if (hasImg) {
-                    var img = new Image { Stretch = Stretch.Uniform, VerticalAlignment = VerticalAlignment.Top }; preview.Child = img;
-                    EnsureThumb(page, img);
-                }
+                var preview = new Border { Height = 120, CornerRadius = new CornerRadius(8), Margin = new Thickness(8, 8, 8, 32), Background = new SolidColorBrush(SafeColor(page.BgColor, Colors.Black)), ClipToBounds = true };
+                var img = new Image { Stretch = Stretch.Uniform, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center }; 
+                preview.Child = img;
+                EnsureThumb(page, img);
+                
                 g.Children.Add(preview);
                 g.Children.Add(new TextBlock { Text = "Page " + (i + 1), Foreground = new SolidColorBrush(Color.FromArgb(180,255,255,255)), FontSize = 12, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 10) });
                 if (_activeSection.Pages.Count > 1) {
@@ -899,15 +911,62 @@ namespace TeachingAnnotator
                 PageThumbPanel.Children.Add(new TextBlock { Text = "↓ " + (_activeSection.Pages.Count - 1 - endIdx) + " more pages", Foreground = Brushes.Gray, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0,0,0,16) });
             }
         }
+        
         private async void EnsureThumb(NotePage p, Image img)
         {
             if (_thumbCache.TryGetValue(p.Id, out var cached)) { img.Source = cached; return; }
-            if (p.Kind == "Pdf" && !string.IsNullOrEmpty(p.PdfFileName)) {
-                try { string abs = System.IO.Path.Combine(_root, p.PdfFileName); var doc = await GetPdfDoc(abs); var bmp = await RenderPdf(doc, (uint)p.PdfPageIndex, p.PdfWidth > 0 ? p.PdfWidth : 800, p.PdfHeight > 0 ? p.PdfHeight : 1100, 0.28); _thumbCache[p.Id] = bmp; img.Source = bmp; } catch { }
-            } else if (p.Kind == "Image" && !string.IsNullOrEmpty(p.ImageFileName)) {
-                try { string abs = System.IO.Path.Combine(_root, p.ImageFileName); var bmp = new BitmapImage(); using (var stream = new FileStream(abs, FileMode.Open, FileAccess.Read, FileShare.Read)) { bmp.BeginInit(); bmp.DecodePixelWidth = 200; bmp.CacheOption = BitmapCacheOption.OnLoad; bmp.StreamSource = stream; bmp.EndInit(); } bmp.Freeze(); _thumbCache[p.Id] = bmp; img.Source = bmp; } catch { }
-            }
+            try {
+                double w = p.CustomPageWidth > 0 ? p.CustomPageWidth : 1920;
+                double h = p.CustomPageHeight > 0 ? p.CustomPageHeight : 1080;
+                if (p.CustomPageWidth == 0) GetPageDimensions(p.PageSizePreset, out w, out h);
+                if (p.Kind == "Pdf" && p.PdfWidth > 0) { w = p.PdfWidth; h = p.PdfHeight; }
+                if (p.Kind == "Image" && p.ImageWidth > 0) { w = p.ImageWidth; h = p.ImageHeight; }
+
+                DrawingVisual visual = new DrawingVisual();
+                using (DrawingContext dc = visual.RenderOpen())
+                {
+                    Color bgc = _settings.LightMode ? Colors.White : SafeColor(p.BgColor, Colors.Black);
+                    dc.DrawRectangle(new SolidColorBrush(bgc), null, new Rect(0, 0, w, h));
+                    
+                    if (p.Kind == "Pdf" && !string.IsNullOrEmpty(p.PdfFileName)) {
+                        try {
+                            string abs = System.IO.Path.Combine(_root, p.PdfFileName); 
+                            var doc = await GetPdfDoc(abs); 
+                            var bmp = await RenderPdf(doc, (uint)p.PdfPageIndex, w, h, 0.28); 
+                            dc.DrawImage(bmp, new Rect(0, 0, w, h));
+                        } catch {}
+                    } else if (p.Kind == "Image" && !string.IsNullOrEmpty(p.ImageFileName)) {
+                        try {
+                            string abs = System.IO.Path.Combine(_root, p.ImageFileName); 
+                            var bmp = new BitmapImage(); bmp.BeginInit(); bmp.CacheOption = BitmapCacheOption.OnLoad; bmp.UriSource = new Uri(abs); bmp.EndInit(); bmp.Freeze();
+                            dc.DrawImage(bmp, new Rect(0, 0, w, h));
+                        } catch {}
+                    }
+
+                    StrokeCollection strokes = (p == _activePage && MainInkCanvas != null) ? MainInkCanvas.Strokes : LoadStrokes(_activeNotebook, p);
+                    if (strokes != null && strokes.Count > 0) {
+                        foreach (Stroke s in strokes) s.Draw(dc);
+                    }
+                }
+
+                double scale = 200.0 / Math.Max(w, h);
+                int rW = Math.Max(1, (int)(w * scale));
+                int rH = Math.Max(1, (int)(h * scale));
+                
+                RenderTargetBitmap rtb = new RenderTargetBitmap(rW, rH, 96, 96, PixelFormats.Pbgra32);
+                DrawingVisual scaledVisual = new DrawingVisual();
+                using (DrawingContext dc = scaledVisual.RenderOpen()) {
+                    dc.PushTransform(new ScaleTransform(scale, scale));
+                    dc.DrawDrawing(visual.Drawing);
+                    dc.Pop();
+                }
+                rtb.Render(scaledVisual);
+                rtb.Freeze();
+                _thumbCache[p.Id] = rtb;
+                img.Source = rtb;
+            } catch { }
         }
+
         private void AddPage_Click(object sender, RoutedEventArgs e) { var p = AddPageTo(_activeSection); TouchModified(); RenderThumbs(); SwitchPage(p); }
         
         private void DeletePageFast(NotePage page) {
