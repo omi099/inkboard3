@@ -380,7 +380,6 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
         </Grid>
     </Grid>
 </Grid>
-</Grid>
 </Window>
 ANYDRAW_EOF
 
@@ -440,6 +439,15 @@ namespace TeachingAnnotator
     }
     public class Library { public List<Notebook> Notebooks { get; set; } = new List<Notebook>(); }
     public class AppSettings {
+        public string ActiveTool { get; set; } = "Pen";
+        public string PenColor { get; set; } = "#9E8C78";
+        public string HighlightColor { get; set; } = "#B0A06B";
+        public double PenSize { get; set; } = 3.0;
+        public double HighlightSize { get; set; } = 20.0;
+        public double LaserSize { get; set; } = 6.0;
+        public string CustomInkHexStr { get; set; } = "";
+        public string CustomBgHexStr { get; set; } = "";
+
         public string LaserCoreColor { get; set; } = "#FFFFFF";
         public string LaserGlowColor { get; set; } = "#A86C6D";
         public double LaserHoldDelay { get; set; } = 1.2;
@@ -514,9 +522,6 @@ namespace TeachingAnnotator
             Directory.CreateDirectory(System.IO.Path.Combine(_root, "notebooks"));
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
-            _penColor = SafeColor(theSolid14[11], Colors.White);
-            _highlightColor = SafeColor(theSolid14[3], Colors.Yellow);
-            _laserColor = SafeColor(theSolid14[0], Colors.Red);
             _customBgColor = SafeColor(theDarkCanvases[0], Color.FromRgb(18, 18, 20));
 
             MainInkCanvas.Strokes.StrokesChanged += MainInkCanvas_StrokesChanged;
@@ -537,6 +542,15 @@ namespace TeachingAnnotator
             _thumbRenderTimer.Tick += (s, e) => { _thumbRenderTimer.Stop(); RenderThumbs(); };
 
             LoadSettingsAndLibrary();
+            
+            _penColor = SafeColor(_settings.PenColor, SafeColor(theSolid14[11], Colors.White));
+            _highlightColor = SafeColor(_settings.HighlightColor, SafeColor(theSolid14[3], Colors.Yellow));
+            _laserColor = SafeColor(_settings.LaserCoreColor, SafeColor(theSolid14[0], Colors.Red));
+            
+            _penSize = _settings.PenSize;
+            _highlightSize = _settings.HighlightSize;
+            _laserSize = _settings.LaserSize;
+
             BuildPalettes();
             ApplySettingsToUI();
             
@@ -620,6 +634,16 @@ namespace TeachingAnnotator
             LaserHoldInput.Text = _settings.LaserHoldDelay.ToString("F1");
             LaserFadeInput.Text = _settings.LaserFadeDuration.ToString("F1");
             LaserGlowSlider.Value = _settings.LaserGlow;
+            CustomInkHex.Text = _settings.CustomInkHexStr;
+            CustomBgHex.Text = _settings.CustomBgHexStr;
+
+            if (_settings.ActiveTool == "Pointer") PointerBtn.IsChecked = true;
+            else if (_settings.ActiveTool == "Select") SelectBtn.IsChecked = true;
+            else if (_settings.ActiveTool == "Highlight") HighlightBtn.IsChecked = true;
+            else if (_settings.ActiveTool == "Laser") LaserBtn.IsChecked = true;
+            else if (_settings.ActiveTool == "Eraser") EraserBtn.IsChecked = true;
+            else PenBtn.IsChecked = true;
+
             if (_activePage != null) GridGapInput.Text = _activePage.GridGap.ToString("F0");
             _isUpdatingUI = false;
         }
@@ -689,8 +713,11 @@ namespace TeachingAnnotator
                 TouchModified();
             }
 
-            if (PenBtn.IsChecked == true) _penColor = c; else if (HighlightBtn.IsChecked == true) _highlightColor = c; else if (LaserBtn.IsChecked == true) _laserColor = c;
+            if (PenBtn.IsChecked == true) { _penColor = c; _settings.PenColor = hex; } 
+            else if (HighlightBtn.IsChecked == true) { _highlightColor = c; _settings.HighlightColor = hex; } 
+            
             ApplyPenAttributes();
+            ScheduleSave();
         }
 
         private void SetCanvasColor(string hex)
@@ -701,12 +728,12 @@ namespace TeachingAnnotator
 
         private void CustomInkHex_TextChanged(object sender, TextChangedEventArgs e) {
             if (!_appLoaded || CustomInkHex.Text.Length < 4) return;
-            try { SetInkColor(CustomInkHex.Text); } catch { }
+            try { SetInkColor(CustomInkHex.Text); _settings.CustomInkHexStr = CustomInkHex.Text; ScheduleSave(); } catch { }
         }
         
         private void CustomBgHex_TextChanged(object sender, TextChangedEventArgs e) {
             if (!_appLoaded || CustomBgHex.Text.Length < 4) return;
-            try { SetCanvasColor(CustomBgHex.Text); } catch { }
+            try { SetCanvasColor(CustomBgHex.Text); _settings.CustomBgHexStr = CustomBgHex.Text; ScheduleSave(); } catch { }
         }
 
         // ================= LIBRARY / NOTEBOOKS =================
@@ -1162,13 +1189,36 @@ namespace TeachingAnnotator
         private void SyncToolToUI() {
             if (!_appLoaded || SizeSlider == null || ActiveColorIndicator == null) return;
             _isUpdatingUI = true;
-            if (PenBtn.IsChecked == true) { SizeSlider.Value = _penSize; ActiveColorIndicator.Fill = new SolidColorBrush(_penColor); } else if (HighlightBtn.IsChecked == true) { SizeSlider.Value = _highlightSize; ActiveColorIndicator.Fill = new SolidColorBrush(_highlightColor); } else if (LaserBtn.IsChecked == true) { SizeSlider.Value = _laserSize; ActiveColorIndicator.Fill = new SolidColorBrush(_laserColor); }
-            _isUpdatingUI = false; ApplyPenAttributes();
+            if (PenBtn.IsChecked == true) { 
+                SizeSlider.Value = _penSize; 
+                ActiveColorIndicator.Fill = new SolidColorBrush(_penColor); 
+                _settings.ActiveTool = "Pen"; 
+            } else if (HighlightBtn.IsChecked == true) { 
+                SizeSlider.Value = _highlightSize; 
+                ActiveColorIndicator.Fill = new SolidColorBrush(_highlightColor); 
+                _settings.ActiveTool = "Highlight"; 
+            } else if (LaserBtn.IsChecked == true) { 
+                SizeSlider.Value = _laserSize; 
+                ActiveColorIndicator.Fill = new SolidColorBrush(_laserColor); 
+                _settings.ActiveTool = "Laser"; 
+            } else if (PointerBtn.IsChecked == true) { 
+                _settings.ActiveTool = "Pointer"; 
+            } else if (SelectBtn.IsChecked == true) { 
+                _settings.ActiveTool = "Select"; 
+            } else if (EraserBtn.IsChecked == true) { 
+                _settings.ActiveTool = "Eraser"; 
+            }
+            _isUpdatingUI = false; 
+            ApplyPenAttributes();
+            ScheduleSave();
         }
         private void Size_Changed(object sender, RoutedPropertyChangedEventArgs<double> e) {
             if (!_appLoaded || _isUpdatingUI) return; double s = SizeSlider.Value;
-            if (PenBtn.IsChecked == true) _penSize = s; else if (HighlightBtn.IsChecked == true) _highlightSize = s; else if (LaserBtn.IsChecked == true) _laserSize = s;
+            if (PenBtn.IsChecked == true) { _penSize = s; _settings.PenSize = s; } 
+            else if (HighlightBtn.IsChecked == true) { _highlightSize = s; _settings.HighlightSize = s; } 
+            else if (LaserBtn.IsChecked == true) { _laserSize = s; _settings.LaserSize = s; }
             ApplyPenAttributes();
+            ScheduleSave();
         }
 
         private void InkCanvas_PreviewStylusDown(object sender, StylusDownEventArgs e) { 
