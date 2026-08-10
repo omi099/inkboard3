@@ -378,10 +378,9 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                 </Border>
             </Grid>
 
-        </Grid> <!-- Closes Grid.Column="1" -->
-    </Grid> <!-- Closes Grid.Row="1" -->
-</Grid> <!-- Closes NotebookView Grid -->
-</Grid> <!-- Closes RootGrid -->
+        </Grid>
+    </Grid>
+</Grid>
 </Window>
 ANYDRAW_EOF
 
@@ -1680,7 +1679,6 @@ namespace TeachingAnnotator
                 
                 if (optimize) {
                     output.Options.FlateEncodeMode = PdfFlateEncodeMode.BestCompression;
-                    output.Options.UseFlateDecoderForContentStreams = true;
                     output.Options.NoCompression = false;
                 }
                 
