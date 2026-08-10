@@ -381,6 +381,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
         </Grid>
     </Grid>
 </Grid>
+</Grid>
 </Window>
 ANYDRAW_EOF
 
