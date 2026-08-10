@@ -142,8 +142,8 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
 
         <!-- Main Workspace -->
         <Grid Grid.Column="1">
-            <ScrollViewer x:Name="MainScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PanningMode="Both" PreviewMouseWheel="MainScroll_PreviewMouseWheel" SizeChanged="MainScroll_SizeChanged" PreviewMouseDown="MainScroll_PreviewMouseDown" PreviewMouseMove="MainScroll_PreviewMouseMove" PreviewMouseUp="MainScroll_PreviewMouseUp" Background="Transparent" Panel.ZIndex="10">
-                <Grid x:Name="Workspace" HorizontalAlignment="Left" VerticalAlignment="Top" Background="Transparent" Margin="20">
+            <ScrollViewer x:Name="MainScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PanningMode="Both" PreviewMouseWheel="MainScroll_PreviewMouseWheel" SizeChanged="MainScroll_SizeChanged" Background="Transparent" Panel.ZIndex="10">
+                <Grid x:Name="Workspace" HorizontalAlignment="Left" VerticalAlignment="Top" Background="Transparent" Margin="20" PreviewMouseDown="MainScroll_PreviewMouseDown" PreviewMouseMove="MainScroll_PreviewMouseMove" PreviewMouseUp="MainScroll_PreviewMouseUp">
                     <Grid.LayoutTransform><ScaleTransform x:Name="ZoomTransform" ScaleX="1" ScaleY="1"/></Grid.LayoutTransform>
                     
                     <Grid x:Name="CanvasWrapper" HorizontalAlignment="Left" VerticalAlignment="Top">
@@ -347,6 +347,7 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                         <RadioButton x:Name="ExportBothRadio" Content="Both (Background + Ink)" IsChecked="True" Foreground="White" FontSize="14" Margin="0,4"/>
                         <RadioButton x:Name="ExportBgRadio" Content="Background Only (Clean Canvas)" Foreground="White" FontSize="14" Margin="0,4"/>
                         <RadioButton x:Name="ExportInkRadio" Content="Ink Annotations Only" Foreground="White" FontSize="14" Margin="0,4"/>
+                        <CheckBox x:Name="OptimizeExportToggle" Content="Optimize Vectors (Dramatically smaller file size)" IsChecked="True" Foreground="White" FontSize="14" Margin="0,12,0,0"/>
                         <TextBlock Text="Vector scaling applied. Output matches exact section resolution." Foreground="#94A3B8" FontSize="12" TextWrapping="Wrap" Margin="0,20,0,32"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Style="{StaticResource DropdownItem}" Click="ExportCancel_Click" Content="Cancel" Margin="0,0,16,0" Padding="20,10"/>
@@ -377,10 +378,10 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                 </Border>
             </Grid>
 
-        </Grid>
-    </Grid>
-</Grid>
-</Grid>
+        </Grid> <!-- Closes Grid.Column="1" -->
+    </Grid> <!-- Closes Grid.Row="1" -->
+</Grid> <!-- Closes NotebookView Grid -->
+</Grid> <!-- Closes RootGrid -->
 </Window>
 ANYDRAW_EOF
 
@@ -1612,18 +1613,20 @@ namespace TeachingAnnotator
             var dlg = new SaveFileDialog { Filter = "PDF (*.pdf)|*.pdf", FileName = $"{safeNb} - {safeSec}.pdf" }; if (dlg.ShowDialog() != true) return;
             try {
                 var output = new PdfSharp.Pdf.PdfDocument(); var srcCache = new Dictionary<string, PdfSharp.Pdf.PdfDocument>();
+                bool optimize = OptimizeExportToggle.IsChecked == true;
+                
                 foreach (var page in _activeSection.Pages) {
                     StrokeCollection strokes = (page == _activePage) ? MainInkCanvas.Strokes.Clone() : LoadStrokes(_activeNotebook, page);
                     if (page.Kind == "Pdf" && !string.IsNullOrEmpty(page.PdfFileName)) {
                         string abs = System.IO.Path.Combine(_root, page.PdfFileName); if (!srcCache.TryGetValue(abs, out var src)) { src = PdfReader.Open(abs, PdfDocumentOpenMode.Import); srcCache[abs] = src; }
                         var outPage = output.AddPage(src.Pages[page.PdfPageIndex]);
                         if (exportMode != 1 && strokes.Count > 0) { 
-                            var gfx = XGraphics.FromPdfPage(outPage, XGraphicsPdfPageOptions.Append); double sx = outPage.Width.Point / (page.PdfWidth > 0 ? page.PdfWidth : outPage.Width.Point); double sy = outPage.Height.Point / (page.PdfHeight > 0 ? page.PdfHeight : outPage.Height.Point); DrawStrokes(gfx, strokes, sx, sy); gfx.Dispose(); 
+                            var gfx = XGraphics.FromPdfPage(outPage, XGraphicsPdfPageOptions.Append); double sx = outPage.Width.Point / (page.PdfWidth > 0 ? page.PdfWidth : outPage.Width.Point); double sy = outPage.Height.Point / (page.PdfHeight > 0 ? page.PdfHeight : outPage.Height.Point); DrawStrokes(gfx, strokes, sx, sy, optimize); gfx.Dispose(); 
                         }
                     } else if (page.Kind == "Image" && !string.IsNullOrEmpty(page.ImageFileName)) {
                         double w = page.ImageWidth > 0 ? page.ImageWidth : 1123; double h = page.ImageHeight > 0 ? page.ImageHeight : 794; var outPage = output.AddPage(); outPage.Width = XUnit.FromPresentation(w); outPage.Height = XUnit.FromPresentation(h); var gfx = XGraphics.FromPdfPage(outPage); gfx.ScaleTransform(72.0 / 96.0, 72.0 / 96.0);
                         if (exportMode != 2) { try { string abs = System.IO.Path.Combine(_root, page.ImageFileName); using (var xImg = XImage.FromFile(abs)) { gfx.DrawImage(xImg, 0, 0, w, h); } } catch { } }
-                        if (exportMode != 1 && strokes.Count > 0) DrawStrokes(gfx, strokes, 1.0, 1.0); gfx.Dispose();
+                        if (exportMode != 1 && strokes.Count > 0) DrawStrokes(gfx, strokes, 1.0, 1.0, optimize); gfx.Dispose();
                     } else {
                         double w, h; 
                         if (page.CustomPageWidth > 0) { w = page.CustomPageWidth; h = page.CustomPageHeight; }
@@ -1671,16 +1674,36 @@ namespace TeachingAnnotator
                                 c = 1; for (double y = gap/4; y < h; y += gap/4, c++) gfx.DrawLine(c%4==0 ? majorPen : minorPen, 0, y, w, y);
                             }
                         }
-                        if (exportMode != 1 && strokes.Count > 0) DrawStrokes(gfx, strokes, 1.0, 1.0); gfx.Dispose();
+                        if (exportMode != 1 && strokes.Count > 0) DrawStrokes(gfx, strokes, 1.0, 1.0, optimize); gfx.Dispose();
                     }
                 }
+                
+                if (optimize) {
+                    output.Options.FlateEncodeMode = PdfFlateEncodeMode.BestCompression;
+                    output.Options.UseFlateDecoderForContentStreams = true;
+                    output.Options.NoCompression = false;
+                }
+                
                 output.Save(dlg.FileName); MessageBox.Show("Exported successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             } catch (Exception ex) { MessageBox.Show("Export failed: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
-        private void DrawStrokes(XGraphics gfx, StrokeCollection strokes, double sx, double sy) {
+        private void DrawStrokes(XGraphics gfx, StrokeCollection strokes, double sx, double sy, bool optimize) {
             foreach (Stroke stroke in strokes) {
-                var col = stroke.DrawingAttributes.Color; double thick = stroke.DrawingAttributes.Width * sx; var pts = stroke.StylusPoints; if (pts.Count <= 1) continue;
+                var col = stroke.DrawingAttributes.Color; double thick = stroke.DrawingAttributes.Width * sx; var rawPts = stroke.StylusPoints; if (rawPts.Count <= 1) continue;
+                
+                var pts = new List<StylusPoint>();
+                pts.Add(rawPts[0]);
+                for (int j = 1; j < rawPts.Count - 1; j++) {
+                    if (optimize) {
+                        double dx = rawPts[j].X - pts.Last().X;
+                        double dy = rawPts[j].Y - pts.Last().Y;
+                        if (Math.Sqrt(dx*dx + dy*dy) < 1.5) continue;
+                    }
+                    pts.Add(rawPts[j]);
+                }
+                pts.Add(rawPts[rawPts.Count - 1]);
+                
                 if (stroke.DrawingAttributes.IsHighlighter || stroke.DrawingAttributes.IgnorePressure) {
                     XColor color = XColor.FromArgb(stroke.DrawingAttributes.IsHighlighter ? Math.Max(20, col.A / 3) : col.A, col.R, col.G, col.B);
                     XGraphicsPath path = new XGraphicsPath(); path.StartFigure(); path.AddLine(pts[0].X * sx, pts[0].Y * sy, pts[1].X * sx, pts[1].Y * sy); for (int j = 1; j < pts.Count - 1; j++) path.AddLine(pts[j].X * sx, pts[j].Y * sy, pts[j+1].X * sx, pts[j+1].Y * sy);
