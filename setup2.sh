@@ -259,6 +259,17 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                                 <CheckBox x:Name="StrokeEraserToggle" Content="Stroke Eraser (vs Point)" IsChecked="True" Foreground="White" Margin="0,4" Checked="Setting_Changed" Unchecked="Setting_Changed"/>
                                 <CheckBox x:Name="PenOnlyToggle" Content="Strict Palm Rejection" IsChecked="True" Foreground="White" Margin="0,4" Checked="Setting_Changed" Unchecked="Setting_Changed"/>
                                 
+                                <TextBlock Text="INK OPACITY (FAINTNESS FIX)" Foreground="#94A3B8" FontSize="10" FontWeight="Bold" Margin="0,16,0,8"/>
+                                <CheckBox x:Name="EnableInkOpacityToggle" Content="Override Ink Opacity" Foreground="White" Margin="0,4" Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+                                <Grid Margin="0,6">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Opacity Level (%)" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <Slider x:Name="InkOpacitySlider" Minimum="10" Maximum="100" Value="100" Width="80" VerticalAlignment="Center" ValueChanged="Setting_Changed"/>
+                                        <TextBox x:Name="InkOpacityInput" Text="{Binding Value, ElementName=InkOpacitySlider, UpdateSourceTrigger=PropertyChanged, StringFormat=F0}" Width="36" Padding="4" Background="Transparent" Foreground="White" BorderThickness="0" TextAlignment="Center" TextChanged="Setting_Changed"/>
+                                    </StackPanel>
+                                </Grid>
+
                                 <TextBlock Text="LASER CONFIG &amp; GLOW" Foreground="#94A3B8" FontSize="10" FontWeight="Bold" Margin="0,16,0,8"/>
                                 <CheckBox x:Name="LaserPermanentToggle" Content="Permanent Laser" Foreground="White" Margin="0,4" Checked="Setting_Changed" Unchecked="Setting_Changed"/>
                                 <Grid Margin="0,6">
@@ -277,7 +288,14 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                                 </Grid>
                                 <Grid Margin="0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Grid.Column="0" Text="Hold (sec)" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/><Border Grid.Column="1" Background="#09090B" CornerRadius="4"><TextBox x:Name="LaserHoldInput" Text="1.2" Width="48" Padding="4" Background="Transparent" Foreground="White" BorderThickness="0" TextAlignment="Center" TextChanged="Setting_Changed"/></Border></Grid>
                                 <Grid Margin="0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Grid.Column="0" Text="Fade (sec)" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/><Border Grid.Column="1" Background="#09090B" CornerRadius="4"><TextBox x:Name="LaserFadeInput" Text="0.6" Width="48" Padding="4" Background="Transparent" Foreground="White" BorderThickness="0" TextAlignment="Center" TextChanged="Setting_Changed"/></Border></Grid>
-                                <Grid Margin="0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Grid.Column="0" Text="Glow Radius" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/><Slider x:Name="LaserGlowSlider" Grid.Column="1" Minimum="1" Maximum="50" Value="24" Width="80" ValueChanged="Setting_Changed"/></Grid>
+                                <Grid Margin="0,6">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Glow Radius" Foreground="#94A3B8" VerticalAlignment="Center" FontSize="12"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <Slider x:Name="LaserGlowSlider" Minimum="1" Maximum="50" Value="24" Width="80" VerticalAlignment="Center" ValueChanged="Setting_Changed"/>
+                                        <TextBox x:Name="LaserGlowInput" Text="{Binding Value, ElementName=LaserGlowSlider, UpdateSourceTrigger=PropertyChanged, StringFormat=F0}" Width="36" Padding="4" Background="Transparent" Foreground="White" BorderThickness="0" TextAlignment="Center" TextChanged="Setting_Changed"/>
+                                    </StackPanel>
+                                </Grid>
                             </StackPanel>
                         </Border>
                     </Popup>
@@ -378,10 +396,10 @@ cat > MainWindow.xaml << 'ANYDRAW_EOF'
                 </Border>
             </Grid>
 
-        </Grid>
-    </Grid>
-</Grid>
-</Grid>
+        </Grid> <!-- Closes Grid.Column="1" -->
+    </Grid> <!-- Closes Grid.Row="1" -->
+</Grid> <!-- Closes NotebookView Grid -->
+</Grid> <!-- Closes RootGrid -->
 </Window>
 ANYDRAW_EOF
 
@@ -462,6 +480,8 @@ namespace TeachingAnnotator
         public bool ScribbleEraseEnabled { get; set; } = true;
         public bool LightMode { get; set; } = false;
         public bool HideSystemCursor { get; set; } = true;
+        public bool EnableCustomOpacity { get; set; } = false;
+        public double CustomOpacityValue { get; set; } = 100.0;
     }
     public class UndoAction { public StrokeCollection Added { get; set; } public StrokeCollection Removed { get; set; } }
 
@@ -639,6 +659,9 @@ namespace TeachingAnnotator
             CustomInkHex.Text = _settings.CustomInkHexStr;
             CustomBgHex.Text = _settings.CustomBgHexStr;
 
+            EnableInkOpacityToggle.IsChecked = _settings.EnableCustomOpacity;
+            InkOpacitySlider.Value = _settings.CustomOpacityValue;
+
             if (_settings.ActiveTool == "Pointer") PointerBtn.IsChecked = true;
             else if (_settings.ActiveTool == "Select") SelectBtn.IsChecked = true;
             else if (_settings.ActiveTool == "Highlight") HighlightBtn.IsChecked = true;
@@ -665,6 +688,9 @@ namespace TeachingAnnotator
             _settings.LaserGlowColor = LaserGlowHexInput.Text.Trim();
             _laserCoreColor = SafeColor(_settings.LaserCoreColor, Colors.White);
             _laserGlowColor = SafeColor(_settings.LaserGlowColor, Colors.Red);
+            
+            _settings.EnableCustomOpacity = EnableInkOpacityToggle.IsChecked == true;
+            _settings.CustomOpacityValue = InkOpacitySlider.Value;
             
             if (double.TryParse(LaserHoldInput.Text, out double h)) _settings.LaserHoldDelay = h;
             if (double.TryParse(LaserFadeInput.Text, out double f)) _settings.LaserFadeDuration = f;
@@ -1360,6 +1386,13 @@ namespace TeachingAnnotator
             
             Cursor inkCursor = _settings.HideSystemCursor ? Cursors.None : Cursors.Arrow;
 
+            if (_settings.EnableCustomOpacity) {
+                byte alpha = (byte)(255 * (_settings.CustomOpacityValue / 100.0));
+                active = Color.FromArgb(alpha, active.R, active.G, active.B);
+            }
+            
+            byte hlAlpha = _settings.EnableCustomOpacity ? active.A : (byte)100;
+
             MainInkCanvas.EditingModeInverted = _settings.StrokeEraserEnabled ? InkCanvasEditingMode.EraseByStroke : InkCanvasEditingMode.EraseByPoint;
             
             if (LaserBtn.IsChecked == true) {
@@ -1375,7 +1408,7 @@ namespace TeachingAnnotator
                 else if (PenBtn.IsChecked == true) { MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = active, Width = size, Height = size, FitToCurve = true, IgnorePressure = ignore, StylusTip = StylusTip.Ellipse }; MainInkCanvas.Cursor = inkCursor; }
                 else if (HighlightBtn.IsChecked == true) { 
                     MainInkCanvas.EditingMode = InkCanvasEditingMode.Ink; 
-                    MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = Color.FromArgb(100, active.R, active.G, active.B), Width = size * 3, Height = size * 3, IsHighlighter = true, FitToCurve = true, StylusTip = StylusTip.Ellipse, IgnorePressure = true }; 
+                    MainInkCanvas.DefaultDrawingAttributes = new DrawingAttributes { Color = Color.FromArgb(hlAlpha, active.R, active.G, active.B), Width = size * 3, Height = size * 3, IsHighlighter = true, FitToCurve = true, StylusTip = StylusTip.Ellipse, IgnorePressure = true }; 
                     MainInkCanvas.Cursor = inkCursor;
                 }
                 else if (EraserBtn.IsChecked == true) { MainInkCanvas.EditingMode = _settings.StrokeEraserEnabled ? InkCanvasEditingMode.EraseByStroke : InkCanvasEditingMode.EraseByPoint; if (!_settings.StrokeEraserEnabled) MainInkCanvas.EraserShape = new System.Windows.Ink.EllipseStylusShape(size * 4, size * 4); MainInkCanvas.Cursor = inkCursor; }
